@@ -575,7 +575,7 @@ Config.Streaks = {
 -- Logic only; the looks come from Ui/MomentStyles (one of three, until Claude Design sends its own).
 Config.Moments = {
 	enabled = true,
-	style = "A", -- which entry of Ui/MomentStyles is drawn
+	style = "C", -- which entry of Ui/MomentStyles is drawn
 	bannerSeconds = 2.2, -- how long one banner stays
 	minGapSeconds = 0.3, -- quiet time between two banners
 	queueMax = 3, -- banners waiting behind the one on screen
