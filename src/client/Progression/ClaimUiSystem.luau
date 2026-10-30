@@ -21,6 +21,7 @@ local Ui = require(script.Parent.ProgressUi)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local ClaimUiSystem = {}
+ClaimUiSystem.refresh = function() end
 ClaimUiSystem.order = 220
 
 function ClaimUiSystem.start()
@@ -130,12 +131,30 @@ function ClaimUiSystem.start()
 		end)
 	end
 
+	-- The strip belongs to the results screen: when that screen is not showing (the player tapped MENU,
+	-- or the lobby is up) the strip must go too, or it sits over the lobby buttons.
+	local resultsFrame: GuiObject? = nil
+	local function resultsShowing(): boolean
+		if resultsFrame == nil then
+			local flow = gui.Parent and gui.Parent:FindFirstChild("MatchFlow")
+			local found = if flow then flow:FindFirstChild("Results") else nil
+			if found and found:IsA("GuiObject") then
+				resultsFrame = found
+				found:GetPropertyChangedSignal("Visible"):Connect(function()
+					ClaimUiSystem.refresh()
+				end)
+			end
+		end
+		return resultsFrame ~= nil and resultsFrame.Visible
+	end
+
 	local function refresh()
 		local state = ProgressClient.get()
 		trackSlot.Visible = phase == MatchPhase.Waiting
 		local inResults = (phase == MatchPhase.Finished or phase == MatchPhase.Results)
 			and resultsMatch == matchId
 			and state ~= nil
+			and resultsShowing()
 		strip.Visible = inResults
 		note.Visible = false
 		if not inResults or state == nil then
@@ -187,6 +206,7 @@ function ClaimUiSystem.start()
 		refresh()
 	end)
 	ProgressClient.Changed:connect(refresh)
+	ClaimUiSystem.refresh = refresh
 	refresh()
 end
 
