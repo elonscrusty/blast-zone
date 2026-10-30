@@ -244,7 +244,7 @@ Config.Weapons = {
 -- knobs around them. Heroes are all free and never bought: a hero is a sidegrade, never simply stronger.
 Config.Heroes = {
 	-- How far heroes differ from the plain 100 health / normal speed. 0 = all the same, 1 = as written.
-	-- Placeholder until carter picks: small 0.5, medium 1, big 1.5.
+	-- carter picked B Medium (small 0.5, medium 1, big 1.5). Health ends up 80 to 135.
 	spread = 1,
 	healthMin = 60, -- no hero ends up outside these, whatever the spread says
 	healthMax = 160,
