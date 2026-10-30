@@ -6,7 +6,9 @@ local Harness = require("./harness")
 
 require("./save_retry.test")
 require("./config.test")
-require("./guard.test")
 require("./core.test")
+require("./guard.test")
+require("./match_controller.test")
+require("./match_rules.test")
 
 Harness.summary()

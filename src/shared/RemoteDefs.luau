@@ -83,7 +83,11 @@ local Defs: { Def } = {
 	ask("05", "ClaimResults", { { name = "matchId", kind = "integer", min = 0 } }, 1, 2),
 	ask("05", "SpectateCycle", { { name = "step", kind = "integer", min = -1, max = 1 } }, 4, 4),
 	tell("05", "MatchState", "PublicMatchState"),
-	tell("05", "Eliminated", "{ victimId, killerId?, cause, placement, matchId }"),
+	tell(
+		"05",
+		"Eliminated",
+		"{ matchId, victimId, victimName, killerId?, killerName?, cause, placement, eliminations, survivedSeconds }"
+	),
 	tell("05", "Announce", "{ kind: 'banner'|'kill'|'win', text: string }"),
 	tell("05", "SpectateTarget", "{ participantId? }"),
 	tell("05", "Results", "ResultsPayload"),

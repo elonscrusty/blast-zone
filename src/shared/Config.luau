@@ -48,6 +48,12 @@ Config.Match = {
 	targetMatchSeconds = 180,
 	-- Two final eliminations closer together than this are a draw (both rank 1).
 	simultaneousEliminationWindow = 0.1,
+	-- Piece 05 extras
+	settleSeconds = 0.3, -- after the last rival falls, a shot already in flight can still land
+	resultsMinSeconds = 3, -- results stay up at least this long, even if everyone taps Play again at once
+	finalPressureAliveCount = 2, -- Final pressure starts when this few are left...
+	finalPressureAtSeconds = 150, -- ...or this long after Active begins (the zone's last warning does it too)
+	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw
 }
 
 -- Written-down answers to the brief's "define a policy" questions. Code reads these names.
