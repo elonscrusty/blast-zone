@@ -126,6 +126,74 @@ Config.Weapons = {
 		warnSeconds = 0.5, -- landing marker shows before the blast
 		selfDamageScale = 0.5,
 	},
+	-- Guns found in supply containers. Picking one up replaces the slot 1 gun (full magazine) until
+	-- another is picked up; the old one (unless it is the Volt Pistol) drops where you stand.
+	-- Upgrades scale these the same way they scale the pistol (see Combat/WeaponCatalog).
+	Guns = {
+		breaker = { -- pump shotgun: huge up close, nothing far away
+			id = "breaker",
+			displayName = "Breaker",
+			damage = 7, -- per pellet
+			pellets = 6,
+			spreadDegrees = 14,
+			fireInterval = 0.9,
+			magazine = 6,
+			reloadSeconds = 2.2,
+			range = 26,
+			muzzleOffset = 4.4,
+		},
+		hornet = { -- SMG: small hits, very fast, a little spray
+			id = "hornet",
+			displayName = "Hornet",
+			damage = 5,
+			pellets = 1,
+			spreadDegrees = 5,
+			fireInterval = 1 / 11,
+			magazine = 30,
+			reloadSeconds = 1.8,
+			range = 45,
+			muzzleOffset = 3.6,
+		},
+		longline = { -- marksman rifle: slow, big hits, longest reach (still on screen)
+			id = "longline",
+			displayName = "Longline",
+			damage = 34,
+			pellets = 1,
+			spreadDegrees = 0,
+			fireInterval = 1.25,
+			magazine = 5,
+			reloadSeconds = 2.2,
+			range = 80,
+			muzzleOffset = 6.9,
+		},
+	} :: {
+		[string]: {
+			id: string,
+			displayName: string,
+			damage: number,
+			pellets: number,
+			spreadDegrees: number,
+			fireInterval: number,
+			magazine: number,
+			reloadSeconds: number,
+			range: number,
+			muzzleOffset: number,
+		},
+	},
+	-- Gun drops from broken supply containers. Odds: `chance` that a container drops a gun at all,
+	-- then each gun by weight (equal weights = 1 in 3 each). Nothing is bought; drops are free.
+	Drops = {
+		chance = 0.35,
+		order = { "breaker", "hornet", "longline" }, -- fixed order so a roll always maps the same way
+		weights = { breaker = 1, hornet = 1, longline = 1 } :: { [string]: number },
+		lifetimeSeconds = 30,
+		maxActive = 6, -- whole server; the oldest goes first
+		promptDistance = 7, -- studs: the swap button shows this close
+		claimSlack = 1.5, -- extra studs the server forgives for lag
+		swapCooldown = 0.6, -- seconds between two swaps by one fighter (no ping-pong)
+		height = 1.2, -- gun centre above the floor
+		folder = "WeaponDrops", -- Workspace folder for guns on the ground
+	},
 }
 
 -- Piece 03 only. Everything about how shots and health behave that is not a weapon stat.

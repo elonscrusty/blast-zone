@@ -150,6 +150,17 @@ function HudModel.applyAmmo(
 			m.reloadSeconds = w.reloadSeconds
 		end
 	end
+	-- Found guns (not in config.weapons) come with their own name, slot and reload time.
+	local extra: any = p
+	if type(extra.weaponName) == "string" then
+		m.weaponName = extra.weaponName
+	end
+	if finite(extra.slot) and extra.slot >= 1 then
+		m.slot = extra.slot
+	end
+	if finite(extra.reloadSeconds) and extra.reloadSeconds > 0 then
+		m.reloadSeconds = extra.reloadSeconds
+	end
 	m.ammo = math.clamp(p.ammo, 0, p.magazine)
 	m.magazine = p.magazine
 	m.reloadEndsAt = if finite(p.reloadEndsAt) then p.reloadEndsAt else nil
