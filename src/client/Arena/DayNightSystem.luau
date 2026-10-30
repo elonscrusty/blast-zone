@@ -174,11 +174,12 @@ function DayNightSystem.start()
 	end)
 	Net.send("ZoneStateRequest") -- we may have joined mid-match
 
-	local t = settings.lobbyT
+	local t = settings.fixedT or settings.lobbyT
 	applyLook(DayNight.look(t))
 	RunService.RenderStepped:Connect(function(dt: number)
 		local now = workspace:GetServerTimeNow()
-		local target = DayNight.targetT(live, matchStart, now, zone, settings.lobbyT)
+		local target =
+			DayNight.targetT(live, matchStart, now, zone, settings.lobbyT, settings.fixedT)
 		t = DayNight.follow(t, target, dt, settings.maxChangePerSecond)
 		local look = DayNight.look(t)
 		applyLook(look)

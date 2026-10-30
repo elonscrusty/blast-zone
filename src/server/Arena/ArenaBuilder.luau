@@ -17,11 +17,11 @@ export type Built = { folder: Folder, layout: Layout.Layout }
 
 local GROUND = {
 	sidewalk = Pal.Pavement,
-	road = "#2E3B4E",
+	road = "#2C3568",
 	park = Pal.ParkGreen,
-	alley = "#566175",
-	lot = "#A49476",
-	floor = "#66728A",
+	alley = "#4A5496",
+	lot = "#7A7FC0",
+	floor = "#3A4272",
 }
 -- Visual layers sit a hair above each other so flat tops never fight.
 local LAYER = { sidewalk = 0, lot = 0.05, park = 0.05, alley = 0.08, road = 0.1, floor = 0.12 }
@@ -31,7 +31,7 @@ local SOLID = {
 	wall = "#E3E8EF",
 	partition = "#CBD3DE",
 	cover = "#B98558",
-	prop = "#4E7A3A",
+	prop = "#2F9A74",
 	water = "#4E9BC9",
 	fence = "#DCE3EA",
 	boundary = Pal.Navy,

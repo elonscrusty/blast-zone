@@ -52,5 +52,6 @@ require("./map_rotation.test")
 require("./streaks.test")
 require("./art.test")
 require("./daynight.test")
+require("./outline.test")
 
 Harness.summary()
