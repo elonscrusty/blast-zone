@@ -33,6 +33,7 @@ Layout.regions = {
 	fireStick = { x = 630, y = 210, w = 126, h = 126 } :: Rect,
 	slide = { x = 690, y = 138, w = 60, h = 60 } :: Rect,
 	reload = { x = 578, y = 208, w = 50, h = 50 } :: Rect,
+	heal = { x = 24, y = 148, w = 52, h = 52 } :: Rect, -- piece 42: use a heal pack; above the move stick
 	settings = { x = 16, y = 80, w = 44, h = 44 } :: Rect, -- gear; just under 48 so it stays out of the way
 	-- Upgrade pick chips (only drawn while an offer is up): a row above the aim thumb that mirrors
 	-- the three cards, so a pick never needs the move thumb. Over the open street, not the card band.
@@ -56,6 +57,7 @@ Layout.circles = {
 	fireStick = true,
 	slide = true,
 	reload = true,
+	heal = true,
 	chip1 = true,
 	chip2 = true,
 	chip3 = true,
@@ -63,7 +65,7 @@ Layout.circles = {
 
 -- What counts as a thumb target (must be 48 points or more, and clear of the cards band).
 Layout.touchTargets =
-	{ "moveStick", "fireStick", "slide", "reload", "weapon", "chip1", "chip2", "chip3" }
+	{ "moveStick", "fireStick", "slide", "reload", "heal", "weapon", "chip1", "chip2", "chip3" }
 
 -- Which chip rect to place chip `index` with, so the numbers still read 1 2 3 from left to right
 -- when the whole control set is mirrored for left-handed play.

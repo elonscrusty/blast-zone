@@ -22,6 +22,8 @@ Bindings.actions = {
 		touch = "weapon",
 		label = "Swap weapon",
 	},
+	-- Heal pack (piece 42). Q is already Swap here, so F; the pad uses D-pad Down (Left/Up/Right are the cards).
+	heal = { keyboard = { "F" }, gamepad = { "DPadDown" }, touch = "heal", label = "Use heal pack" },
 	-- Upgrade picks. The card interface (piece 08) listens for these and also has tap targets.
 	upgrade1 = {
 		keyboard = { "One" },
@@ -44,7 +46,7 @@ Bindings.actions = {
 } :: { [string]: Binding }
 
 -- Stable order for UI lists and tests.
-Bindings.actionOrder = { "slide", "reload", "swap", "upgrade1", "upgrade2", "upgrade3" }
+Bindings.actionOrder = { "slide", "reload", "swap", "heal", "upgrade1", "upgrade2", "upgrade3" }
 
 Bindings.held = {
 	moveKeys = {

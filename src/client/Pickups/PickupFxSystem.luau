@@ -17,6 +17,7 @@ local Config = require(Shared.Config)
 
 local Net = require(script.Parent.Parent.Core.Net)
 local Fx = require(script.Parent.Parent.Effects.Fx)
+local LootClient = require(script.Parent.Parent.Loot.LootClient)
 
 local PickupFxSystem = {}
 
@@ -86,6 +87,11 @@ local function onRemoved(payload: any)
 	end
 	-- Taken by us (the server says who) shows the XP; taken by someone else is a small pop.
 	local mine = payload.collectedBy == "p" .. tostring(localPlayer.UserId)
+	if payload.kind == "heal" then
+		-- A heal pack taken (the picker's own text comes from LootState).
+		Fx.orb(payload.pos, mine, nil)
+		return
+	end
 	Fx.orb(payload.pos, mine, if mine then Config.Xp.rewards.orbPickup else nil)
 end
 
@@ -108,7 +114,9 @@ local function step()
 			orbs[part] = nil
 		else
 			local position = orb.base + Vector3.new(0, 0.5 * math.sin(clock * 3 + orb.phase), 0)
-			if rootPosition then
+			-- A full heal-pack bag: leave the pack alone (no lean, no asking).
+			local skip = part:GetAttribute("Kind") == "heal" and LootClient.isFull()
+			if rootPosition and not skip then
 				local reservedFor = part:GetAttribute("ReservedFor")
 				local reservedUntil = part:GetAttribute("ReservedUntil")
 				local mine = reservedFor == nil

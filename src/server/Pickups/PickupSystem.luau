@@ -21,6 +21,7 @@ local Participants = require(script.Parent.Parent.Core.Participants)
 local RunXp = require(script.Parent.Parent.Core.RunXp)
 local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 
+local HealPacks = require(script.Parent.Parent.Loot.HealPacks)
 local ContainerRules = require(script.Parent.ContainerRules)
 local PickupRules = require(script.Parent.PickupRules)
 
@@ -29,10 +30,11 @@ PickupSystem.order = 100
 
 local TAG = "Pickup"
 
-type Record = { part: BasePart, data: PickupRules.Pickup }
+type Record = { part: BasePart, data: PickupRules.Pickup, kind: string } -- kind: "xp" or "heal"
 
 local records: { [string]: Record } = {}
-local oldestFirst: { string } = {}
+local oldestFirst: { string } = {} -- XP orbs only (they are the ones that crowd the cap)
+local healOldest: { string } = {}
 local nextNumber = 0
 local folder: Folder? = nil
 local sinceCheck = 0
@@ -59,13 +61,17 @@ local function remove(id: string, collectedBy: string?)
 		return
 	end
 	records[id] = nil
-	local at = table.find(oldestFirst, id)
+	local list = if record.kind == "heal" then healOldest else oldestFirst
+	local at = table.find(list, id)
 	if at then
-		table.remove(oldestFirst, at)
+		table.remove(list, at)
 	end
 	local position = record.part.Position
 	record.part:Destroy()
-	Net.fireAll("PickupRemoved", { pickupId = id, collectedBy = collectedBy, pos = position })
+	Net.fireAll(
+		"PickupRemoved",
+		{ pickupId = id, collectedBy = collectedBy, pos = position, kind = record.kind }
+	)
 end
 
 -- Drops `count` orbs on a ring around `floorPoint`. `reservedFor` gets first claim for a short time.
@@ -105,6 +111,7 @@ function PickupSystem.spawnOrbs(floorPoint: Vector3, count: number, reservedFor:
 
 		records[id] = {
 			part = part,
+			kind = "xp",
 			data = {
 				id = id,
 				matchId = matchId,
@@ -117,6 +124,71 @@ function PickupSystem.spawnOrbs(floorPoint: Vector3, count: number, reservedFor:
 		table.insert(oldestFirst, id)
 		Net.fireAll("PickupSpawned", { pickupId = id, kind = "xp", pos = part.Position })
 	end
+end
+
+-- Puts one heal pack on the floor at `floorPoint` (piece 42). Packs wait Config.Loot.heal.lifetimeSeconds,
+-- are claimed by the same rules as orbs, and only count against their own cap.
+function PickupSystem.spawnHeal(floorPoint: Vector3): string?
+	local cfg = Config.Loot.heal
+	if not MatchContext:isCombat() and MatchContext:getPhase() ~= "Spawning" then
+		return nil
+	end
+	local matchId = MatchContext:getMatchId()
+	local now = os.clock()
+	local serverNow = Workspace:GetServerTimeNow()
+	while #healOldest >= cfg.maxOnFloor do
+		remove(healOldest[1], nil)
+	end
+	nextNumber += 1
+	local id = `h{matchId}_{nextNumber}`
+	local part = Instance.new("Part")
+	part.Name = "HealPack"
+	part.Size = Vector3.new(cfg.size, cfg.size, cfg.size)
+	part.Material = Enum.Material.Neon
+	part.Color = Color3.fromHex(cfg.color)
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Position = floorPoint + Vector3.new(0, Config.Pickups.orbHeight + 0.5, 0)
+	part:SetAttribute("PickupId", id)
+	part:SetAttribute("Kind", "heal")
+	part:SetAttribute("ExpiresAt", serverNow + cfg.lifetimeSeconds)
+	part:SetAttribute("ReservedFor", "")
+	part:SetAttribute("ReservedUntil", 0)
+	-- Placeholder look: a white plus that always faces the camera. Claude Design owns the real one.
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Plus"
+	gui.Size = UDim2.fromScale(cfg.size * 1.4, cfg.size * 1.4)
+	gui.AlwaysOnTop = false
+	gui.LightInfluence = 0
+	local plus = Instance.new("TextLabel")
+	plus.BackgroundTransparency = 1
+	plus.Size = UDim2.fromScale(1, 1)
+	plus.Text = "+"
+	plus.Font = Enum.Font.GothamBlack
+	plus.TextScaled = true
+	plus.TextColor3 = Color3.fromHex(cfg.crossColor)
+	plus.Parent = gui
+	gui.Parent = part
+	part:AddTag(TAG)
+	part.Parent = getFolder()
+	records[id] = {
+		part = part,
+		kind = "heal",
+		data = {
+			id = id,
+			matchId = matchId,
+			expiresAt = now + cfg.lifetimeSeconds,
+			reservedFor = nil,
+			reservedUntil = 0,
+			claimed = false,
+		},
+	}
+	table.insert(healOldest, id)
+	Net.fireAll("PickupSpawned", { pickupId = id, kind = "heal", pos = part.Position })
+	return id
 end
 
 -- The one place a claim is decided, for players (PickupRequest) and bots. `position` is where the
@@ -148,8 +220,15 @@ function PickupSystem.tryClaim(
 	if not ok then
 		return false, reason
 	end
+	if record.kind == "heal" then
+		-- A full bag leaves the pack where it is (nothing is claimed).
+		if not HealPacks.add(participantId) then
+			return false, "full"
+		end
+	else
+		RunXp:award(participantId, "orbPickup")
+	end
 	record.data.claimed = true
-	RunXp:award(participantId, "orbPickup")
 	remove(pickupId, participantId)
 	return true, nil
 end
@@ -163,6 +242,7 @@ function PickupSystem.clear()
 	end
 	table.clear(records)
 	table.clear(oldestFirst)
+	table.clear(healOldest)
 	for _, leftover in CollectionService:GetTagged(TAG) do
 		leftover:Destroy()
 	end

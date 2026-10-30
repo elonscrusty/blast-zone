@@ -183,6 +183,14 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== 42 loot: heal packs =====
+	ask("42", "UseHealRequest", {}, 3, 3),
+	tell(
+		"42",
+		"LootState",
+		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
+	),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
