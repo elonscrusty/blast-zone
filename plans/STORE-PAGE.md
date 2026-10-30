@@ -7,11 +7,15 @@ The game name is still the placeholder `Circuit District` (`Config.Game.Name`).
 
 | Idea | Icon (512x512) | Thumbnail (1920x1080) | What it shows |
 | --- | --- | --- | --- |
-| A Hero Shot ⭐ | `icon-A.png` | `thumb-A.png` | Your fighter aiming the A++ pistol, Neon Night street, Crash Dummy bot behind |
+| C1 Showdown ⭐ | `icon-C1.png` | `thumb-C1.png` | Game view, closer: you slide and fire, a bot blows apart, wall closing |
+| C2 Last Two | `icon-C2.png` | `thumb-C2.png` | Sudden death: you vs the last bot, red wall almost shut, sparks |
+| C3 Loot Rush | `icon-C3.png` | `thumb-C3.png` | Gold crate bursts open, you dash for it, bots chase |
+| A Hero Shot | `icon-A.png` | `thumb-A.png` | Your fighter aiming the A++ pistol, Neon Night street, Crash Dummy bot behind |
 | B Gun Glow | `icon-B.png` | `thumb-B.png` | The A++ pistol firing up close, brass flying, a bot down the street |
 | C Zone Closing | `icon-C.png` | `thumb-C.png` | The game camera: you vs 3 Crash Dummies, red zone wall, crates, XP orbs |
 
-- Pick ONE icon. Use all three thumbnails: the picked one first, the others after it.
+- carter liked C but wanted it cooler, so C1-C3 are the cooler takes. Pick ONE icon.
+- Use 3 or more thumbnails: the picked one first, the others after it.
 - Thumbnails say "Neon Lockdown". If you keep another name, open `art/store/preview.html`,
   tap the name, and ask a thread to re-render the PNGs.
 - All art is built from the game's own looks (gun parts copied from `src/client/Combat/GunModels.luau`,
