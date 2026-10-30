@@ -29,6 +29,7 @@ function RunXp.new(cfg: XpConfig): any
 		_state = {} :: { [string]: State },
 		Changed = Signal.new(), -- (participantId, State)
 		LevelUp = Signal.new(), -- (participantId, newLevel, pendingOffers)
+		Awarded = Signal.new(), -- (participantId, reason): after an award counted (daily challenges listen)
 	}, RunXp)
 end
 
@@ -88,6 +89,7 @@ function RunXp.award(self: any, id: string, reason: string): State?
 		self.LevelUp:fire(id, st.level, st.pendingOffers)
 	end
 	self.Changed:fire(id, st)
+	self.Awarded:fire(id, reason)
 	return st
 end
 

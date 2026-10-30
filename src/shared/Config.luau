@@ -328,6 +328,14 @@ Config.Progression = {
 	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
 }
 
+-- Piece 25: daily challenges. Three a day (one easy, one medium, one hard), the same for everyone, new at
+-- midnight UTC. They pay in the game's coin (Config.Rewards.currencyName). The list is in shared/Daily/DailyDefs.
+Config.Daily = {
+	resetHourUtc = 0, -- the new day starts at this hour (UTC)
+	rewards = { easy = 20, medium = 35, hard = 50 },
+	look = "A", -- challenge board look: "A" Sticker Stack, "B" Ticket Row, "C" Big Board (DailyLooks)
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,
