@@ -7,7 +7,7 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | Piece | Owns (create files only here) |
 | --- | --- |
 | 01 | `src/shared/*` (except what is noted), `src/server/Core/`, `src/client/Core/`, `Main.*.luau`, `default.project.json`, `tests/{harness,run,config,guard,core}*` |
-| 02 | `src/server/Movement/`, `src/client/Movement/`, `tests/movement*.test.luau` |
+| 02 | `src/server/Movement/`, `src/client/Movement/`, `src/shared/Movement/` (slide/camera maths used by both sides), `tests/movement*.test.luau`; may add keys inside `Config.Movement`, `Config.Camera`, `Config.Slide` only |
 | 03 | `src/server/Combat/`, `src/client/Combat/`, `tests/combat*.test.luau` |
 | 04 | `src/server/Arena/`, `src/client/Arena/`, and may add a `ServerStorage` mapping to `default.project.json` |
 | 05 | `src/server/Match/`, `src/client/Match/` |
