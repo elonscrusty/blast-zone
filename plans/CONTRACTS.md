@@ -40,6 +40,7 @@ One failing system never stops the others. No need to edit `Main.*.luau`.
 - Same folder / pure shared code: `require("./Name")` (Roblox require-by-string; Lune tests use the same text).
 - From server or client code: `local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")` then `require(Shared.Config)`.
 - Server core: `require(script.Parent.Parent.Core.Damage)` style, or `ServerScriptService.Server.Core`.
+- Selene accepts these string requires because of `luau_require.yml` + `std = "luau_require+roblox"` in `selene.toml` (commit 3b79613). Your branch must contain that commit (merge the piece 01 branch) or CI shows `require` errors. Do not change `selene.toml`.
 - Keep pure logic in files that need no Roblox services so `lune run tests/run` can test them.
 
 ## Remotes (`shared/RemoteDefs.luau`)
