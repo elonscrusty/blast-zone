@@ -9,6 +9,7 @@ require("./bots.test")
 require("./bots_smart.test")
 require("./character_looks.test")
 require("./character_pose.test")
+require("./chest.test")
 require("./combat.test")
 require("./anticheat.test")
 

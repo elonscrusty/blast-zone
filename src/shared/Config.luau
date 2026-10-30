@@ -977,6 +977,16 @@ Config.Daily = {
 	rewards = { easy = 20, medium = 35, hard = 50 },
 }
 
+-- Gap 19: chests with a reveal. Free, earned by playing (never bought, never Robux). First place gives a Neon Chest,
+-- top 3 a Street Chest, and every `meterGoal`th finished match a Street Chest too. What can come out, and the odds
+-- (shown on the chest screen before anything is opened), are in shared/Chest/ChestDefs.
+Config.Chest = {
+	maxStored = 20, -- chests of one kind a player can hold; more are not given (the meter waits)
+	meterGoal = 4,
+	revealStyle = "A", -- "A" Lid Pop (carter picked), "B" Drop Burst, "C" Card Flip stay as skins (ChestReveal.styles)
+	reduceMotionStyle = "B", -- the quick one, used when the player turned on reduce flashes
+}
+
 -- Piece 48: weekly missions, achievements and login days. All pay Scrap (Config.Rewards.currencyName), claimed
 -- with a button. Weeks start on Monday at Config.Daily.resetHourUtc. Lists: shared/Missions/MissionDefs.
 Config.Missions = {

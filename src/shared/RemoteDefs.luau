@@ -178,6 +178,11 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== G19 chests with a reveal =====
+	ask("G19", "ChestRequest", {}, 1, 2), -- a client asks for its chests (the server also sends them unasked)
+	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
+	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
+
 	-- ===== video 3 gap 18: Scrap Shop =====
 	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
 	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
