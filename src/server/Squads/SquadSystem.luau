@@ -137,6 +137,9 @@ local function sendSquadStateAll()
 end
 
 function SquadSystem.start()
+	if not Config.Squads.enabled then
+		return -- Solo only: no vote, no teams, nothing is sent
+	end
 	-- Friendly fire is off in a squad match. The zone has no source, and hurting yourself is still allowed.
 	Damage:addGuard(function(req)
 		if Squads:blocksDamage(req.sourceId, req.targetId, Config.Squads.friendlyFire) then

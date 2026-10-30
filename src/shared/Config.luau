@@ -79,7 +79,7 @@ Config.MapVote = {
 -- then bots. Teammates cannot hurt each other (self damage still counts), the zone still hurts everyone.
 -- A squad is out when all of its members are out; the last squad standing wins.
 Config.Squads = {
-	enabled = true,
+	enabled = false, -- carter: "Solo only for now" (2026-10-30). Turn on to show the vote and seat squads.
 	modes = {
 		{ id = "solo", name = "Solo", size = 1 },
 		{ id = "duo", name = "Duo", size = 2 },

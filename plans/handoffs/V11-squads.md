@@ -1,4 +1,5 @@
 # V11 Squads: duo and trio (video 3 gap #11)
+- OFF for now: carter picked "Solo only for now". `Config.Squads.enabled = false` hides the vote and seats no teams. Flip it to true to turn squads on.
 - Done: Solo / Duo / Trio. Players vote in the lobby (same window as the map vote); the server counts and picks. Nobody voted = Solo (`Config.Squads.defaultMode`).
 - Seating (pure, tested, `src/shared/Squads/SquadBook.luau`): friends who joined each other stay together, loose people fill open seats, bots fill the rest. Fewer than 2 squads possible (2 people in Duo) = plays Solo. Trio with 4 people becomes duos.
 - Server: `src/server/Squads/SquadSystem.luau` (vote, parties, damage guard, tells each human their squad). `Core/Squads` is the one book. `SocialSystem.Joined` tells it who came for whom.
