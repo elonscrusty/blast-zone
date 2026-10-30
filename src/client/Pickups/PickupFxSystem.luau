@@ -6,7 +6,6 @@
 --     (PickupRequest). The server checks distance, phase and who got there first.
 
 local CollectionService = game:GetService("CollectionService")
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -17,6 +16,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 
 local Net = require(script.Parent.Parent.Core.Net)
+local Fx = require(script.Parent.Parent.Effects.Fx)
 
 local PickupFxSystem = {}
 
@@ -24,11 +24,8 @@ local ORB_TAG = "Pickup"
 local BLINK_SECONDS = 5 -- orbs blink this long before they vanish
 local ASK_SECONDS = 0.15 -- least time between two PickupRequests
 local RE_ASK_SECONDS = 0.4 -- least time before asking for the same orb again
-local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
-local BURST_SIZE = { common = 12, rare = 18, epic = 30 }
 
 local localPlayer = Players.LocalPlayer
-local liveEffects = 0
 
 -- Containers and orbs seen so far, by the ids the server uses in its messages.
 type Seen = { part: BasePart, tier: string, base: Color3 }
@@ -36,40 +33,6 @@ local containers: { [string]: Seen } = {}
 type Orb = { base: Vector3, phase: number, askedAt: number }
 local orbs: { [BasePart]: Orb } = {}
 local lastAsk = 0
-
-local function emit(position: Vector3, count: number, speed: number, first: Color3, second: Color3)
-	if liveEffects >= Config.Perf.maxLiveEffects then
-		return
-	end
-	liveEffects += 1
-	local anchor = Instance.new("Part")
-	anchor.Anchored = true
-	anchor.CanCollide = false
-	anchor.CanQuery = false
-	anchor.CanTouch = false
-	anchor.Transparency = 1
-	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
-	anchor.Position = position
-
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Texture = SPARKLE
-	emitter.Rate = 0
-	emitter.Lifetime = NumberRange.new(0.4, 0.7)
-	emitter.Speed = NumberRange.new(speed * 0.6, speed)
-	emitter.SpreadAngle = Vector2.new(180, 180)
-	emitter.Size =
-		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0) })
-	emitter.Color = ColorSequence.new(first, second)
-	emitter.LightEmission = 0.6
-	emitter.Parent = anchor
-	anchor.Parent = Workspace
-	emitter:Emit(count)
-
-	Debris:AddItem(anchor, 1.2)
-	task.delay(1.2, function()
-		liveEffects -= 1
-	end)
-end
 
 local function seeContainer(inst: Instance)
 	if not inst:IsA("BasePart") then
@@ -98,6 +61,7 @@ local function onHit(payload: any)
 	end
 	seen.part.Color = Color3.fromHex(Config.Containers.flashColor)
 	TweenService:Create(seen.part, TweenInfo.new(0.15), { Color = seen.base }):Play()
+	Fx.containerHit(seen.part.Position + Vector3.new(0, seen.part.Size.Y / 2, 0), seen.tier)
 end
 
 local function onBroken(payload: any)
@@ -107,16 +71,16 @@ local function onBroken(payload: any)
 	local seen = containers[payload.containerId]
 	containers[payload.containerId] = nil
 	local tier = if seen then seen.tier else "common"
-	local color = Color3.fromHex(Config.Containers.tiers[tier].color)
-	emit(payload.pos, BURST_SIZE[tier] or 12, 22, Color3.fromHex(Config.Palette.RewardGold), color)
+	Fx.containerBreak(payload.pos, tier)
 end
 
 local function onRemoved(payload: any)
 	if type(payload) ~= "table" or typeof(payload.pos) ~= "Vector3" then
 		return
 	end
-	local gold = Color3.fromHex(Config.Palette.RewardGold)
-	emit(payload.pos, 6, 10, gold, Color3.new(1, 1, 1))
+	-- Taken by us (the server says who) shows the XP; taken by someone else is a small pop.
+	local mine = payload.collectedBy == "p" .. tostring(localPlayer.UserId)
+	Fx.orb(payload.pos, mine, if mine then Config.Xp.rewards.orbPickup else nil)
 end
 
 local function step()

@@ -336,6 +336,45 @@ Config.Perf = {
 	maxDebrisParts = 0, -- containers burst as particles, not physical parts
 }
 
+-- Piece 13 (effects polish). The look is "Sticker Punch" (carter's pick): chunky, bright, outlined in navy,
+-- easy to read on a phone. What each effect is made of lives in `src/client/Effects/EffectRecipes.luau`;
+-- the caps and the camera feel live here. Every effect is cosmetic and comes from a fixed pool.
+Config.Effects = {
+	look = "StickerPunch",
+	caps = {
+		particles = 220, -- particles that may be alive at once (counted from what each burst asks for)
+		parts = Config.Perf.maxLiveEffects, -- tracers, streaks and shells in the air
+		numbers = Config.Perf.maxDamageNumbers, -- floating damage and XP numbers
+		banners = 2, -- comic words such as KO! and BOOM!
+		rings = 8, -- flat rings on the ground
+	},
+	-- Camera shake is a "trauma" meter from 0 to 1 that decays; the shake you see is trauma squared.
+	-- Everything is multiplied by the player's Camera shake setting, so 0 turns it all off.
+	shake = { maxOffsetStuds = 0.55, maxRollDegrees = 1.1, frequency = 24, decayPerSecond = 2.2 },
+	trauma = {
+		shot = 0.03, -- your own shot (tiny kick)
+		slide = 0.06,
+		hurt = 0.12, -- you were hit
+		kill = 0.28, -- you knocked someone out
+		crateBreak = 0.2,
+		blast = 0.55, -- a blast at your feet; farther blasts shake less (see falloff)
+	},
+	fovKick = {
+		shot = 0.4,
+		slide = 2.2,
+		kill = 1.0,
+		blast = 3.5,
+		maxDegrees = 5,
+		decayPerSecond = 9,
+	},
+	falloff = { fullStuds = 25, noneStuds = 90 }, -- blasts shake the camera fully inside fullStuds and not at all past noneStuds
+	-- Screen flashes are skipped when the player turns on Fewer flashes.
+	flash = { blast = 0.3, kill = 0.12, seconds = 0.18 },
+	numbers = { riseStuds = 2.6, seconds = 0.9, spreadStuds = 2.0, bigAmount = 25 }, -- bigAmount: a hit this size gets the BAM! look
+	shellStuds = 1.4,
+	scorchSeconds = 2.6, -- how long a blast leaves its dark mark on the ground
+}
+
 Config.Net = {
 	clientWaitSeconds = 10,
 }

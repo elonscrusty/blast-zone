@@ -1,12 +1,15 @@
 --!strict
--- The slide's streak: a short cyan trail behind the body while it slides. Cosmetic only. At most
--- one per character, and it cleans itself up (and goes away with the character).
+-- The slide's streak: a short cyan trail behind the body while it slides, plus dust puffs and white
+-- speed lines from Effects/Fx. Cosmetic only. At most one trail per character, and it cleans itself up
+-- (and goes away with the character).
 
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Fx = require(script.Parent.Parent.Effects.Fx)
 
 local SlideTrail = {}
 
@@ -50,6 +53,7 @@ function SlideTrail.play(character: Model, duration: number)
 		trail.Enabled = false -- stops growing, the tail fades on its own
 	end)
 	Debris:AddItem(holder, duration + Config.Slide.trailFadeSeconds + 0.2)
+	Fx.slide(character, duration, character == Players.LocalPlayer.Character)
 end
 
 return SlideTrail

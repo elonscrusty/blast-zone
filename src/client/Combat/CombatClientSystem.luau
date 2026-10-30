@@ -10,8 +10,10 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(script.Parent.Parent.Core.Net)
 local CombatFx = require("./CombatFx")
+local Fx = require(script.Parent.Parent.Effects.Fx)
 local GunModels = require("./GunModels")
 local HealthBars = require("./HealthBars")
+local Shake = require(script.Parent.Parent.Effects.Shake)
 
 local CombatClientSystem = {}
 CombatClientSystem.order = 120
@@ -35,6 +37,7 @@ local nextSendAt = 0
 local lastDir: Vector3? = nil
 local lastAimAt = 0
 local controls: Controls? = nil
+local lastPhase = ""
 local combatLive = true -- until the match piece says otherwise (lobby and results are not combat)
 
 local function root(): BasePart?
@@ -111,7 +114,7 @@ local function trySend(dir: Vector3)
 	local origin = r.Position + Vector3.new(0, Config.Combat.shotHeight, 0)
 	Net.send("FireRequest", origin, dir, seq)
 	-- Instant feedback; the server's answer (ammo, tracer, hit) follows.
-	CombatFx.muzzleFlash(origin + dir * firearm.muzzleOffset)
+	CombatFx.muzzleFlash(origin + dir * firearm.muzzleOffset, dir, true)
 	ammo = math.max(0, ammo - 1)
 end
 
@@ -190,6 +193,11 @@ function CombatClientSystem.start()
 
 	Net.on("MatchState", function(m: any)
 		combatLive = m.phase == "Active" or m.phase == "FinalPressure"
+		-- A new round starts clean: no old rings, numbers or shells left over.
+		if m.phase ~= lastPhase and (m.phase == "Waiting" or m.phase == "Countdown") then
+			CombatFx.clear()
+		end
+		lastPhase = m.phase
 	end)
 
 	Net.on("AmmoState", function(s: any)
@@ -203,13 +211,18 @@ function CombatClientSystem.start()
 		if mortar then
 			CombatFx.shell(s.shooterId, s.origin, s.endPos, explosive.projectileSpeed)
 		else
-			CombatFx.tracer(s.origin, s.endPos, s.weaponId)
+			CombatFx.tracer(s.origin, s.endPos)
 			if s.hitKind ~= "none" then
-				CombatFx.impact(s.endPos, s.hitKind)
+				local travel = s.endPos - s.origin
+				local dir = if travel.Magnitude > 0.01 then travel.Unit else nil
+				CombatFx.impact(s.endPos, s.hitKind, dir, false)
 			end
 		end
 		if not isMine(s.shooterId) and not mortar then
-			CombatFx.muzzleFlash(s.origin)
+			local aim = s.endPos - s.origin
+			if aim.Magnitude > 0.01 then
+				CombatFx.muzzleFlash(s.origin, aim.Unit, false)
+			end
 		end
 	end)
 
@@ -223,8 +236,18 @@ function CombatClientSystem.start()
 	end)
 
 	Net.on("HitConfirm", function(h: any)
+		local model = if typeof(h.targetId) == "string" then HealthBars.modelOf(h.targetId) else nil
+		if model ~= nil then
+			Fx.hitFlash(model)
+		end
 		if typeof(h.pos) == "Vector3" then
 			CombatFx.damageNumber(h.pos, h.amount, h.killed, false)
+			if h.amount >= Config.Effects.numbers.bigAmount and not h.killed then
+				CombatFx.impact(h.pos, "target", nil, true)
+			end
+			if h.killed then
+				Fx.kill(h.pos, true)
+			end
 		end
 	end)
 
@@ -233,6 +256,7 @@ function CombatClientSystem.start()
 		if r ~= nil then
 			CombatFx.damageNumber(r.Position, d.amount, false, true)
 		end
+		Shake.add("hurt")
 	end)
 end
 
