@@ -126,6 +126,19 @@ local Defs: { Def } = {
 	ask("09", "AddBotsRequest", {}, 1, 2),
 	tell("09", "BotFillState", "{ secondsLeft: number? } (nil hides the banner)"),
 
+	-- ===== 17 saving (profile status for the client; flags are a fixed list in Config.Profile.flags) =====
+	ask("17", "ProfileStatusRequest", {}, 1, 2),
+	ask("17", "RetryProfileLoadRequest", {}, 0.2, 1),
+	ask("17", "SetFlagRequest", {
+		{ name = "flag", kind = "id" },
+		{ name = "value", kind = "boolean" },
+	}, 2, 4),
+	tell(
+		"17",
+		"ProfileStatus",
+		"{ state: 'loading'|'ready'|'failed'|'lost', isNew: boolean, flags: {[string]: boolean} }"
+	),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 }
 

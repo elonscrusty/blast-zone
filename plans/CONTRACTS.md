@@ -15,6 +15,7 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | 07 | `src/server/Pickups/`, `src/client/Pickups/` |
 | 08 | `src/server/Upgrades/`, `src/shared/UpgradeDefs.luau` |
 | 09 | `src/server/Bots/` |
+| 17 | `src/server/Profile/`, `src/shared/Profile/`, `tests/{profile,fake_datastore}*`; own blocks `Config.Profile` and the 17 remotes |
 | 10 | `src/client/Hud/`, `src/client/Controls/`, `src/client/Settings/` |
 
 Each piece adds its own tests as `tests/<name>.test.luau` and ONE `require("./<name>.test")` line in `tests/run.luau`
@@ -98,3 +99,10 @@ Piece 08 calls `setProvider(fn)` and `invalidate(id)`. Until then everyone has b
 ## Checks before a PR
 
 `stylua src tests`, `selene src`, `lune run tests/run`, `rojo build default.project.json -o BlastZone.rbxl`.
+
+## Saving (`Profiles`, piece 17)
+
+Only `src/server/Profile/Profiles.luau` talks to DataStore. Read the header of that file for the calls:
+`get`, `update(player, fn)`, `grantOnce(player, key, fn)` (use `matchReceiptKey(matchId)` for match rewards), `getFlag/setFlag`,
+`saveNow`, `retryLoad`, and the `Loaded` / `Released` / `StatusChanged` signals. A profile that did not load is nil and
+refuses every write; never fall back to defaults. Items are saved by stable lowercase ids. Details: `plans/handoffs/17-saving.md`.
