@@ -1,6 +1,6 @@
 --!strict
 -- INVITE button (stage 3, piece 26). Opens Roblox's own friend invite prompt. Phone first: it is a big touch
--- button; on PC it is clicked. Shown in the lobby and while watching a match you are not in (FriendInvite.showButton).
+-- button; on PC it is clicked. Shown in the lobby only (FriendInvite.showButton).
 -- The invite carries "inv:<myUserId>" so the server knows who the friend came for. Nothing here is trusted by the
 -- server: it only reads the launch data as a hint (see server/Social/SocialSystem).
 

@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ModeRules = require(Shared.Modes.ModeRules)
+local VoteFlow = require(Shared.MapVote.VoteFlow)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
 local Components = require(script.Parent.Parent.Ui.Components)
@@ -34,8 +35,12 @@ function ModeClientSystem.start()
 	-- A column in its own spot (Ui/ScreenMap.modeVote), beside the look picker and left of the PLAY menu.
 	local row = Components.piece(root, "Row", ScreenMap.modeVote, nil, Layout.LOBBY_MIN_ASPECT)
 
+	local phase: string? = nil
+	local last: ModeRules.State? = nil
+
 	local function render(state: ModeRules.State)
-		gui.Enabled = state.open and #state.modes > 1
+		last = state
+		gui.Enabled = state.open and #state.modes > 1 and VoteFlow.buttonsShown(phase)
 		row:ClearAllChildren()
 		local count = #state.modes
 		for i, entry in state.modes do
@@ -62,6 +67,14 @@ function ModeClientSystem.start()
 	end
 
 	Net.on("ModeState", render)
+	Net.on("MatchState", function(match: any)
+		if type(match) == "table" and type(match.phase) == "string" then
+			phase = match.phase
+			if last then
+				render(last)
+			end
+		end
+	end)
 	Net.send("ModeStateRequest")
 end
 

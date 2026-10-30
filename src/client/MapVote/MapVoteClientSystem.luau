@@ -25,8 +25,12 @@ function MapVoteClientSystem.start()
 
 	local row = Components.piece(root, "Row", ScreenMap.mapVote, nil, Layout.LOBBY_MIN_ASPECT)
 
+	local phase: string? = nil
+	local last: VoteFlow.State? = nil
+
 	local function render(state: VoteFlow.State)
-		gui.Enabled = state.open and #state.maps > 1
+		last = state
+		gui.Enabled = state.open and #state.maps > 1 and VoteFlow.buttonsShown(phase)
 		row:ClearAllChildren()
 		local count = math.max(1, #state.maps)
 		for i, entry in state.maps do
@@ -45,6 +49,14 @@ function MapVoteClientSystem.start()
 	end
 
 	Net.on("MapVoteState", render)
+	Net.on("MatchState", function(match: any)
+		if type(match) == "table" and type(match.phase) == "string" then
+			phase = match.phase
+			if last then
+				render(last)
+			end
+		end
+	end)
 	Net.send("MapVoteStateRequest")
 end
 

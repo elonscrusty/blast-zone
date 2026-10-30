@@ -311,8 +311,9 @@ function ResultsClientSystem.start()
 	local column = Instance.new("Frame")
 	column.Name = "Column"
 	column.AnchorPoint = Vector2.new(0.5, 0)
-	column.Position = UDim2.fromScale(0.5, 0.06)
-	column.Size = UDim2.fromScale(0.86, 0.68)
+	-- starts under the save-message strip (top 16%) and ends above the rewards bar, also on a short wide window
+	column.Position = UDim2.fromScale(0.5, 0.17)
+	column.Size = UDim2.fromScale(0.86, 0.58)
 	column.BackgroundTransparency = 1
 	column.Parent = results
 	local columnLimit = Instance.new("UISizeConstraint")

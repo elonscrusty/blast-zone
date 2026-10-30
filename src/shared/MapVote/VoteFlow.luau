@@ -79,6 +79,11 @@ function VoteFlow.setCurrentMap(self: Flow, mapId: string?)
 	self.currentMapId = mapId
 end
 
+-- The vote buttons stay out of the way of the results screen; the vote itself stays open (see OPEN_PHASES).
+function VoteFlow.buttonsShown(phase: string?): boolean
+	return phase ~= MatchPhase.Results and phase ~= MatchPhase.Finished
+end
+
 function VoteFlow.onPhase(self: Flow, phase: string)
 	if phase == MatchPhase.Results then
 		freshWindow(self)

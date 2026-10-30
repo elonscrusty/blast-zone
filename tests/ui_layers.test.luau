@@ -9,7 +9,7 @@ local ScreenMap = require("../src/client/Ui/ScreenMap")
 local UiLayers = require("../src/client/Ui/UiLayers")
 
 -- Phone shapes (width / height): 16:9, 2:1, 19.5:9, 20:9, 21:9. Tablets (4:3) get the 16:9 layout shrunk.
-local PHONES = { 16 / 9, 2, 19.5 / 9, 20 / 9, 21 / 9 }
+local PHONES = { 16 / 9, 2, 19.5 / 9, 20 / 9, 21 / 9, 1914 / 604 } -- last: a short, very wide Studio window
 local TABLET = 4 / 3
 
 local function layer(name: string): number

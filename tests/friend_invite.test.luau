@@ -38,7 +38,11 @@ end)
 Harness.test("invite button shows in the lobby and while watching, not while fighting", function()
 	Harness.eq(FriendInvite.showButton("Waiting", false), true)
 	Harness.eq(FriendInvite.showButton("Countdown", false), true)
-	Harness.eq(FriendInvite.showButton("Active", false), true, "watching")
+	Harness.eq(
+		FriendInvite.showButton("Active", false),
+		false,
+		"watching: no invite over the spectate bar"
+	)
 	Harness.eq(FriendInvite.showButton("Active", true), false, "fighting")
 	Harness.eq(FriendInvite.showButton("FinalPressure", true), false)
 	Harness.eq(FriendInvite.showButton("Results", false), false, "results screen")
