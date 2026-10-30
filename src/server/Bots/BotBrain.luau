@@ -281,11 +281,9 @@ function BotBrain.think(view: View, state: State): Intent
 
 	-- Reload when empty, or early when nobody is in sight.
 	if not me.reloading and me.magazine > 0 then
-		if me.ammo <= 0 then
-			reload = true
-		elseif not target and me.ammo < me.magazine * view.tuning.reloadBelowFraction then
-			reload = true
-		end
+		local empty = me.ammo <= 0
+		local lowAndQuiet = not target and me.ammo < me.magazine * view.tuning.reloadBelowFraction
+		reload = empty or lowAndQuiet
 	end
 
 	-- Stuck: step sideways for a moment.
