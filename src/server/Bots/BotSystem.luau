@@ -27,6 +27,7 @@ local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 local EffectiveStats = require(Core.EffectiveStats)
 local SpawnShields = require(Core.SpawnShields)
+local Squads = require(Core.Squads)
 
 local BotBrain = require("./BotBrain")
 local BotPorts = require("./BotPorts")
@@ -52,6 +53,9 @@ local sightGroundY = 0
 local pickupCache: { BotBrain.Pickup } = {}
 local pickupCacheAt = -10
 local PICKUP_CACHE_SECONDS = 0.1 -- every bot thinking in the same moment shares one scan
+local bodyCache: { BotBrain.Body } = {}
+local bodyCacheAt = -10
+local BODY_CACHE_SECONDS = 0.05 -- 24 bots look at everyone: build the list of fighters once per moment
 local STEP_SECONDS = 1 / 30 -- bots move and think at 30 Hz; thinkInterval is much longer anyway
 
 local function warnOnce(key: string, text: string)
@@ -164,18 +168,29 @@ local function makeWorld(): BotRunner.World
 			}
 		end,
 		others = function(id)
-			local out: { BotBrain.Body } = {}
-			for _, p in Participants:aliveList() do
-				if p.id ~= id then
+			local clock = os.clock()
+			if clock - bodyCacheAt >= BODY_CACHE_SECONDS then
+				bodyCacheAt = clock
+				local all: { BotBrain.Body } = {}
+				for _, p in Participants:aliveList() do
 					local root = rootOf(p.id)
 					if root then
-						table.insert(out, {
+						table.insert(all, {
 							id = p.id,
 							pos = { x = root.Position.X, z = root.Position.Z },
 							shielded = SpawnShields:isShielded(p.id),
 							human = not Ids.isBot(p.id),
+							ally = Squads:sameTeam(id, p.id),
 						})
 					end
+				end
+				bodyCache = all
+			end
+			-- the brain only reads these, so the bodies are shared; just leave this bot out
+			local out: { BotBrain.Body } = table.create(#bodyCache)
+			for _, body in bodyCache do
+				if body.id ~= id then
+					table.insert(out, body)
 				end
 			end
 			return out

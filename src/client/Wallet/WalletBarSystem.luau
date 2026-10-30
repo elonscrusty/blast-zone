@@ -1,5 +1,5 @@
 --!strict
--- The counter bar (piece G17, video 3 gap 17): Scrap, Sparks, and any counter the server lists. PLACEHOLDER LOOK:
+-- The counter bar (piece G17, video 3 gap 17): Scrap, Stars, and any counter the server lists. PLACEHOLDER LOOK:
 -- plain panels and text through Ui/Components (roles, never colours). Claude Design restyles it by changing the skin
 -- or this drawing; the data flow stays. The server owns every number (WalletState); this screen only shows it.
 --   * top right, on UiLayers.Calm, shown between fights only (WalletBarModel.visible).

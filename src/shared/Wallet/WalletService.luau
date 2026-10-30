@@ -1,7 +1,7 @@
 --!strict
 -- The top-bar counters against a Store (the saved profile, or WalletMemoryStore) so Lune can test them (piece G17).
 -- Only the server changes a balance; a client can only ASK to see the list (WalletRequest).
---   onMatch(player, place, won, matchKey)  pays sparks for a finished match, once per match key.
+--   onMatch(player, place, won, matchKey)  pays stars for a finished match, once per match key.
 --   grant(player, id, amount, key)         the same for any other server rule (a chest, a mission): once per key.
 --   spend(player, id, amount)              takes from a saved counter, all or nothing. For a shop or chest piece.
 --   push(player)                           sends the current list.
@@ -99,11 +99,11 @@ function WalletService.new(deps: Deps): Service
 	end
 
 	function service.onMatch(player: any, place: number, won: boolean, matchKey: string): boolean
-		local amount = WalletRules.sparksFor(place, won)
+		local amount = WalletRules.starsFor(place, won)
 		if amount <= 0 then
 			return false
 		end
-		local ok = service.grant(player, "sparks", amount, WalletRules.matchKey(matchKey))
+		local ok = service.grant(player, "stars", amount, WalletRules.matchKey(matchKey))
 		return ok
 	end
 

@@ -15,6 +15,7 @@ local PlateRules = require(Shared.Moments.PlateRules)
 
 local HealthBars = require(script.Parent.Parent.Combat.HealthBars)
 local LevelBurst = require(script.Parent.LevelBurst)
+local SquadModel = require(script.Parent.Parent.Squads.SquadModel)
 local MomentStyles = require(script.Parent.Parent.Ui.MomentStyles)
 local Tokens = require(script.Parent.Parent.Ui.Tokens)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
@@ -281,7 +282,10 @@ local function onFighter(model: Model)
 		p.name.Text = view.name
 		p.badge.Text = view.levelText
 		p.fill.Size = UDim2.fromScale(view.fraction, 1)
-		p.fill.BackgroundColor3 = color(if view.low then style.barLow else style.barFill)
+		-- A teammate's bar takes the friendly colour, so a squad reads at a glance.
+		local mate = SquadModel.isMate(model:GetAttribute(Config.Attributes.ParticipantId))
+		p.fill.BackgroundColor3 =
+			color(if mate then "good" elseif view.low then style.barLow else style.barFill)
 		p.gui.Enabled = true
 	end
 
@@ -301,6 +305,7 @@ local function onFighter(model: Model)
 	for _, attribute in { "Health", "MaxHealth", "Alive", "PlateName" } do
 		model:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
+	SquadModel.Changed:connect(refresh)
 	refresh()
 end
 

@@ -11,7 +11,8 @@ local BotTuning = require("./BotTuning")
 type Tuning = BotTuning.Tuning
 
 export type Vec2 = { x: number, z: number }
-export type Body = { id: string, pos: Vec2, shielded: boolean?, human: boolean? } -- shielded: spawn shield, not worth shooting
+-- shielded: spawn shield, not worth shooting. ally: a teammate, never a target.
+export type Body = { id: string, pos: Vec2, shielded: boolean?, human: boolean?, ally: boolean? }
 export type Pickup = { id: string, pos: Vec2 }
 export type Zone = { center: Vec2, radius: number, shrinking: boolean? }
 export type GunDrop = { id: string, gunId: string, pos: Vec2 } -- a found gun lying on the ground
@@ -138,6 +139,7 @@ local function findTarget(view: View, state: State): Body?
 			and d > view.tuning.spreadHumanRange
 		if
 			not other.shielded
+			and not other.ally
 			and not spared
 			and d <= view.tuning.sightRange
 			and view.canSee(view.me.pos, other.pos)
@@ -224,7 +226,17 @@ local function findCover(view: View, threat: Vec2): Vec2?
 	return nil
 end
 
+local ALLY_GOAL_CHANCE = 0.6 -- squad bots often head for a teammate, so squads stay a squad
+local ALLY_GOAL_SPREAD = 12 -- studs around the teammate
+
 local function newGoal(view: View): Vec2
+	for _, other in view.others do
+		if other.ally and view.rand() < ALLY_GOAL_CHANCE then
+			local angle = view.rand() * math.pi * 2
+			local r = ALLY_GOAL_SPREAD * math.sqrt(view.rand())
+			return { x = other.pos.x + math.cos(angle) * r, z = other.pos.z + math.sin(angle) * r }
+		end
+	end
 	local zone = view.zone
 	if zone then
 		local angle = view.rand() * math.pi * 2

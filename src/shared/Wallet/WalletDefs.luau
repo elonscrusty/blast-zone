@@ -1,7 +1,7 @@
 --!strict
 -- The counters in the top bar, in the order they are drawn (video 3 gap 17). Add a counter by adding a line here.
 --   scrap   the main coin. Lives in the progression table (piece 18), so `saved` is false: the wallet only READS it.
---   sparks  a second, rarer counter, saved in data.wallet. Earned by playing; never sold for Robux, never power.
+--   stars  a second, rarer counter, saved in data.wallet. Earned by playing; never sold for Robux, never power.
 -- Ids are saved text (lowercase a-z 0-9 _): never rename one. `always` = drawn even at 0; otherwise it appears
 -- the first time it is above 0.
 
@@ -25,7 +25,7 @@ WalletDefs.list = {
 		saved = false,
 		always = true,
 	},
-	{ id = "sparks", name = "Sparks", short = "SPARKS", saved = true, always = true },
+	{ id = "stars", name = "Stars", short = "STARS", saved = true, always = true },
 } :: { Def }
 
 local byId: { [string]: Def } = {}

@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Ids = require(Shared.Ids)
+local Signal = require(Shared.Signal)
 
 local Server = script.Parent.Parent
 local MatchContext = require(Server.Core.MatchContext)
@@ -16,6 +17,9 @@ local RunXp = require(Server.Core.RunXp)
 
 local LevelSystem = {}
 LevelSystem.order = 65 -- after ProgressionSystem (60)
+
+-- Told once per player per match with the XP they earned (the season pass listens). (player, xp, matchId)
+LevelSystem.XpEarned = Signal.new()
 
 -- Latest run XP total per participant, tagged with the match it belongs to. Kept here because the ledger
 -- forgets people when the roster clears, which can be before the reward is paid.
@@ -40,6 +44,7 @@ function LevelSystem.start()
 			local player = Players:GetPlayerByUserId(userId)
 			if player ~= nil then
 				ProgressionSystem.onXp(player, entry.xp, matchId)
+				LevelSystem.XpEarned:fire(player, entry.xp, matchId)
 			end
 		end
 	)

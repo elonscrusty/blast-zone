@@ -1,6 +1,6 @@
 --!strict
 -- Pure rules for the saved wallet table (data.wallet in the profile): earning and spending the saved counters
--- (sparks, and any counter added to WalletDefs later). Scrap is not here; piece 18 owns it. No Roblox, so Lune
+-- (stars, and any counter added to WalletDefs later). Scrap is not here; piece 18 owns it. No Roblox, so Lune
 -- tests it. Every function checks first and only then changes the table, and returns a reason when it refuses,
 -- leaving the table untouched.
 
@@ -85,20 +85,20 @@ function WalletRules.spend(w: Wallet, id: string, amount: number): Result
 	return OK
 end
 
--- What a finished match pays in sparks. `won` is false for a shared first place (a draw).
-function WalletRules.sparksFor(place: number, won: boolean): number
+-- What a finished match pays in stars. `won` is false for a shared first place (a draw).
+function WalletRules.starsFor(place: number, won: boolean): number
 	if won then
-		return Config.Wallet.sparks.win
+		return Config.Wallet.stars.win
 	end
 	if place >= 1 and place <= 3 then
-		return Config.Wallet.sparks.podium
+		return Config.Wallet.stars.podium
 	end
 	return 0
 end
 
 -- Once-only key for a match payout (the profile also keeps the match receipt, see WalletService).
 function WalletRules.matchKey(matchKey: string): string
-	return matchKey .. ":sparks"
+	return matchKey .. ":stars"
 end
 
 return WalletRules

@@ -41,7 +41,7 @@ Harness.test(
 		Harness.eq(WalletDefs.list[1].id, "scrap")
 		Harness.eq(WalletDefs.list[1].name, Config.Rewards.currencyName)
 		Harness.eq(WalletDefs.isSaved("scrap"), false)
-		Harness.eq(WalletDefs.isSaved("sparks"), true)
+		Harness.eq(WalletDefs.isSaved("stars"), true)
 		Harness.eq(WalletDefs.isSaved("nope"), false)
 	end
 )
@@ -52,10 +52,10 @@ Harness.test("wallet: nothing here sells counters for Robux or gates play on one
 		Harness.truthy(string.find(text, "robux") == nil, def.id)
 		Harness.truthy(string.find(text, "energy") == nil, def.id)
 	end
-	for _, n in { Config.Wallet.sparks.win, Config.Wallet.sparks.podium } do
+	for _, n in { Config.Wallet.stars.win, Config.Wallet.stars.podium } do
 		Harness.truthy(n >= 0 and n <= Config.Wallet.maxGrant, "pay is under the grant cap")
 	end
-	Harness.truthy(Config.Wallet.sparks.win > Config.Wallet.sparks.podium, "a win pays more")
+	Harness.truthy(Config.Wallet.stars.win > Config.Wallet.stars.podium, "a win pays more")
 end)
 
 Harness.test("wallet: the remotes exist with the right direction", function()
@@ -68,14 +68,14 @@ end)
 -- ===== rules =====
 
 Harness.test("wallet rules: fill repairs bad saved data and keeps unknown counters", function()
-	local w = WalletRules.fill({ sparks = -4, future_gems = 7 })
-	Harness.eq(w.sparks, 0)
+	local w = WalletRules.fill({ stars = -4, future_gems = 7 })
+	Harness.eq(w.stars, 0)
 	Harness.eq(w.future_gems, 7)
-	Harness.eq(WalletRules.fill({ sparks = 0 / 0 }).sparks, 0)
-	Harness.eq(WalletRules.fill({ sparks = 2.5 }).sparks, 0)
-	Harness.eq(WalletRules.fill({ sparks = "9" }).sparks, 0)
-	Harness.eq(WalletRules.fill({ sparks = 5e9 }).sparks, 0, "absurd number is rejected")
-	Harness.eq(WalletRules.fill({ sparks = 12 }).sparks, 12)
+	Harness.eq(WalletRules.fill({ stars = 0 / 0 }).stars, 0)
+	Harness.eq(WalletRules.fill({ stars = 2.5 }).stars, 0)
+	Harness.eq(WalletRules.fill({ stars = "9" }).stars, 0)
+	Harness.eq(WalletRules.fill({ stars = 5e9 }).stars, 0, "absurd number is rejected")
+	Harness.eq(WalletRules.fill({ stars = 12 }).stars, 12)
 end)
 
 Harness.test(
@@ -83,7 +83,7 @@ Harness.test(
 	function()
 		local w = WalletRules.new()
 		for _, bad in { -1, 1.5, 0 / 0, math.huge, Config.Wallet.maxGrant + 1 } do
-			Harness.eq(WalletRules.add(w, "sparks", bad).ok, false, tostring(bad))
+			Harness.eq(WalletRules.add(w, "stars", bad).ok, false, tostring(bad))
 		end
 		Harness.eq(
 			WalletRules.add(w, "scrap", 5).reason,
@@ -91,58 +91,58 @@ Harness.test(
 			"scrap is not ours to write"
 		)
 		Harness.eq(WalletRules.add(w, "gems", 5).reason, "unknownCounter")
-		Harness.eq(w.sparks, 0, "refusals change nothing")
-		Harness.eq(WalletRules.add(w, "sparks", 3).ok, true)
-		Harness.eq(w.sparks, 3)
+		Harness.eq(w.stars, 0, "refusals change nothing")
+		Harness.eq(WalletRules.add(w, "stars", 3).ok, true)
+		Harness.eq(w.stars, 3)
 	end
 )
 
 Harness.test("wallet rules: add stops at the balance cap and never wraps", function()
 	local w = WalletRules.new()
-	w.sparks = Config.Wallet.maxBalance - 1
-	Harness.eq(WalletRules.add(w, "sparks", 10).ok, true)
-	Harness.eq(w.sparks, Config.Wallet.maxBalance)
+	w.stars = Config.Wallet.maxBalance - 1
+	Harness.eq(WalletRules.add(w, "stars", 10).ok, true)
+	Harness.eq(w.stars, Config.Wallet.maxBalance)
 end)
 
 Harness.test("wallet rules: spend is all or nothing", function()
 	local w = WalletRules.new()
-	w.sparks = 5
-	Harness.eq(WalletRules.spend(w, "sparks", 6).reason, "tooPoor")
-	Harness.eq(w.sparks, 5)
-	Harness.eq(WalletRules.spend(w, "sparks", 0).reason, "badAmount")
-	Harness.eq(WalletRules.spend(w, "sparks", -2).reason, "badAmount")
-	Harness.eq(WalletRules.spend(w, "sparks", 1.5).reason, "badAmount")
+	w.stars = 5
+	Harness.eq(WalletRules.spend(w, "stars", 6).reason, "tooPoor")
+	Harness.eq(w.stars, 5)
+	Harness.eq(WalletRules.spend(w, "stars", 0).reason, "badAmount")
+	Harness.eq(WalletRules.spend(w, "stars", -2).reason, "badAmount")
+	Harness.eq(WalletRules.spend(w, "stars", 1.5).reason, "badAmount")
 	Harness.eq(WalletRules.spend(w, "scrap", 1).reason, "unknownCounter")
-	Harness.eq(WalletRules.spend(w, "sparks", 5).ok, true)
-	Harness.eq(w.sparks, 0)
+	Harness.eq(WalletRules.spend(w, "stars", 5).ok, true)
+	Harness.eq(w.stars, 0)
 end)
 
-Harness.test("wallet rules: sparks pay a win most, a podium a little, the rest nothing", function()
-	Harness.eq(WalletRules.sparksFor(1, true), Config.Wallet.sparks.win)
-	Harness.eq(WalletRules.sparksFor(1, false), Config.Wallet.sparks.podium, "shared first")
-	Harness.eq(WalletRules.sparksFor(2, false), Config.Wallet.sparks.podium)
-	Harness.eq(WalletRules.sparksFor(3, false), Config.Wallet.sparks.podium)
-	Harness.eq(WalletRules.sparksFor(4, false), 0)
-	Harness.eq(WalletRules.sparksFor(0, false), 0)
+Harness.test("wallet rules: stars pay a win most, a podium a little, the rest nothing", function()
+	Harness.eq(WalletRules.starsFor(1, true), Config.Wallet.stars.win)
+	Harness.eq(WalletRules.starsFor(1, false), Config.Wallet.stars.podium, "shared first")
+	Harness.eq(WalletRules.starsFor(2, false), Config.Wallet.stars.podium)
+	Harness.eq(WalletRules.starsFor(3, false), Config.Wallet.stars.podium)
+	Harness.eq(WalletRules.starsFor(4, false), 0)
+	Harness.eq(WalletRules.starsFor(0, false), 0)
 end)
 
 -- ===== service =====
 
-Harness.test("wallet service: a match pays sparks once per match key", function()
+Harness.test("wallet service: a match pays stars once per match key", function()
 	local service, sent = newService(40)
 	Harness.eq(service.onMatch(P, 1, true, "m:job:1"), true)
-	Harness.eq(service.balance(P, "sparks"), Config.Wallet.sparks.win)
+	Harness.eq(service.balance(P, "stars"), Config.Wallet.stars.win)
 	Harness.eq(service.onMatch(P, 1, true, "m:job:1"), false, "same match again pays nothing")
-	Harness.eq(service.balance(P, "sparks"), Config.Wallet.sparks.win)
+	Harness.eq(service.balance(P, "stars"), Config.Wallet.stars.win)
 	Harness.eq(service.onMatch(P, 2, false, "m:job:2"), true)
-	Harness.eq(service.balance(P, "sparks"), Config.Wallet.sparks.win + Config.Wallet.sparks.podium)
+	Harness.eq(service.balance(P, "stars"), Config.Wallet.stars.win + Config.Wallet.stars.podium)
 	Harness.eq(#sent, 2, "one push per real change")
 end)
 
 Harness.test("wallet service: 4th place pays nothing and sends nothing", function()
 	local service, sent = newService(0)
 	Harness.eq(service.onMatch(P, 4, false, "m:job:1"), false)
-	Harness.eq(service.balance(P, "sparks"), 0)
+	Harness.eq(service.balance(P, "stars"), 0)
 	Harness.eq(#sent, 0)
 end)
 
@@ -150,45 +150,41 @@ Harness.test(
 	"wallet service: the key must be unused, and a refused grant leaves no receipt",
 	function()
 		local service = newService(0)
-		local ok, why = service.grant(P, "sparks", Config.Wallet.maxGrant + 1, "k1")
+		local ok, why = service.grant(P, "stars", Config.Wallet.maxGrant + 1, "k1")
 		Harness.eq(ok, false)
 		Harness.eq(why, "tooMuch")
-		Harness.eq(
-			service.grant(P, "sparks", 4, "k1"),
-			true,
-			"a refused try did not use up the key"
-		)
-		local again, reason = service.grant(P, "sparks", 4, "k1")
+		Harness.eq(service.grant(P, "stars", 4, "k1"), true, "a refused try did not use up the key")
+		local again, reason = service.grant(P, "stars", 4, "k1")
 		Harness.eq(again, false)
 		Harness.eq(reason, "duplicate")
-		Harness.eq(service.balance(P, "sparks"), 4)
+		Harness.eq(service.balance(P, "stars"), 4)
 	end
 )
 
 Harness.test("wallet service: spend lowers the balance and tells the player", function()
 	local service, sent = newService(0)
-	service.grant(P, "sparks", 10, "k1")
-	local ok = service.spend(P, "sparks", 4)
+	service.grant(P, "stars", 10, "k1")
+	local ok = service.spend(P, "stars", 4)
 	Harness.eq(ok, true)
-	Harness.eq(service.balance(P, "sparks"), 6)
-	local sparks = 0
+	Harness.eq(service.balance(P, "stars"), 6)
+	local stars = 0
 	for _, item in sent[#sent].items do
-		if item.id == "sparks" then
-			sparks = item.amount
+		if item.id == "stars" then
+			stars = item.amount
 		end
 	end
-	Harness.eq(sparks, 6)
-	local ok2, why = service.spend(P, "sparks", 7)
+	Harness.eq(stars, 6)
+	local ok2, why = service.spend(P, "stars", 7)
 	Harness.eq(ok2, false)
 	Harness.eq(why, "tooPoor")
-	Harness.eq(service.balance(P, "sparks"), 6)
+	Harness.eq(service.balance(P, "stars"), 6)
 end)
 
 Harness.test("wallet service: each player has their own wallet", function()
 	local service = newService(0)
 	local other = { name = "other" }
-	service.grant(P, "sparks", 5, "a")
-	Harness.eq(service.balance(other, "sparks"), 0)
+	service.grant(P, "stars", 5, "a")
+	Harness.eq(service.balance(other, "stars"), 0)
 end)
 
 Harness.test("wallet service: the list shows Scrap from piece 18 and never invents it", function()
@@ -198,7 +194,7 @@ Harness.test("wallet service: the list shows Scrap from piece 18 and never inven
 	Harness.eq(state.status, "temporary")
 	Harness.eq(state.items[1].id, "scrap")
 	Harness.eq(state.items[1].amount, 125)
-	Harness.eq(state.items[2].id, "sparks")
+	Harness.eq(state.items[2].id, "stars")
 	Harness.eq(state.items[2].amount, 0)
 	local unloaded, sent2 = newService(nil)
 	unloaded.push(P)
@@ -228,12 +224,12 @@ Harness.test("wallet bar: short numbers round down and never claim more than you
 	Harness.eq(WalletBarModel.compact(12.9), "12")
 end)
 
-local function stateOf(scrap: number, sparks: number, status: string?): Types.WalletState
+local function stateOf(scrap: number, stars: number, status: string?): Types.WalletState
 	return {
 		status = status or "ready",
 		items = {
 			{ id = "scrap", name = "Scrap", short = "SCRAP", amount = scrap },
-			{ id = "sparks", name = "Sparks", short = "SPARKS", amount = sparks },
+			{ id = "stars", name = "Stars", short = "STARS", amount = stars },
 		},
 	}
 end
@@ -253,7 +249,7 @@ Harness.test(
 		Harness.eq(#WalletBarModel.rises(nil, stateOf(10, 1)), 0)
 		local rises = WalletBarModel.rises(stateOf(10, 1), stateOf(10, 4))
 		Harness.eq(#rises, 1)
-		Harness.eq(rises[1].id, "sparks")
+		Harness.eq(rises[1].id, "stars")
 		Harness.eq(rises[1].delta, 3)
 		Harness.eq(#WalletBarModel.rises(stateOf(10, 4), stateOf(5, 4)), 0, "spending does not pop")
 		Harness.eq(#WalletBarModel.rises(stateOf(10, 4), stateOf(10, 4)), 0)

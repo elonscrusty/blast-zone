@@ -1,6 +1,6 @@
 --!strict
 -- The top-bar counters on the server (piece G17). Connects Roblox to WalletService, which holds the rules:
---   * sparks are earned only from server events: a finished match (MatchSystem.RewardGranted), once per match.
+--   * stars are earned only from server events: a finished match (MatchSystem.RewardGranted), once per match.
 --     Bots have no wallet. A client can only ASK to see the list (WalletRequest).
 --   * the saved counters live in data.wallet of the profile (piece 17). Scrap is read from piece 18, never written here.
 --   * a shop or chest piece spends through WalletSystem.spend; nothing else lowers a balance.
@@ -132,7 +132,7 @@ function WalletSystem.start()
 	if Profiles ~= nil then
 		store = profileStore(Profiles)
 	else
-		warn("[wallet] no profile module: sparks are NOT saved (temporary)")
+		warn("[wallet] no profile module: stars are NOT saved (temporary)")
 		local mem = WalletMemoryStore.new()
 		memory = mem
 		store = mem

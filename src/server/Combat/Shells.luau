@@ -13,6 +13,7 @@ local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local Squads = require(script.Parent.Parent.Core.Squads)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
@@ -194,6 +195,11 @@ function Shells.step(dt: number)
 			continue
 		end
 		local targets = without(everyone, s.ownerId)
+		for t = #targets, 1, -1 do
+			if Squads:sameTeam(s.ownerId, targets[t].id) then
+				table.remove(targets, t) -- a squad's shells fly through each other
+			end
+		end
 		local function wallDistance(
 			x: number,
 			z: number,
