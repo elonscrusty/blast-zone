@@ -41,7 +41,7 @@ type Placed = { rect: Layout.Rect, leftHanded: boolean? }
 local placed: { [GuiObject]: Placed } = {}
 local watchingScreen = false
 
-local function apply(obj: GuiObject, entry: Placed)
+local function applyPlacement(obj: GuiObject, entry: Placed)
 	local aspect = aspectOf(obj)
 	local p = Layout.place(entry.rect, entry.leftHanded, aspect)
 	obj.AnchorPoint = Vector2.new(p.anchorX, p.anchorY)
@@ -64,7 +64,7 @@ local function watchScreen()
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			task.defer(function()
 				for obj, entry in placed do
-					apply(obj, entry)
+					applyPlacement(obj, entry)
 				end
 			end)
 		end)
@@ -77,13 +77,13 @@ function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?)
 	local isNew = placed[obj] == nil
 	local entry: Placed = { rect = rect, leftHanded = leftHanded }
 	placed[obj] = entry
-	apply(obj, entry)
+	applyPlacement(obj, entry)
 	if isNew then
 		watchScreen()
 		obj.AncestryChanged:Connect(function()
 			local current = placed[obj]
 			if current then
-				task.defer(apply, obj, current)
+				task.defer(applyPlacement, obj, current)
 			end
 		end)
 		obj.Destroying:Connect(function()
