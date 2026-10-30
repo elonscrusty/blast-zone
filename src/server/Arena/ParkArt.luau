@@ -436,7 +436,9 @@ function ParkArt.build(plan: ArtKit.Plan, map: ArtMap.Map)
 		elseif k == "hedg" then
 			hedge(plan, s)
 		elseif k == "benc" then
+			plan.owner = s.id -- a bench can burst (piece 47)
 			bench(plan, s)
+			plan.owner = nil
 		elseif k == "pond" or k == "pool" then
 			pond(plan, s)
 		elseif k == "band" or k == "gaze" then

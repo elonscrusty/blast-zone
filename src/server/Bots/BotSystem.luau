@@ -27,6 +27,7 @@ local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 local EffectiveStats = require(Core.EffectiveStats)
 local SpawnShields = require(Core.SpawnShields)
+local Squads = require(Core.Squads)
 
 local BotBrain = require("./BotBrain")
 local BotPorts = require("./BotPorts")
@@ -174,6 +175,7 @@ local function makeWorld(): BotRunner.World
 							pos = { x = root.Position.X, z = root.Position.Z },
 							shielded = SpawnShields:isShielded(p.id),
 							human = not Ids.isBot(p.id),
+							ally = Squads:sameTeam(id, p.id),
 						})
 					end
 				end

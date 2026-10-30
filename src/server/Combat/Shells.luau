@@ -13,11 +13,13 @@ local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local Squads = require(script.Parent.Parent.Core.Squads)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
 local ShellFlight = require("./ShellFlight")
 local ShotCaster = require("./ShotCaster")
+local BreakSystem = require(script.Parent.Parent.Props.BreakSystem)
 
 local explosive = Config.Weapons.Explosive
 
@@ -151,6 +153,18 @@ local function detonate(s: Live, center: Vector3)
 			end
 		end
 	end
+	-- Street props (cars, bins, benches): the prop itself never hides it from its own blast.
+	BreakSystem.blast(
+		center,
+		s.radius,
+		s.damage,
+		s.ownerId,
+		s.matchId,
+		function(part: BasePart): boolean
+			local at = Vector3.new(part.Position.X, s.y, part.Position.Z)
+			return not ShotCaster.lineBlocked(center, at, bodies, part)
+		end
+	)
 end
 
 -- The same list without one fighter (a shell never touches its own shooter in flight).
@@ -181,6 +195,11 @@ function Shells.step(dt: number)
 			continue
 		end
 		local targets = without(everyone, s.ownerId)
+		for t = #targets, 1, -1 do
+			if Squads:sameTeam(s.ownerId, targets[t].id) then
+				table.remove(targets, t) -- a squad's shells fly through each other
+			end
+		end
 		local function wallDistance(
 			x: number,
 			z: number,

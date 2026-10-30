@@ -33,7 +33,7 @@ function ChestText.rowName(row: ChestDefs.Row): string
 	return `{row.amount or 0} Scrap`
 end
 
--- One line per row, rarest first, e.g. "Epic  Sunset Dash  4%". Shown BEFORE the player opens anything.
+-- One line per row, rarest first, e.g. "Epic  Blaze Dash  4%". Shown BEFORE the player opens anything.
 function ChestText.oddsLines(kind: string, currencyName: string): { string }
 	local chest = ChestDefs.get(kind)
 	if chest == nil then

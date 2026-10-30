@@ -134,6 +134,11 @@ local Defs: { Def } = {
 	ask("07", "PickupRequest", { { name = "pickupId", kind = "id" } }, 10, 10),
 	tell("07", "ContainerHit", "{ containerId, health, max }"),
 	tell("07", "ContainerBroken", "{ containerId, pos }"),
+	tell(
+		"43",
+		"PropBroken",
+		"{ id, kind, x, y, z, sx, sy, sz, color } (a street prop burst; y is the middle)"
+	),
 	tell("07", "PickupSpawned", "{ pickupId, kind, pos }"),
 	tell("07", "PickupRemoved", "{ pickupId, collectedBy?, pos }"),
 	tell("07", "XpState", "XpState"),
@@ -178,6 +183,12 @@ local Defs: { Def } = {
 	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
 	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
 
+	-- ===== video 3 gap 18: Scrap Shop =====
+	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
+	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
+	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
+	tell("V3-18", "ShopState", "ShopState"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 
@@ -204,6 +215,41 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== V11 squads (duo and trio) =====
+	ask(
+		"V11",
+		"SquadVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Squads.maxModeIdLength } },
+		2,
+		3
+	),
+	ask("V11", "SquadVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"V11",
+		"SquadVoteState",
+		"{ open, modes: { { id, name, size, votes } }, yourVote?, chosen? }"
+	),
+	tell(
+		"V11",
+		"SquadState",
+		"{ matchId, size, team?, mates: { { id, name, alive } } } (size 1 = solo, nothing to show)"
+	),
+
+	-- ===== G24 game modes =====
+	ask(
+		"G24",
+		"ModeVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Modes.maxIdLength } },
+		2,
+		3
+	),
+	ask("G24", "ModeStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"G24",
+		"ModeState",
+		"ModeState (open, modes with counts and locks, yourVote?, nextModeId?, level)"
+	),
+
 	-- ===== 42 loot: heal packs =====
 	ask("42", "UseHealRequest", {}, 3, 3),
 	tell(
@@ -227,6 +273,10 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== V16 power rating (video 3 gap #16) =====
+	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating
+	tell("V16", "PowerUpdate", "PowerPayload"),
 }
 
 local Index: { [string]: Def } = {}

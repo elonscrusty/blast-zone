@@ -118,13 +118,13 @@ Harness.test("chest text: prizes, the meter and refusals read plainly", function
 		"+30 Scrap"
 	)
 	Harness.eq(
-		ChestText.prize({ kind = "look", name = "Lime Flash", dupe = false }, "Scrap"),
-		"Lime Flash"
+		ChestText.prize({ kind = "look", name = "Acid Flash", dupe = false }, "Scrap"),
+		"Acid Flash"
 	)
 	Harness.truthy(
 		string.find(
 			ChestText.prize(
-				{ kind = "scrap", name = "Lime Flash", amount = 40, dupe = true },
+				{ kind = "scrap", name = "Acid Flash", amount = 40, dupe = true },
 				"Scrap"
 			),
 			"+40",
@@ -253,18 +253,18 @@ Harness.test(
 	"chest open: a new look is owned and can be worn; a repeat turns into Scrap",
 	function()
 		local data = freshData("street", 2)
-		-- high = the last row of the street chest: Sunset Shot (epic), twice.
+		-- high = the last row of the street chest: Blaze Shot (epic), twice.
 		local r = ChestRules.open(data, "street", high, CAP)
 		Harness.eq(r.ok, true)
 		Harness.eq(r.prizes[1].kind, "look")
-		Harness.eq(r.prizes[1].itemId, "tracer_sunset")
+		Harness.eq(r.prizes[1].itemId, "tracer_blaze")
 		Harness.eq(r.prizes[1].dupe, false)
 		Harness.eq(r.prizes[2].kind, "scrap", "second copy in the same chest is a repeat")
 		Harness.eq(r.prizes[2].dupe, true)
 		Harness.eq(r.prizes[2].amount, ChestDefs.dupeScrap.epic)
 		Harness.eq(data.progression.coins, ChestDefs.dupeScrap.epic)
-		Harness.eq(data.progression.unlocked.tracer_sunset, true)
-		Harness.eq(ProgressRules.equip(data.progression, "tracer_sunset").ok, true)
+		Harness.eq(data.progression.unlocked.tracer_blaze, true)
+		Harness.eq(ProgressRules.equip(data.progression, "tracer_blaze").ok, true)
 		-- The next chest: both are repeats now.
 		local again = ChestRules.open(data, "street", high, CAP)
 		Harness.eq(again.ok, true)

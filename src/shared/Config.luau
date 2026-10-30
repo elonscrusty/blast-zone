@@ -6,6 +6,22 @@
 local FIRE_RATE = 5 -- shots per second
 local EXPLOSIVE_INTERVAL = 1.6 -- seconds between mortar shots
 
+-- What a game mode may change (piece G24, see Config.Modes). Every field is optional; a missing one means "as usual".
+export type ModeTuning = {
+	zoneTimeScale: number?, -- multiplies every zone time (warn, close, sudden death); below 1 = a faster circle
+	zoneDamageScale: number?, -- multiplies the zone's damage per second
+	floorGuns: number?, -- found guns put on the street when the match starts
+	floorPacks: number?, -- heal packs put on the street when the match starts
+	crateWeights: { [string]: number }?, -- supply crate tier odds (tier id -> weight)
+}
+
+export type ModeDef = {
+	name: string,
+	blurb: string, -- one short line for the picker
+	unlockLevel: number, -- account level that opens it (1 = open from the start)
+	tuning: ModeTuning,
+}
+
 local Config = {}
 
 -- The game name lives ONLY here (and in the Roblox place itself). Rename it with one edit.
@@ -74,6 +90,68 @@ Config.MapVote = {
 	} :: { [string]: string },
 }
 
+-- Video 3 gap 11: squads (duo and trio). Players vote Solo / Duo / Trio in the lobby; the server seats
+-- teams when the match starts. Friends who joined each other stay together, then loose players fill seats,
+-- then bots. Teammates cannot hurt each other (self damage still counts), the zone still hurts everyone.
+-- A squad is out when all of its members are out; the last squad standing wins.
+Config.Squads = {
+	enabled = false, -- carter: "Solo only for now" (2026-10-30). Turn on to show the vote and seat squads.
+	modes = {
+		{ id = "solo", name = "Solo", size = 1 },
+		{ id = "duo", name = "Duo", size = 2 },
+		{ id = "trio", name = "Trio", size = 3 },
+	} :: { { id: string, name: string, size: number } },
+	defaultMode = "solo", -- nobody voted
+	minTeams = 2, -- fewer teams than this and the match plays solo (a duo of two people is a solo fight)
+	friendlyFire = false,
+	maxModeIdLength = 8,
+	stateRepeatSeconds = 1, -- the running vote count reaches everyone at most this often
+	colorCount = 8, -- team colours the client cycles through (look only)
+}
+
+-- Piece G24 (video 3 gap 24). Game modes. Players vote for a mode in the lobby like they vote for a map; the server
+-- counts, checks the voter's account level, and applies the winner's tuning right before the fight (Spawning),
+-- then puts everything back when the match ends. A mode never touches health, damage per hit, speed or ammo, and
+-- never costs Robux: it only changes the circle and the loot. `enabled` is the list shown, in order.
+Config.Modes = {
+	defaultId = "classic", -- used when nobody voted
+	enabled = { "classic", "quick", "loot" } :: { string },
+	maxIdLength = 16,
+	stateRepeatSeconds = 1, -- the server sends the running count at most this often
+	minScale = 0.4, -- a time or damage scale outside minScale..maxScale is a mistake (a test checks every mode)
+	maxScale = 2,
+	defs = {
+		classic = {
+			name = "Classic",
+			blurb = "The normal fight.",
+			unlockLevel = 1,
+			tuning = {},
+		},
+		quick = {
+			name = "Quick Blast",
+			blurb = "The circle closes fast.",
+			unlockLevel = 2,
+			tuning = { zoneTimeScale = 0.6 },
+		},
+		loot = {
+			name = "Loot Rush",
+			blurb = "More guns, more heals, better crates.",
+			unlockLevel = 4,
+			tuning = {
+				floorGuns = 8,
+				floorPacks = 10,
+				crateWeights = { common = 30, rare = 40, epic = 30 },
+			},
+		},
+		last = {
+			name = "Last Stand",
+			blurb = "The circle hurts more.",
+			unlockLevel = 6,
+			tuning = { zoneDamageScale = 1.5 },
+		},
+	} :: { [string]: ModeDef },
+}
+
 -- Piece 39: idle (AFK) check. Server only. A fighter is "active" when they move, shoot, reload, slide,
 -- switch guns, grab a pickup or choose an upgrade. Standing still and doing nothing is idle.
 Config.Idle = {
@@ -95,7 +173,7 @@ Config.Policies = {
 	simultaneousFinalElimination = "draw-both-rank-1",
 	eliminatedPlayers = "cannot-fire-collect-or-pick-upgrades",
 	xpOwnership = "exclusive-first-valid-claim",
-	friendlyFire = true, -- free-for-all
+	friendlyFire = true, -- free-for-all in Solo; squads turn it off (Config.Squads.friendlyFire)
 }
 
 Config.Health = {
@@ -258,6 +336,27 @@ Config.Heroes = {
 	botsUseHeroes = true, -- bots get a hero by their number (the same one every match)
 }
 
+-- Piece 48: gear slots (video 3 gap #15). Head, body and feet each hold one piece. Every piece is a small
+-- trade (a little of one thing for a little of another), so no outfit is simply stronger. All free to earn on
+-- the Rewards board; nothing is ever sold. The numbers per piece live in `src/shared/Gear.luau`.
+Config.Gear = {
+	-- How big the trades are. 0 = gear changes nothing, 1 = as written, 1.5 = bigger trades.
+	spread = 1,
+	-- Whatever the three pieces say, the total in each dial stays inside these (in the dial's own unit, after
+	-- `spread`). A positive number is a gain for the player.
+	limits = {
+		health = { -20, 25 }, -- hit points on top of the hero's
+		speed = { -8, 6 }, -- percent of run speed
+		reload = { -12, 10 }, -- percent faster reload (negative = slower)
+		range = { -10, 10 }, -- percent gun range
+		slideWait = { -2, 1.5 }, -- seconds sooner the Slide is ready (negative = later)
+		slideReach = { -4, 5 }, -- studs farther Slide
+	},
+	slideCooldownFloor = 1, -- Slide never waits less than this, whatever the gear says
+	slideDistanceFloor = 4, -- and never goes shorter than this
+	attributes = { head = "GearHead", body = "GearBody", feet = "GearFeet" }, -- on the player, for the look layer
+}
+
 -- Piece 43: the big level-up powers. Their on/off stats live in the upgrade catalogue; these are the
 -- numbers the shot code uses once a power is on. Placeholders until carter plays.
 Config.Powers = {
@@ -387,6 +486,7 @@ Config.Tags = {
 	FinalZoneRegion = "FinalZoneRegion",
 	ArtNeon = "ArtNeon", -- piece 14: art parts whose glow follows the time of day (client)
 	ArtFollower = "ArtFollower", -- piece 14: art parts that copy an occluder's see-through fade
+	Breakable = "Breakable", -- piece 47: street props (cars, bins...) that burst when shot
 }
 
 Config.Workspace = {
@@ -653,6 +753,36 @@ Config.Loot = {
 	},
 }
 
+-- Piece 47: the street breaks (carter picked "A Chunk Burst"). Cars, dumpsters, planters, benches and
+-- barriers take shot and blast damage, then burst into chunky blocks. The solid goes away (people
+-- can walk and shoot through), a scorch mark and a few blocks stay until the match ends.
+-- `kinds` are StreetArt.classify names. Health is in the same units as gun damage. Placeholders until carter plays.
+Config.Breakables = {
+	enabled = true,
+	kinds = {
+		car = { health = 160, chunks = 12 },
+		dumpster = { health = 220, chunks = 9 },
+		planter = { health = 90, chunks = 7 },
+		bench = { health = 70, chunks = 6 },
+		barrier = { health = 260, chunks = 9 },
+	} :: { [string]: { health: number, chunks: number } },
+	rubble = {
+		pieces = 6,
+		minSize = 0.5,
+		maxSize = 1.1,
+		scorchColor = "#0E1018",
+		scorchAlpha = 0.45,
+	},
+	fly = {
+		maxLiveChunks = 48, -- all breaks together, on this client
+		seconds = 1.6, -- how long a flying chunk lives before it shrinks away
+		upSpeed = 14,
+		sideSpeed = 11,
+		gravity = 60,
+	},
+	blastMinFactor = 0.2, -- a blast this far from the edge (share of full) still counts
+}
+
 Config.Rewards = {
 	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
@@ -694,6 +824,15 @@ Config.Chest = {
 	meterGoal = 4,
 	revealStyle = "A", -- "A" Lid Pop (carter picked), "B" Drop Burst, "C" Card Flip stay as skins (ChestReveal.styles)
 	reduceMotionStyle = "B", -- the quick one, used when the player turned on reduce flashes
+}
+
+-- Video 3 gap 18: the Scrap Shop. Looks only (slide trails and shot tracers), paid in Scrap, never Robux, never
+-- power. A few looks are always on sale and a few change each day (same for everyone, new at Config.Daily's reset).
+-- The list is in shared/Shop/ShopDefs. Prices are placeholders: carter tunes them after he plays.
+Config.Shop = {
+	prices = { common = 60, rare = 150, epic = 300 } :: { [string]: number },
+	-- One daily slot per entry: it takes a look of that rarity from the day's pool, never the same look twice.
+	dailySlots = { "common", "common", "rare", "epic" } :: { string },
 }
 
 Config.Settings = {
@@ -852,6 +991,15 @@ Config.Stats = {
 		modelName = "TopWinsBoard",
 		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
 	},
+}
+
+-- Video 3 gap #16: the power rating. One show-off number from things earned by playing. Nothing in combat, loot
+-- or matchmaking reads it, and no part of it can be bought with Robux. See shared/Power/PowerRules.
+Config.Power = {
+	perLevel = 10, -- points for each account level above 1
+	perUnit = { looks = 15, wins = 5, eliminations = 1, matches = 1 }, -- points for each one counted
+	caps = { looks = 10, wins = 100, eliminations = 300, matches = 200 }, -- the most of each that counts
+	bands = { 0, 100, 250, 450, 700, 1000, 1400 }, -- a band starts at each of these points (1 = first)
 }
 
 -- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes

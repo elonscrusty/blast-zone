@@ -3,6 +3,8 @@
 -- health, ammo or cooldowns, so every fighter starts equal. Ids are saved, so never rename or reuse one.
 -- Order matters: tiers are unlocked in order, each for its own coin price.
 
+local ShopDefs = require("../Shop/ShopDefs")
+
 local TrackDefs = {}
 
 export type Slot = "trail" | "tracer"
@@ -45,11 +47,17 @@ TrackDefs.gifts = {
 	item("trail_ice", "trail", "Ice Slip", "#B9E6FF", -1),
 	item("tracer_pink", "tracer", "Pink Pop", "#FF6FB5", -1),
 	-- Chest prizes (looks only).
-	item("trail_lime", "trail", "Lime Flash", "#A8E64A", -1),
-	item("tracer_lime", "tracer", "Lime Shot", "#A8E64A", -1),
-	item("trail_sunset", "trail", "Sunset Dash", "#FF8A3D", -1),
-	item("tracer_sunset", "tracer", "Sunset Shot", "#FF8A3D", -1),
+	item("trail_acid", "trail", "Acid Flash", "#A8E64A", -1),
+	item("tracer_acid", "tracer", "Acid Shot", "#A8E64A", -1),
+	item("trail_blaze", "trail", "Blaze Dash", "#FF8A3D", -1),
+	item("tracer_blaze", "tracer", "Blaze Shot", "#FF8A3D", -1),
 }
+
+-- Bought in the Scrap Shop (shared/Shop). Owned only once bought, like the tiers; the price is the shop's.
+TrackDefs.shop = {} :: { Item }
+for _, o in ShopDefs.list do
+	table.insert(TrackDefs.shop, item(o.id, o.slot :: Slot, o.name, o.color, o.price))
+end
 
 local byId: { [string]: Item } = {}
 for _, it in TrackDefs.defaults do
@@ -60,6 +68,9 @@ for _, it in TrackDefs.tiers do
 end
 
 for _, it in TrackDefs.gifts do
+	byId[it.id] = it
+end
+for _, it in TrackDefs.shop do
 	byId[it.id] = it
 end
 
