@@ -184,6 +184,14 @@ local Defs: { Def } = {
 	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
 	tell("V3-18", "ShopState", "ShopState"),
 
+	-- ===== 48 missions + login days =====
+	ask("48", "MissionsRequest", {}, 1, 2), -- a client asks for its weekly missions, awards and login row
+	ask("48", "MissionClaim", {
+		{ name = "what", kind = "id", maxLen = 8 }, -- "week" | "award" | "bonus" | "login"
+		{ name = "id", kind = "id", maxLen = 24, optional = true }, -- the mission or award id (not for bonus/login)
+	}, 2, 4),
+	tell("48", "MissionsState", "MissionsState"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 

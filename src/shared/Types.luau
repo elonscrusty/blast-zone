@@ -243,6 +243,45 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Piece 48: weekly missions, achievements and login days for one player (server to client only).
+export type MissionRow = {
+	id: string,
+	tier: string?, -- weekly missions only: "easy" | "medium" | "hard"
+	kind: string, -- what counts, same words as DailyChallengeView.kind
+	goal: number,
+	progress: number,
+	reward: number, -- Scrap
+	claimed: boolean,
+	ready: boolean, -- goal reached and not claimed yet: show a CLAIM button
+}
+
+export type MissionBonus = {
+	have: number, -- weekly missions claimed this week
+	need: number,
+	reward: number,
+	claimed: boolean,
+	ready: boolean,
+}
+
+export type LoginView = {
+	next: number, -- which day of the row the next claim is (1 up to #rewards)
+	rewards: { number },
+	canClaim: boolean, -- false once claimed today
+	count: number, -- days claimed in all
+	secondsLeft: number, -- until the next login day
+}
+
+export type MissionsState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	weekSecondsLeft: number, -- until the next week of missions
+	weekly: { MissionRow },
+	bonus: MissionBonus,
+	awards: { MissionRow },
+	login: LoginView,
+	justClaimed: string?, -- set once, right after a claim: "week:<id>" | "award:<id>" | "bonus" | "login"
+	justAmount: number?, -- the Scrap that claim paid
+}
+
 -- Video 3 gap 20: the season pass for one player (server to client only).
 export type SeasonRewardView = {
 	kind: string, -- "scrap" | "item"
