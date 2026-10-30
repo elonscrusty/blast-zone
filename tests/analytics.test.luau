@@ -87,7 +87,7 @@ Harness.test("deaths are counted by cause, and bad labels become other", functio
 	Harness.eq(sent[1].fields[3], "none")
 	Harness.eq(sent[3].fields[2], "bot")
 	Harness.eq(sent[3].fields[3], "volt_pistol")
-	local last = sent[#sent - 1]
+	local last = sent[#sent]
 	Harness.eq(last.fields[1], "other")
 	Harness.eq(last.fields[3], "none")
 end)
