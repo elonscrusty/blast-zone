@@ -31,3 +31,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 26 | Invite friends: INVITE button (SocialService prompt), friends queued into the host's next match, people take bot seats | - | PR up | #22 |
 | 27 | Anti-cheat audit: remote checks, move watch (teleport/speed/fly), reset-to-hide fix | - | PR up | #23 |
 | 22 | UI layers: Settings over lobby, one panel at a time, lobby slots, phone-shape spacing | 20 | PR up | piece 22 PR |
+| 13 | Combat effects polish: "Sticker Punch" look (muzzle, tracers, hits, numbers, slide, crates, blast warning, camera shake) | 22, 23 | PR up | this PR |

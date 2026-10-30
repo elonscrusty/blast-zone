@@ -14,7 +14,22 @@ local HealthBars = {}
 local CORAL = Color3.fromHex(Config.Palette.DangerCoral)
 local NAVY = Color3.fromHex(Config.Palette.Navy)
 
+-- Every fighter's model by participant id, so a hit can find who it landed on without scanning the map.
+local models: { [string]: Model } = {}
+
+function HealthBars.modelOf(id: string): Model?
+	local model = models[id]
+	if model ~= nil and model.Parent ~= nil then
+		return model
+	end
+	return nil
+end
+
 local function attach(model: Model)
+	local id = model:GetAttribute(Config.Attributes.ParticipantId)
+	if typeof(id) == "string" then
+		models[id] = model
+	end
 	if model:FindFirstChild("CombatHealthBar") ~= nil then
 		return
 	end
