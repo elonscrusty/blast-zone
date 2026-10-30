@@ -411,6 +411,16 @@ Config.Progression = {
 	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
 }
 
+-- Piece 34: the account level. Run XP from every match (the same XP that fills the in-match upgrade bar) is
+-- added to a saved total; milestone levels hand out free gifts (Scrap or looks, never Robux, never power).
+-- The levels and gifts are in shared/Level/LevelDefs.
+Config.Level = {
+	firstCost = 100, -- XP to leave level 1
+	costStep = 40, -- each later level costs this much more than the one before
+	maxLevel = 50,
+	maxXpPerMatch = 600, -- sanity cap for one match's XP; a real match gives far less
+}
+
 -- Piece 25: daily challenges. Three a day (one easy, one medium, one hard), the same for everyone, new at
 -- midnight UTC. They pay in the game's coin (Config.Rewards.currencyName). The list is in shared/Daily/DailyDefs.
 Config.Daily = {
