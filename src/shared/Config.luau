@@ -876,8 +876,8 @@ Config.Stats = {
 }
 
 -- Gap 23 (ranked ladder): rank points, tiers and a ranked on/off switch. Server only counts; saved in the profile as
--- data.ranked. A match counts for a player who had the switch ON when the fight began. Tier names and looks are
--- placeholders until carter picks. The rules are in shared/Ranked/RankedRules.
+-- data.ranked. A match counts for a player who had the switch ON when the fight began. Tier names are carter's
+-- pick (Bronze to Gold style); looks come from Claude Design. The rules are in shared/Ranked/RankedRules.
 Config.Ranked = {
 	profileKey = "ranked", -- saved inside the player's profile as data.ranked (piece 17)
 	season = 1, -- a new season keeps `seasonKeep` of the points and asks for the warm-up matches again
@@ -899,12 +899,12 @@ Config.Ranked = {
 	divisions = 3, -- steps inside every tier except the top one
 	-- `from` = points where the tier starts. First tier starts at 0. The last tier has no divisions.
 	tiers = {
-		{ id = "spark", name = "Spark", from = 0 },
-		{ id = "wire", name = "Wire", from = 100 },
-		{ id = "fuse", name = "Fuse", from = 250 },
-		{ id = "relay", name = "Relay", from = 450 },
-		{ id = "surge", name = "Surge", from = 700 },
-		{ id = "neon", name = "Neon", from = 1000 },
+		{ id = "bronze", name = "Bronze", from = 0 },
+		{ id = "silver", name = "Silver", from = 100 },
+		{ id = "gold", name = "Gold", from = 250 },
+		{ id = "platinum", name = "Platinum", from = 450 },
+		{ id = "diamond", name = "Diamond", from = 700 },
+		{ id = "champion", name = "Champion", from = 1000 },
 	} :: { { id: string, name: string, from: number } },
 }
 

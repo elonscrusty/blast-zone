@@ -73,12 +73,12 @@ end)
 test("ranked: saved state reads back the same", function()
 	local s = stateAt(333, 5)
 	s.enabled = true
-	s.peak = "fuse"
+	s.peak = "gold"
 	s.stake = 4
 	local back = RankedRules.read(RankedRules.toSaved(s))
 	eq(back.points, 333)
 	eq(back.matches, 5)
-	eq(back.peak, "fuse")
+	eq(back.peak, "gold")
 	eq(back.enabled, true)
 	eq(back.stake, 4)
 end)
@@ -88,7 +88,7 @@ test("ranked: a new season keeps part of the points and asks for warm-up again",
 		season = cfg.season - 1,
 		points = 301,
 		matches = 9,
-		peak = "relay",
+		peak = "platinum",
 		stake = 5,
 		enabled = true,
 	}
@@ -96,7 +96,7 @@ test("ranked: a new season keeps part of the points and asks for warm-up again",
 	eq(s.points, math.floor(301 * cfg.seasonKeep))
 	eq(s.matches, 0)
 	eq(s.stake, 0)
-	eq(s.peak, "relay", "the peak is kept for good")
+	eq(s.peak, "platinum", "the peak is kept for good")
 	eq(s.season, cfg.season)
 	eq(
 		RankedRules.read({ season = cfg.season, points = 301, matches = 9 }).points,
@@ -224,19 +224,19 @@ test("ranked: a tier you reached is kept, unless dropping is switched on", funct
 	local dropping = table.clone(cfg)
 	dropping.dropTiers = true
 	local was = stateAt(start)
-	was.peak = "fuse"
+	was.peak = "gold"
 	local d = RankedRules.apply(was, result(8), dropping)
 	eq(d.delta, cfg.lastPoints)
 	eq(d.demoted, true)
-	eq(d.state.peak, "fuse", "the peak stays as it was")
+	eq(d.state.peak, "gold", "the peak stays as it was")
 end)
 
 test("ranked: the peak only grows and only after the warm-up", function()
 	local warm = RankedRules.apply(stateAt(cfg.tiers[3].from, 0), result(1))
 	eq(warm.state.peak, cfg.tiers[1].id)
 	local s = stateAt(cfg.tiers[3].from)
-	s.peak = "surge"
-	eq(RankedRules.apply(s, result(1)).state.peak, "surge")
+	s.peak = "diamond"
+	eq(RankedRules.apply(s, result(1)).state.peak, "diamond")
 end)
 
 test("ranked: a bots-only match gains half and stops under the solo ceiling", function()
