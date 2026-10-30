@@ -136,14 +136,14 @@ function SlideService.request(id: string, dirX: number?, dirZ: number?): Result
 
 	local duration = stats.slideDuration
 	local cooldown = SlideRules.cooldown(stats.slideCooldown, Config.Slide.minCooldown)
-	local token = book:commit(id, now, duration, cooldown)
+	local token = book:commit(id, now, duration, cooldown, Config.Slide.charges)
 
 	local from = root.Position
 	local to = from + Vector3.new(dx, 0, dz) * distance
 
 	if body.player then
 		SlideService.PlayerSlid:fire(id, distance)
-		Net.fire("SlideState", body.player, { cooldownEndsAt = now + cooldown, serverNow = now })
+		SlideService.sendState(id, body.player, now)
 		-- If the player is farther than a slide can explain once it is over, put them back.
 		local walk = body.humanoid.WalkSpeed
 		task.delay(duration + Config.Slide.endGrace, function()
@@ -173,6 +173,18 @@ function SlideService.request(id: string, dirX: number?, dirZ: number?): Result
 	end
 	Net.fireAll("SlideFx", { participantId = id, fromPos = from, toPos = to, duration = duration })
 	return { ok = true, fromPos = from, toPos = to, duration = duration }
+end
+
+-- Tells a player how many slides they have and when the next one is back. `cooldownEndsAt` is
+-- "now" while a charge is ready, so the old HUD dial keeps working.
+function SlideService.sendState(id: string, player: Player, now: number)
+	local charges, max = book:charges(id, now, Config.Slide.charges)
+	Net.fire("SlideState", player, {
+		cooldownEndsAt = if charges > 0 then now else book:readyAt(id),
+		serverNow = now,
+		charges = charges,
+		maxCharges = max,
+	})
 end
 
 function SlideService.isReady(id: string): boolean
@@ -219,8 +231,7 @@ function SlideService.start()
 		Net.fire("SlideDenied", player, {}) -- the client cancels the slide it started early
 		if result.reason == "cooldown" or result.reason == "active" then
 			-- Tell the client the truth about the cooldown so its dial agrees.
-			local now = Workspace:GetServerTimeNow()
-			Net.fire("SlideState", player, { cooldownEndsAt = book:readyAt(id), serverNow = now })
+			SlideService.sendState(id, player, Workspace:GetServerTimeNow())
 		end
 	end)
 

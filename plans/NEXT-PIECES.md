@@ -55,3 +55,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 41 | Whole-match tests: a pretend server with bots plays full matches (lobby, crates, guns, zone, winner, coins, reset); 4 seam bugs fixed | - | PR up | piece 41 PR |
 | 42 | Loot & Heal (video 3 bundle A): carried heal packs (use button), floor loot (packs + found guns that never expire), death drop, bots heal | - | PR up | loot PR |
 | 43 | Power Picks (video 3 bundle B): Piercing Rounds, Rapid Fire, Aftershock, Heavy Shell, Long Slide level-up cards | 14 | PR up | power picks PR |
+| 44 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |

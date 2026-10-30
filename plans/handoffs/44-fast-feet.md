@@ -1,0 +1,10 @@
+# 44 Fast Feet (video 3 bundle C: run, hop low walls, 2 slides; carter said "do them all")
+- Done: a RUN toggle (key Left Shift, pad left-stick click, touch RUN button beside HEAL). The server owns the breath bar (`Config.Sprint`: 40% faster, 3 s of breath, 4 s to refill, a shot slows you for 0.5 s) and sets the real walk speed, so the move watch already agrees with it.
+- Done: the Slide button also hops low cover when a hoppable thing is right in front (`Config.Vault`). Walls, fences, rails and low cover up to 4.5 studs tall are tagged `Vaultable` in `ArenaBuilder`; nothing taller can be hopped.
+- Done: 2 slide charges (`Config.Slide.charges`), each back after the normal cooldown, one at a time. `SlideBook` holds the charges; `SlideState` now also carries `charges` and `maxCharges`. The old cooldown dial still works (ready while any charge is ready); the slide button shows the charge count.
+- Server decides: `SprintService` (breath, who runs), `VaultService` (plans the hop with `VaultCast`, says yes or no, checks the landing spot and pulls the body back if it is too far, credits the move watch). The client only asks (`SprintRequest`, `VaultRequest`) and carries its own body with `VaultMotion`; `VaultDenied` puts it back.
+- Pure and tested: `SprintRules`, `VaultRules`, `SlideBook` charges, `MoveState`, bindings, layout (`tests/fastfeet.test.luau`, 18 cases). stylua, lune (910 pass) and rojo build are clean; selene runs in CI.
+- NOT tested until carter plays (no Play tests in Studio): the hop physics (the `Vaulting` collision group, the steering, where a body lands), whether the hop feels good and starts when expected, and the sprint feel. All numbers are placeholders.
+- Bots do not run or hop yet (they still use the old single-charge slide logic through `BotPort`).
+- Look: RUN and the slide charge count are plain placeholder text; no run or hop effects, trail or sounds. Claude Design and the art thread own those.
+- Left: bots using sprint/hop, a run effect, a hop sound.

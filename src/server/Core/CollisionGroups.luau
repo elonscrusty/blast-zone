@@ -18,6 +18,13 @@ function CollisionGroups.setup()
 	pcall(function()
 		PhysicsService:CollisionGroupSetCollidable(names.Participants, names.Participants, false)
 	end)
+	-- A body mid-hop touches nothing (piece 44).
+	pcall(function()
+		PhysicsService:CollisionGroupSetCollidable(names.Vaulting, "Default", false)
+		PhysicsService:CollisionGroupSetCollidable(names.Vaulting, names.Participants, false)
+		PhysicsService:CollisionGroupSetCollidable(names.Vaulting, names.Vaulting, false)
+		PhysicsService:CollisionGroupSetCollidable(names.Vaulting, names.Projectiles, false)
+	end)
 end
 
 function CollisionGroups.apply(model: Model)

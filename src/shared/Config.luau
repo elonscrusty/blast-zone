@@ -277,7 +277,8 @@ Config.ShotRules = {
 Config.Slide = {
 	distance = 14,
 	duration = 0.25,
-	cooldown = 5,
+	cooldown = 5, -- seconds for ONE charge to come back
+	charges = 2, -- piece 44: slides you can chain before waiting (1 = the old single slide)
 	invulnerable = false,
 	stationaryFallback = "facing", -- no movement input: slide the way the character faces
 	stopsWhenBlocked = true,
@@ -291,6 +292,41 @@ Config.Slide = {
 	endGrace = 0.35, -- server checks where the player ended up this long after the slide
 	endTolerance = 4,
 	trailFadeSeconds = 0.3,
+}
+
+-- Piece 44: sprint. Press the sprint button to start, press again to stop. The server decides: speed,
+-- breath and when it may run. Shooting breaks the run for a moment. All placeholders until carter plays.
+Config.Sprint = {
+	enabled = true,
+	speedMultiplier = 1.4, -- on top of normal run speed (and its upgrades)
+	staminaSeconds = 3, -- running flat out empties the breath bar in this long
+	regenSeconds = 4, -- and filling it from empty takes this long
+	regenDelaySeconds = 0.8, -- breath starts to come back this long after the run stops
+	restartAt = 0.3, -- after running out, you may start again once breath is at this share
+	afterFireSeconds = 0.5, -- a shot slows you to normal speed for this long
+	minMoveSpeedShare = 0.2, -- standing still (or nudging the stick) does not use breath
+	tickSeconds = 0.1, -- how often the server steps everyone's breath
+	sendSeconds = 0.25, -- breath updates go to the player at most this often
+}
+
+-- Piece 44: hop over low cover. Pressing Slide against a hoppable thing in front of you hops it
+-- (the Slide button does both, so no new button). Server plans the hop and checks where you land.
+Config.Vault = {
+	enabled = true,
+	reach = 3.2, -- studs: the thing must be this close, straight ahead
+	maxDepth = 6, -- studs thick at most (a long car sideways is too thick)
+	maxHeight = 4.5, -- studs tall at most
+	landingPad = 2.4, -- studs past the far side you land
+	durationSeconds = 0.42,
+	cooldownSeconds = 1.0,
+	headOnDot = 0.5, -- how square-on you must face it (1 = perfectly)
+	bodyWidth = 2.4,
+	bodyHeight = 4, -- the landing spot must be clear this tall
+	floorTolerance = 1.2, -- the floor at the landing may differ this much from where you start
+	clearance = 1, -- hop this far above the top
+	maxPeak = 6.5,
+	endGrace = 0.35,
+	endTolerance = 4,
 }
 
 Config.Arena = {
@@ -323,6 +359,7 @@ Config.Arena = {
 Config.Tags = {
 	BlocksShots = "BlocksShots",
 	LowCover = "LowCover",
+	Vaultable = "Vaultable", -- piece 44: low walls, fences and cars a fighter can hop over
 	Roof = "Roof",
 	Interior = "Interior",
 	Spawn = "ArenaSpawn",
@@ -349,6 +386,7 @@ Config.Attributes = {
 Config.CollisionGroups = {
 	Participants = "Participants", -- do not collide with each other
 	Projectiles = "Projectiles",
+	Vaulting = "Vaulting", -- piece 44: a body hopping over cover touches nothing until it lands
 }
 
 -- Piece 07. Supply containers come in three loot tiers. The color tells the tier from far away:
