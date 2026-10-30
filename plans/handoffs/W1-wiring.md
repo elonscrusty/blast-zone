@@ -8,3 +8,4 @@
 - Proof: Lune all pass, full-match tests pass, StyLua clean, rojo build ok. Selene in CI.
 - Not proven: a real Roblox boot. In Studio Output, look for "[server] ... up (N systems)" and no "could not load" / "failed to start" lines.
 - Playtest follow-up: the top-wins board stops asking the store after its first 403 (Studio API access off) instead of every few seconds; in Studio with a failed save the intro is skipped (it would show on every Play). Live games are unchanged.
+- Playtest round 2: zone red edges only for a body in the fight (not a lobby body while spectating); MatchState has `fillEndsAt` while PLAY-pressed players wait for friends and the Results screen's countdown label shows it; idle check 120s warn / 150s out in fights only (`Config.Idle.lobbyCheck = false`). Asset 203785492 is not in this repo (likely the avatar or the Studio place).

@@ -107,6 +107,7 @@ export type PublicMatchState = {
 	matchId: MatchId,
 	phase: MatchPhase,
 	phaseEndsAt: number?, -- server time (workspace:GetServerTimeNow)
+	fillEndsAt: number?, -- Waiting with PLAY pressed: server time the countdown begins at the latest
 	aliveCount: number,
 	totalCount: number,
 	serverNow: number,
