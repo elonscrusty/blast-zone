@@ -19,6 +19,7 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | 10 | `src/client/Hud/`, `src/client/Controls/`, `src/client/Settings/` |
 | 24 | `src/server/Stats/`, `src/client/Stats/`, `src/shared/Stats/`, `tests/stats*.test.luau`; `Config.Stats`, the 24 block in `RemoteDefs` |
 | 19 | `src/server/Lobby/`, `src/client/Lobby/`, `src/shared/Loadout*.luau`, `src/shared/LobbyLayout.luau`, `tests/lobby.test.luau`; added `StatBook.addModifier` |
+| V3-18 | `src/server/Shop/`, `src/client/Shop/`, `src/shared/Shop/`, `tests/shop.test.luau`; `Config.Shop`, the V3-18 block in `RemoteDefs`; added `TrackDefs.shop`, `ProgressService.buy`, lobby slot `shop` |
 
 Each piece adds its own tests as `tests/<name>.test.luau` and ONE `require("./<name>.test")` line in `tests/run.luau`
 (add the line in alphabetical order to keep merges easy). Edit only your block in `src/shared/RemoteDefs.luau`

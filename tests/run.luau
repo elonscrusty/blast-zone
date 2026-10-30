@@ -57,5 +57,6 @@ require("./streaks.test")
 require("./moments.test")
 require("./art.test")
 require("./daynight.test")
+require("./shop.test")
 
 Harness.summary()
