@@ -23,6 +23,9 @@ local specs = {
 	A = require("../src/server/Arena/LayoutA"),
 	B = require("../src/server/Arena/LayoutB"),
 	C = require("../src/server/Arena/LayoutC"),
+	D = require("../src/server/Arena/LayoutD"),
+	E = require("../src/server/Arena/LayoutE"),
+	F = require("../src/server/Arena/LayoutF"),
 }
 
 local function bottomOf(p: ArtKit.Spec): number

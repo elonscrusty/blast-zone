@@ -437,7 +437,7 @@ function ParkArt.build(plan: ArtKit.Plan, map: ArtMap.Map)
 			hedge(plan, s)
 		elseif k == "benc" then
 			bench(plan, s)
-		elseif k == "pond" then
+		elseif k == "pond" or k == "pool" then
 			pond(plan, s)
 		elseif k == "band" or k == "gaze" then
 			bandstand(plan, s)
