@@ -747,3 +747,51 @@ Harness.test("results go out as soon as the match ends, so the banner shows at o
 	Harness.eq(rig.results[ids[2]].you.placement, 2)
 	Harness.truthy(rig.results[ids[1]].endsAt > rig.now(), "close time is in the future")
 end)
+
+-- ===== piece 26: friends who join =====
+
+Harness.test("a friend who joins during a full countdown takes a bot's seat", function()
+	local rig = newRig()
+	local host = rig.join(1, "Host")
+	rig.ready(host)
+	Harness.eq(
+		rig.ctl.requestBots(Config.Match.maxParticipants - 1),
+		Config.Match.maxParticipants - 1
+	)
+	rig.untilPhase("Countdown", 1)
+	local friend = rig.join(2, "Friend")
+	rig.ready(friend)
+	rig.untilPhase("Spawning")
+	local seen: { [string]: boolean } = {}
+	for _, s in rig.placed do
+		seen[s.id] = true
+	end
+	Harness.truthy(seen[host] and seen[friend], "host and friend are both in")
+	Harness.eq(#rig.placed, Config.Match.maxParticipants, "still a full match")
+end)
+
+Harness.test("a friend who joins a match full of people waits, then plays the next one", function()
+	local rig = newRig({ maxParticipants = 2 })
+	local a = rig.join(1, "A")
+	local b = rig.join(2, "B")
+	rig.ready(a)
+	rig.ready(b)
+	rig.untilPhase("Countdown")
+	local friend = rig.join(3, "Friend")
+	rig.ready(friend)
+	rig.untilPhase("Spawning")
+	Harness.eq(#rig.placed, 2)
+	Harness.eq(rig.registry:get(friend), nil, "friend waits")
+	rig.untilPhase("Active")
+	Harness.eq(rig.spectate[friend] ~= nil, true, "friend watches")
+	rig.kill(b, a)
+	rig.untilPhase("Results", 5)
+	rig.ready(a)
+	rig.ctl.setReady(b, false)
+	rig.untilPhase("Waiting", 40)
+	Harness.eq(rig.ctl.isReady(friend), true, "friend still queued")
+	rig.untilPhase("Countdown", 20)
+	rig.untilPhase("Spawning")
+	Harness.truthy(rig.registry:get(friend) ~= nil, "friend plays the next match")
+	Harness.truthy(rig.registry:get(a) ~= nil, "with the host")
+end)

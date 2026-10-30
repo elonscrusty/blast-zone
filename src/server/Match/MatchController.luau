@@ -679,6 +679,16 @@ function MatchController.new(deps: Deps): Controller
 			h.decision = if ready then "play" else "loadout"
 		elseif p == phases.Countdown then
 			local at = table.find(pendingIds, id)
+			if
+				ready
+				and not at
+				and #pendingIds + botsPlanned >= M.maxParticipants
+				and botsPlanned > 0
+			then
+				-- Full, but a bot holds a seat: people come first (a friend who just joined gets in).
+				botsPlanned -= 1
+				botsRequested = botsPlanned
+			end
 			if ready and not at and #pendingIds + botsPlanned < M.maxParticipants then
 				table.insert(pendingIds, id)
 				publish()

@@ -6,6 +6,8 @@
 --   MatchSystem.requestBots(n)       piece 09: ask for n bots in Waiting/Countdown. Returns how many were accepted.
 --   MatchSystem.SpawnAssigned        Signal(participant, point, lookAt): fired at Spawning for everyone, bots included.
 --   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId): once per player per match.
+--   MatchSystem.queuePlayer(player)  piece 26: queue a player for the next match, same as pressing PLAY.
+--   MatchSystem.isQueued(player)     piece 26: true when the player pressed PLAY / PLAY AGAIN (or was queued).
 -- Phase and matchId live in Core/MatchContext; the roster in Core/Participants; hurting goes through Core/Damage.
 
 local CollectionService = game:GetService("CollectionService")
@@ -183,6 +185,16 @@ end
 
 local function idOf(player: Player): string
 	return Ids.player(player.UserId)
+end
+
+function MatchSystem.queuePlayer(player: Player): boolean
+	local id = idOf(player)
+	controller.setReady(id, true)
+	return controller.isReady(id)
+end
+
+function MatchSystem.isQueued(player: Player): boolean
+	return controller ~= nil and controller.isReady(idOf(player))
 end
 
 local function onPlayerAdded(player: Player)
