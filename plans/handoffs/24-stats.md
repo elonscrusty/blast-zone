@@ -1,0 +1,11 @@
+# 24 Lifetime stats + top-wins board
+- Server `src/server/Stats/StatsSystem.luau`: matches + wins from `MatchSystem.RewardGranted` (place 1 = win, so a draw gives both a win), eliminations from `Damage.Eliminated` (real player killers only; no bots, self or zone).
+- Saved in the profile as `data.stats = { wins, eliminations, matches }` through `Profiles.update` (PR #15). Stats earned before the profile loads wait in `StatsBook` and are written on `Profiles.Loaded`. No Profile piece in the build = session-only stats, board says "Saving is off".
+- Board: `TopWinsStore` mirrors SAVED wins into OrderedDataStore `TopWins_v1` (key = userId). Writes are queued, sent every 30 s (max 8), never lower a value, all via SaveRetry. Top 10 read every 60 s; names from `GetNameFromUserIdAsync` (cached).
+- Look: A "Trophy Wall" (recommended; carter has not picked yet) (preview: claude.ai/artifact/9ABcoHbZ48UP95dJAuGJCA). B Neon Tower and C Street Billboard can become skins. Built by `TrophyWall.luau`; no collide/query/touch.
+- Where it stands: part tagged `LeaderboardSpot` (front = LookVector), else 30 studs from the first `LobbySpawn`, else `Config.Stats.board.fallback`. The lobby piece should tag a spot.
+- Client `StatsClientSystem`: lobby card (WINS / ELIMS / GAMES, top left, Waiting + Countdown only), fills the board's YOU row, hides the board locally during a fight, spins the trophies.
+- Remotes: `StatsRequest` (no args, 1/s) and `StatsUpdate` (`StatsPayload` in Types).
+- Tests: `tests/stats.test.luau` (16). Also checked on top of PR #15 with the real Profile store + fake DataStore: stats survive leave and rejoin on another server.
+- Not run in Roblox. In Studio without API access the board says "Board works in the real game".
+- Open: board placement needs the real lobby; names are user names, not display names.

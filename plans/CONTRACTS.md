@@ -16,6 +16,7 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | 08 | `src/server/Upgrades/`, `src/shared/UpgradeDefs.luau` |
 | 09 | `src/server/Bots/` |
 | 10 | `src/client/Hud/`, `src/client/Controls/`, `src/client/Settings/` |
+| 24 | `src/server/Stats/`, `src/client/Stats/`, `src/shared/Stats/`, `tests/stats*.test.luau`; `Config.Stats`, the 24 block in `RemoteDefs` |
 
 Each piece adds its own tests as `tests/<name>.test.luau` and ONE `require("./<name>.test")` line in `tests/run.luau`
 (add the line in alphabetical order to keep merges easy). Edit only your block in `src/shared/RemoteDefs.luau`
