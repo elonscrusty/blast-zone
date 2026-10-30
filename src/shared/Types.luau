@@ -333,6 +333,15 @@ export type WeatherState = {
 	serverNow: number,
 }
 
+-- Piece SL: the road stretches the night traffic drives on this match. An empty list = no cars.
+-- Each segment is { axis: "x"|"z", dir: 1|-1, fixed, from, to } (see Traffic/TrafficPlan).
+export type TrafficState = {
+	matchId: MatchId,
+	seed: number,
+	segments: { { axis: string, dir: number, fixed: number, from: number, to: number } },
+	serverNow: number,
+}
+
 -- Airdrop: one falling crate and its beam. Times are server time (Workspace:GetServerTimeNow()).
 -- "incoming" = it is on its way (or landed and shut), "opened" = the loot is on the street,
 -- "clear" = every drop is gone (match over); a "clear" has no other fields but serverNow.

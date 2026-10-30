@@ -198,6 +198,8 @@ local Defs: { Def } = {
 	-- ===== 38 weather =====
 	ask("38", "WeatherRequest", {}, 1, 2), -- a client that joined late asks what the weather is
 	tell("38", "WeatherState", "WeatherState"),
+	ask("SL", "TrafficRequest", {}, 1, 2), -- a client that joined late asks which roads have cars
+	tell("SL", "TrafficState", "TrafficState"),
 
 	-- ===== 19 lobby + loadout =====
 	ask("19", "LoadoutEquip", {
