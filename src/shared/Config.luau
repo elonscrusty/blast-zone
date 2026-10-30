@@ -312,6 +312,24 @@ Config.Bots = {
 	hiddenStatAdvantage = false, -- must stay false: bots use player rules
 }
 
+-- Kill streaks (piece 36). A kill within windowSeconds of the last one grows the streak.
+-- Tiers pay once each when the streak reaches `at`. Values are placeholders until carter picks.
+Config.Streaks = {
+	enabled = true,
+	windowSeconds = 12,
+	tiers = {
+		{ at = 2, heal = 15, speedMultiplier = 1, speedSeconds = 0, text = "DOUBLE! +15 HP" },
+		{ at = 3, heal = 0, speedMultiplier = 1.2, speedSeconds = 4, text = "TRIPLE! SPEED UP" },
+		{
+			at = 5,
+			heal = 30,
+			speedMultiplier = 1.25,
+			speedSeconds = 5,
+			text = "RAMPAGE! HEAL + SPEED",
+		},
+	},
+}
+
 Config.Rewards = {
 	currencyName = "Credits", -- in-game only; persistence is Phase 5
 	participation = 10,

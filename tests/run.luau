@@ -22,5 +22,6 @@ require("./movement.test")
 require("./match_controller.test")
 require("./match_results_text.test")
 require("./match_rules.test")
+require("./streaks.test")
 
 Harness.summary()
