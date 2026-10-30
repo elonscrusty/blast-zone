@@ -227,6 +227,10 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== V16 power rating (video 3 gap #16) =====
+	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating
+	tell("V16", "PowerUpdate", "PowerPayload"),
 }
 
 local Index: { [string]: Def } = {}
