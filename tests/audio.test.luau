@@ -284,3 +284,36 @@ Harness.test("audio reset: a new match clears effects and per-match memory", fun
 	Harness.truthy(reset ~= nil and reset.resetEffects and reset.music == "music_lobby")
 	Harness.eq(t:matchState("junk"), nil)
 end)
+
+Harness.test("audio: each found gun has its own shot cue, others are the far version", function()
+	local t = tracker()
+	local function shot(who: string, gun: string): string?
+		return cueOf(t:shot({ shooterId = who, weaponId = gun, origin = { x = 0, y = 0, z = 0 } }))
+	end
+	Harness.eq(shot(ME, "breaker"), "fire_breaker")
+	Harness.eq(shot("p2", "breaker"), "fire_breaker_other")
+	Harness.eq(shot(ME, "hornet"), "fire_hornet")
+	Harness.eq(shot("b1", "hornet"), "fire_hornet_other")
+	Harness.eq(shot(ME, "longline"), "fire_longline")
+	Harness.eq(shot("p2", "longline"), "fire_longline_other")
+	Harness.eq(shot(ME, "volt_pistol"), "fire_pistol")
+	Harness.eq(shot("p2", "mystery"), "fire_pistol_other", "unknown gun falls back to the pistol")
+	Harness.eq(AudioCatalog.assetId("fire_hornet_other", { fire_hornet = 7 }), 7)
+	Harness.eq(AudioCatalog.assetId("fire_breaker", AudioIds), nil, "no made-up ids")
+end)
+
+Harness.test("audio: gun swap and gun drop sounds", function()
+	local t = tracker()
+	local function ammo(gun: string, n: number, reload: number?): string?
+		return cueOf(t:ammoState({ slot = 1, weaponId = gun, ammo = n, reloadEndsAt = reload }))
+	end
+	Harness.eq(ammo("volt_pistol", 12, nil), nil, "first message is only a baseline")
+	Harness.eq(ammo("volt_pistol", 11, nil), nil)
+	Harness.eq(ammo("hornet", 30, nil), "gun_swap")
+	Harness.eq(ammo("hornet", 29, nil), nil)
+	Harness.eq(ammo("hornet", 29, 5), "reload_start")
+	t:reset()
+	Harness.eq(ammo("volt_pistol", 12, nil), nil, "a new match starts with no swap sound")
+	Harness.eq(cueOf(t:gunDropped({ x = 0, y = 0, z = 0 })), "gun_drop")
+	Harness.eq(t:gunDropped(nil), nil)
+end)
