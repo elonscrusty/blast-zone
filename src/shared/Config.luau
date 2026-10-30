@@ -72,6 +72,18 @@ Config.MapVote = {
 	} :: { [string]: string },
 }
 
+-- Piece 39: idle (AFK) check. Server only. A fighter is "active" when they move, shoot, reload, slide,
+-- switch guns, grab a pickup or choose an upgrade. Standing still and doing nothing is idle.
+Config.Idle = {
+	warnSeconds = 25, -- in a fight: a warning after this long doing nothing
+	kickSeconds = 40, -- in a fight: removed from the match (no reward) after this long
+	lobbyQueuedSeconds = 90, -- queued in the lobby with no input at all: taken off the queue
+	lobbyWarnSeconds = 60,
+	moveStuds = 3, -- walking farther than this from the last counted spot counts as moving
+	sweepSeconds = 1, -- how often the server looks
+	shutdownGraceSeconds = 3, -- BindToClose: time for last rewards to reach the saves (allowed 30 total)
+}
+
 -- Written-down answers to the brief's "define a policy" questions. Code reads these names.
 Config.Policies = {
 	joinDuringActiveMatch = "spectate-until-next-match",

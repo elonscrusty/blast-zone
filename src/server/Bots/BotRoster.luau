@@ -20,7 +20,12 @@ export type Fill = {
 	filled: boolean,
 }
 
-export type FillResult = { action: "none" | "countdown" | "fill", secondsLeft: number }
+-- `alone` is true while fewer than `aloneBelow` people are here (the client shows the "Alone?" banner then).
+export type FillResult = {
+	action: "none" | "countdown" | "fill",
+	secondsLeft: number,
+	alone: boolean,
+}
 
 function BotRoster.newFill(): Fill
 	return { since = nil, filled = false }
@@ -28,6 +33,8 @@ end
 
 -- Call about once a second. `waiting` = the match is in Waiting or Countdown and has not started.
 -- Fills once per wait. Nobody around (0 humans) never counts as "alone".
+-- A part-full lobby (fewer people than `fillTo`) is topped up too, after the shorter `topUpDelay`,
+-- so a match with two or three friends still starts with a full arena.
 function BotRoster.updateFill(
 	tuning: Tuning,
 	fill: Fill,
@@ -38,23 +45,25 @@ function BotRoster.updateFill(
 	if not waiting then
 		fill.since = nil
 		fill.filled = false
-		return { action = "none", secondsLeft = 0 }
+		return { action = "none", secondsLeft = 0, alone = false }
 	end
-	if humans >= tuning.aloneBelow or humans < 1 then
+	if humans >= tuning.fillTo or humans < 1 then
 		fill.since = nil
-		return { action = "none", secondsLeft = 0 }
+		return { action = "none", secondsLeft = 0, alone = false }
 	end
+	local alone = humans < tuning.aloneBelow
 	if fill.filled then
-		return { action = "none", secondsLeft = 0 }
+		return { action = "none", secondsLeft = 0, alone = alone }
 	end
 	local since = fill.since or now
 	fill.since = since
-	local left = tuning.autoFillDelay - (now - since)
+	local delay = if alone then tuning.autoFillDelay else tuning.topUpDelay
+	local left = delay - (now - since)
 	if left <= 0 then
 		fill.filled = true
-		return { action = "fill", secondsLeft = 0 }
+		return { action = "fill", secondsLeft = 0, alone = alone }
 	end
-	return { action = "countdown", secondsLeft = math.ceil(left) }
+	return { action = "countdown", secondsLeft = math.ceil(left), alone = alone }
 end
 
 -- "Add bots now" tap. Same rules as the count: only while waiting alone, with a cooldown.
