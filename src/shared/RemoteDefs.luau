@@ -268,6 +268,14 @@ local Defs: { Def } = {
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
 
+	-- ===== G20 season pass =====
+	ask("G20", "SeasonRequest", {}, 1, 2), -- a client asks for its pass (the server also sends it unasked)
+	ask("G20", "SeasonClaimRequest", {
+		{ name = "tier", kind = "integer", min = 0, max = 100 }, -- 0 = take everything ready
+		{ name = "row", kind = "string", maxLen = 8 },
+	}, 3, 4),
+	tell("G20", "SeasonState", "SeasonState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
