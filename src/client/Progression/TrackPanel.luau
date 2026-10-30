@@ -13,6 +13,7 @@ local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local Ui = require(script.Parent.ProgressUi)
+local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local TrackPanel = {}
@@ -249,6 +250,11 @@ function TrackPanel.toggle()
 	g.Enabled = not g.Enabled
 	if g.Enabled then
 		refresh()
+		ModalGate.opened("track", function()
+			g.Enabled = false
+		end)
+	else
+		ModalGate.closed("track")
 	end
 end
 
