@@ -1,0 +1,10 @@
+# 48 Missions + login days (video 3 gaps #21 + #22)
+- Done: 3 weekly missions (easy/medium/hard, new every Monday 00:00 UTC), a week bonus after all 3, 19 achievements (kills, wins, matches, top 3, crates, orbs; never expire), and a 7-day login row. Lists: `src/shared/Missions/MissionDefs.luau` (saved ids, never rename). Money: `Config.Missions` (all Scrap, under the grant cap).
+- Claim buttons, not auto-pay: client asks `MissionClaim(what, id)`, server checks goal/week/day, pays once through `ProgressionSystem.grant` (keys `w:<week>:<id>`, `w:<week>:bonus`, `a:<id>`, `l:<day>`), then marks it claimed. A lost mark is repaired by the "duplicate" answer.
+- Login row is kind: one claim a day, steps go in order, a missed day costs nothing, after day 7 it starts again.
+- Server counts, same events as dailies (`RunXp.Awarded`, `MatchSystem.RewardGranted`). Bots never count. Awards count from the day this ships (old lifetime stats from piece 24 are not copied in).
+- Saving: `data.missions` through `Profiles.update`; without the profile module it runs in memory ("Test mode: not saved").
+- Remotes (48 block): `MissionsRequest`, `MissionClaim`, `MissionsState`. The server only pushes unasked when something becomes claimable, on join, and after a claim.
+- Client: `src/client/Missions/MissionsUiSystem.luau`, built from `Ui/Components` with colour roles (Claude Design restyles it). MISSIONS button in new lobby slot `missions` (new `more` group in `LobbyLayout`, between the centre and right columns), dot when something can be claimed, modal with WEEK / AWARDS / LOGIN tabs.
+- Tests: `tests/missions.test.luau` (lists, weeks, picks, repairs, counting, every claim path, pay once, failed pay, lost mark, login row, remote shape); 2 deliberate breaks made it fail. Nothing run in Studio.
+- Left: the look and the real layout (Claude Design). Tune goals, rewards and the 7 login numbers after playing. If PR #51 (one lobby layout) lands first, keep both: its `invite` slot and my `missions` slot/`more` group.

@@ -30,7 +30,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | --- | --- | --- | --- | --- |
 | 1 | **Street that breaks** (**done, piece 47**) | Parked cars, fences, bins burst into pieces and leave rubble. Dashing and blasts kick up debris. Results count "things broken". | Static props. Slide and blasts break nothing. | M |
 | 2 | **Street that lives** | Ambient traffic, wandering bystanders who run from fights, roaming guards or hazards near the edge. Makes the city feel busy. (Keep bystanders harmless: Roblox rules, kids.) | Empty streets. | M-L |
-| 3 | **Airdrop with a light beam** | A tall beam of light marks a falling loot box, everyone sees where to run. | Crates sit in fixed spots, no event. | S-M |
+| 3 | **Airdrop with a light beam** (PR up, piece AD) | A tall beam of light marks a falling loot box, everyone sees where to run. | Crates sit in fixed spots, no event. | S-M |
 | 4 | **Always-on name plates** | Every fighter has a name, a health bar and a small level badge over the head. Your own has a green ring under the feet. | Enemy bars show for a few seconds after a hit. No badge, no ring. | S |
 | 5 | **Big moment banners** | Large banner with an emblem for double kill, killing spree, "invincible" at sudden death, circle closing. | Plain text notices ("DOUBLE! +15 HP"). | S |
 | 6 | **Level-up celebration in the world** | Burst, big arrow over the hero, star emblem, then the 3 cards. | Cards only. | S |
