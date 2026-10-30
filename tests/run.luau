@@ -64,5 +64,6 @@ require("./art.test")
 require("./daynight.test")
 require("./season.test")
 require("./shop.test")
+require("./wiring.test")
 
 Harness.summary()

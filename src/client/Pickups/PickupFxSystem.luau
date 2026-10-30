@@ -171,6 +171,8 @@ function PickupFxSystem.start()
 	Net.on("ContainerHit", onHit)
 	Net.on("ContainerBroken", onBroken)
 	Net.on("PickupRemoved", onRemoved)
+	-- New orbs arrive by their tag (above); the message is still heard so it never piles up unread.
+	Net.on("PickupSpawned", function() end)
 	RunService.RenderStepped:Connect(step)
 end
 
