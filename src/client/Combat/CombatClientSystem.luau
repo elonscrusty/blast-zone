@@ -222,7 +222,7 @@ function CombatClientSystem.start()
 		if mortar then
 			CombatFx.shell(s.shooterId, s.origin, s.endPos, explosive.projectileSpeed)
 		else
-			CombatFx.tracer(s.origin, s.endPos, CosmeticLook.tracerColor(s.shooterId))
+			CombatFx.tracer(s.origin, s.endPos, s.weaponId, CosmeticLook.tracerColor(s.shooterId))
 			if s.hitKind ~= "none" then
 				local travel = s.endPos - s.origin
 				local dir = if travel.Magnitude > 0.01 then travel.Unit else nil

@@ -36,8 +36,13 @@ local function newShell(at: Vector3): BasePart
 end
 
 -- The streak a shot draws from the barrel to where it ended. shooterColor: their chosen shot look (piece 18).
-function CombatFx.tracer(from: Vector3, to: Vector3, shooterColor: Color3?)
-	Fx.tracer(from, to, shooterColor)
+function CombatFx.tracer(from: Vector3, to: Vector3, weaponId: string, shooterColor: Color3?)
+	-- Shape tells the guns apart: thin shotgun pellets, a thick rifle line, the rest in between.
+	local widthScale = if weaponId == "longline"
+		then 1.7
+		elseif weaponId == "breaker" or weaponId == "hornet" then 0.65
+		else 1
+	Fx.tracer(from, to, shooterColor, widthScale)
 end
 
 -- `mine` is a shot you fired yourself (the camera gives it a tiny kick).

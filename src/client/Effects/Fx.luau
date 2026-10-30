@@ -797,11 +797,11 @@ function Fx.muzzle(pos: Vector3, dir: Vector3, mine: boolean)
 end
 
 -- The streak a shot draws from the barrel to where it ended.
-function Fx.tracer(from: Vector3, to: Vector3, color: Color3?)
+function Fx.tracer(from: Vector3, to: Vector3, color: Color3?, widthScale: number?)
 	if not started then
 		return
 	end
-	playBar("shot", from, to, color or CYAN, 1)
+	playBar("shot", from, to, color or CYAN, widthScale or 1)
 end
 
 -- Where a shot ended. kind: "target", "wall", "container" or "none".
