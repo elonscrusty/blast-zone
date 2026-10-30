@@ -91,8 +91,9 @@ function WeaponDrops.spawn(gunId: string, floor: Vector3, matchId: number): Drop
 	return drop
 end
 
--- The swap. Everything is checked here; the prompt only says "this player pressed it".
-onTrigger = function(drop: Drop, player: Player)
+-- The swap. Everything is checked here; the prompt only says "this player pressed it", and a bot
+-- asks through WeaponDrops.claimFor. Both end up in the same checks.
+local function trySwap(drop: Drop, p: { id: string, matchId: number })
 	if table.find(live, drop) == nil or not MatchContext:isCombat() then
 		return
 	end
@@ -100,8 +101,7 @@ onTrigger = function(drop: Drop, player: Player)
 		remove(drop)
 		return
 	end
-	local p = Participants:ofPlayer(player)
-	if p == nil or not Participants:isAlive(p.id) or p.matchId ~= drop.matchId then
+	if not Participants:isAlive(p.id) or p.matchId ~= drop.matchId then
 		return
 	end
 	local root = Combatants.root(p.id)
@@ -127,6 +127,40 @@ onTrigger = function(drop: Drop, player: Player)
 		WeaponDrops.spawn(old, Vector3.new(here.X, there.Y - drops.height, here.Z), drop.matchId)
 	end
 	Firing.sendAmmo(p.id)
+end
+
+onTrigger = function(drop: Drop, player: Player)
+	local p = Participants:ofPlayer(player)
+	if p ~= nil then
+		trySwap(drop, p)
+	end
+end
+
+export type GunOnGround = { dropId: string, gunId: string, x: number, z: number }
+
+-- Guns lying around right now, for bots to walk to (bots see what a player sees).
+function WeaponDrops.list(): { GunOnGround }
+	local out: { GunOnGround } = {}
+	for _, d in live do
+		local at = d.part.Position
+		table.insert(out, { dropId = tostring(d.id), gunId = d.gunId, x = at.X, z = at.Z })
+	end
+	return out
+end
+
+-- A bot asks for the swap. Same checks as a player's button press (phase, alive, match, distance,
+-- gun still there, cooldown).
+function WeaponDrops.claimFor(participantId: string, dropId: string)
+	local p = Participants:get(participantId)
+	if p == nil then
+		return
+	end
+	for _, d in live do
+		if tostring(d.id) == dropId then
+			trySwap(d, p)
+			return
+		end
+	end
 end
 
 function WeaponDrops.clear()

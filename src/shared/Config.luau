@@ -428,6 +428,46 @@ Config.Bots = {
 		reactionSeconds = 0.9,
 		aimErrorDegrees = 14,
 	},
+	-- Difficulty tiers (piece 35). A tier only changes how well a bot sees, reacts, aims and plays
+	-- (cover, grabbing guns, leaving the zone early). Never health, damage, speed or ammo.
+	-- Scales multiply the full-strength numbers above; the calm start numbers stay as they are.
+	tiers = {
+		easy = {
+			sightScale = 0.75,
+			reactionScale = 1.5,
+			aimErrorScale = 1.8,
+			coverSkill = 0.2, -- chance (0-1) it ducks behind cover when it needs to reload or heal
+			seekGuns = false,
+			zoneExtra = 0, -- extra studs of margin from the zone wall
+		},
+		normal = {
+			sightScale = 1,
+			reactionScale = 1,
+			aimErrorScale = 1,
+			coverSkill = 0.7,
+			seekGuns = true,
+			zoneExtra = 4,
+		},
+		hard = {
+			sightScale = 1.15,
+			reactionScale = 0.7,
+			aimErrorScale = 0.6,
+			coverSkill = 1,
+			seekGuns = true,
+			zoneExtra = 10,
+		},
+	} :: {
+		[string]: {
+			sightScale: number,
+			reactionScale: number,
+			aimErrorScale: number,
+			coverSkill: number,
+			seekGuns: boolean,
+			zoneExtra: number,
+		},
+	},
+	-- Bot number n gets tierCycle[(n - 1) % #tierCycle + 1]: a mixed lobby, same every match.
+	tierCycle = { "normal", "easy", "hard", "normal", "easy", "normal", "hard", "easy" } :: { string },
 }
 
 -- Spawn shield (piece 21): everyone alive gets a short shield when the fight starts.

@@ -6,6 +6,7 @@ local Harness = require("./harness")
 
 require("./save_retry.test")
 require("./bots.test")
+require("./bots_smart.test")
 require("./character_looks.test")
 require("./character_pose.test")
 require("./combat.test")
