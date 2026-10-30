@@ -313,11 +313,19 @@ Config.Bots = {
 }
 
 Config.Rewards = {
-	currencyName = "Credits", -- in-game only; persistence is Phase 5
+	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
 	perElimination = 5,
 	placementBonus = { 30, 15, 8 }, -- 1st, 2nd, 3rd
-	persist = false,
+	persist = true, -- piece 18 saves the coins through the profile (piece 17)
+}
+
+-- Piece 18: coins and the unlock track. Looks only, no combat power.
+Config.Progression = {
+	look = "B", -- coin look: "A" Volts, "B" Scrap, "C" Tokens (CoinLooks). carter chose Scrap.
+	maxMatchGrant = 200, -- sanity cap for one match's coins; real rewards are far smaller
+	-- Player attributes the server sets so every client can draw a player's chosen look.
+	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
 }
 
 Config.Settings = {
