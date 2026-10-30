@@ -138,10 +138,9 @@ local function showBoard(visible: boolean)
 	for _, inst in m:GetDescendants() do
 		if inst:IsA("BasePart") then
 			inst.LocalTransparencyModifier = if visible then 0 else 1
-		elseif inst:IsA("SurfaceGui") then
-			inst.Enabled = visible
-		elseif inst:IsA("Light") then
-			inst.Enabled = visible
+		elseif inst:IsA("SurfaceGui") or inst:IsA("Light") then
+			local toggle: any = inst -- both have Enabled; Luau cannot call a property on the union
+			toggle.Enabled = visible
 		end
 	end
 end
