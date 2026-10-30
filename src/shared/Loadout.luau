@@ -1,7 +1,8 @@
 --!strict
 -- The loadout catalogue and its rules. Pure data and checks, no Roblox services, so Lune can test it.
--- Three slots: outfit (the three fighters), gun skin, slide sidegrade. Outfits and gun skins are looks only. Trails and
--- tracers belong to piece 18 (the Rewards board); the loadout screen only links to them.
+-- Four slots: hero (piece 44: own health + own two guns, all free), outfit (the three fighters), gun skin,
+-- slide sidegrade. Outfits and gun skins are looks only. Trails and tracers belong to piece 18 (the Rewards
+-- board); the loadout screen only links to them.
 -- A sidegrade trades one thing for another (Slide goes farther but waits longer), so nothing is simply
 -- stronger and the match stays fair (brief section 20: no permanent power).
 --
@@ -9,7 +10,9 @@
 -- An item is free when `unlockAt` is nil, open once the level reaches `unlockAt`, or when owned outright.
 -- The unlockAt numbers are placeholders for carter to tune; they must stay at 6 or less.
 
-export type Slot = "outfit" | "gun" | "slide"
+local Heroes = require("./Heroes")
+
+export type Slot = "hero" | "outfit" | "gun" | "slide"
 
 export type Look = {
 	gunBody: number?,
@@ -28,21 +31,34 @@ export type Item = {
 	slideCooldown: number?,
 }
 
-export type Selection = { outfit: string, gun: string, slide: string }
+export type Selection = { hero: string, outfit: string, gun: string, slide: string }
 
 export type Unlocks = { level: number, owned: { [string]: boolean }? }
 
 local Loadout = {}
 
-Loadout.slots = { "outfit", "gun", "slide" } :: { Slot }
+Loadout.slots = { "hero", "outfit", "gun", "slide" } :: { Slot }
 
 Loadout.slotNames = {
+	hero = "HERO",
 	outfit = "OUTFIT",
 	gun = "GUN",
 	slide = "SLIDE",
 } :: { [string]: string }
 
+-- Heroes come straight from the roster (shared/Heroes); every one is free, so `unlockAt` stays nil.
+local heroItems: { Item } = {}
+for _, hero in Heroes.list do
+	table.insert(heroItems, {
+		id = hero.id,
+		name = hero.name,
+		desc = hero.blurb,
+		look = {},
+	})
+end
+
 Loadout.items = {
+	hero = heroItems,
 	-- The outfit slot is piece N11's three fighters (shared/Character/Looks). Runner is carter's pick;
 	-- the other two became skins you earn.
 	outfit = {
@@ -128,6 +144,7 @@ Loadout.items = {
 } :: { [string]: { Item } }
 
 Loadout.defaults = {
+	hero = Heroes.default,
 	outfit = "runner",
 	gun = "sleek",
 	slide = "std",
@@ -183,6 +200,7 @@ end
 -- A selection that is always valid: anything missing, unknown or still locked falls back to the default.
 function Loadout.sanitize(raw: any, unlocks: Unlocks): Selection
 	local out: Selection = {
+		hero = Loadout.defaults.hero,
 		outfit = Loadout.defaults.outfit,
 		gun = Loadout.defaults.gun,
 		slide = Loadout.defaults.slide,

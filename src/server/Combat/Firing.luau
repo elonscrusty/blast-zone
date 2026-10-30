@@ -49,7 +49,7 @@ function Firing.sendAmmo(id: string)
 		slot = slot,
 		weaponId = weaponId,
 		weaponName = if slot == 2
-			then explosive.displayName
+			then Combatants.launcherName(id)
 			else WeaponCatalog.displayName(Config, weaponId),
 		fireInterval = st.fireInterval,
 		reloadSeconds = st.reloadSeconds,

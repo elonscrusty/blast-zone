@@ -1,0 +1,369 @@
+<title>Circuit District Heroes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* One 3D lineup on top, the pick buttons and the hero card under it. Single dark look on purpose. */
+:root {
+  --bg: #0b1220; --stage: #14243a; --panel: #111c2e; --line: #24364f;
+  --fg: #e8eef6; --muted: #8ea2bb; --cyan: #36d9e8; --gold: #ffc44d; --coral: #f15b64;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); margin: 0; }
+body { font-family: var(--body); }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 12px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-size: 1.5rem; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
+.hint { color: var(--muted); font-size: .85rem; }
+.stage { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 50% 30%, #1d3352 0%, var(--stage) 55%, #0c1626 100%);
+  aspect-ratio: 4 / 3; max-height: 66vh; width: 100%; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lab { position: absolute; transform: translate(-50%, -100%); text-align: center; font-family: var(--display);
+  text-transform: uppercase; letter-spacing: .05em; font-size: .85rem; text-shadow: 0 1px 6px rgba(0,0,0,.8); white-space: nowrap; }
+.lab b { display: block; font-family: var(--mono); font-weight: 500; color: var(--gold); font-size: .8rem; letter-spacing: .02em; }
+.lab.sel { color: var(--cyan); }
+.views { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.views button { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(11,18,32,.78); color: var(--fg); font-family: var(--display); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+.views button[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pick { min-height: 64px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  font-family: var(--display); font-size: 1rem; text-transform: uppercase; letter-spacing: .04em;
+  display: grid; gap: 2px; place-content: center; text-align: center; padding: 6px 4px; }
+.pick span { font-family: var(--mono); font-size: .68rem; color: var(--muted); letter-spacing: .06em; text-transform: none; }
+.pick[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.chip { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  font-family: var(--display); font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; padding: 4px; }
+.chip[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plate { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px; }
+.plate h2 { font-family: var(--display); margin: 0; font-size: 1.3rem; text-transform: uppercase; letter-spacing: .04em; }
+.plate h2 small { font-family: var(--mono); font-size: .75rem; color: var(--cyan); letter-spacing: .1em; margin-left: 8px; }
+.blurb { margin: 0; color: var(--muted); font-size: .95rem; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.card { background: #0e1829; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 7px; align-content: start; }
+.card h3 { margin: 0; font-family: var(--display); font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; }
+.card h3 small { color: var(--muted); font-family: var(--mono); font-size: .65rem; margin-left: 6px; letter-spacing: .08em; }
+.row { display: grid; grid-template-columns: 5.6em minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; font-size: .8rem; }
+.row .k { color: var(--muted); }
+.row .v { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: #1b2a40; position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--cyan); border-radius: 4px; transition: width .35s ease; }
+.bar i.hp { background: var(--coral); }
+.bar i.sp { background: var(--gold); }
+@media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .views button { padding: 0 9px; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Heroes</h1>
+    <div class="hint">Drag to spin. Tap a hero. Look at the 3 sizes of difference below.</div>
+  </header>
+  <div class="stage">
+    <canvas id="view" aria-label="3D hero lineup"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="views" id="views"></div>
+  </div>
+  <div class="row3" id="spreads"></div>
+  <div class="chips" id="chips"></div>
+  <section class="plate" id="plate"></section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DATA = {"guns":{"breaker":{"frames":{"grip":{"tilt":-0.3,"x":-1,"y":-0.75},"stock":{"tilt":0,"x":-2.6,"y":0.1}},"hold":{"x":1.3,"y":-0.1,"z":-1.6},"id":"breaker","parts":[{"d":0.55,"h":0.75,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.35,"z":0},{"d":0.14,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.7,"z":0.2},{"d":0.14,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.7,"z":-0.2},{"d":0.04,"h":0.3,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.9,"x":0.25,"y":0.42,"z":0.28},{"d":0.03,"h":0.17,"look":"hull","name":"ShellInPort","pitch":0,"roll":0,"shape":"box","w":0.5,"x":0.3,"y":0.42,"z":0.29},{"d":0.035,"h":0.19,"look":"brass","name":"ShellHead","pitch":0,"roll":0,"shape":"box","w":0.12,"x":0.02,"y":0.42,"z":0.29},{"d":0.3,"h":0.08,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":2.2,"x":0,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":-0.7,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":-0.25,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.2,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.65,"y":0.76,"z":0},{"d":0.08,"h":0.22,"look":"gun","name":"RearSightR","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":0.9,"z":0.12},{"d":0.08,"h":0.22,"look":"gun","name":"RearSightL","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":0.9,"z":-0.12},{"d":0.32,"h":0.06,"look":"gun","name":"RearSightTop","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":1.02,"z":0},{"d":0.36,"h":0.36,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":4.6,"x":3.6,"y":0.42,"z":0},{"d":0.44,"h":0.1,"look":"gun","name":"HeatShield","pitch":0,"roll":0,"shape":"box","w":3.2,"x":3.1,"y":0.64,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent1","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent2","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.55,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent3","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.1,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent4","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.65,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent5","pitch":0,"roll":0,"shape":"box","w":0.3,"x":4.2,"y":0.7,"z":0},{"d":0.44,"h":0.44,"look":"gun","name":"Choke","pitch":0,"roll":0,"shape":"cylX","w":0.32,"x":5.95,"y":0.42,"z":0},{"d":0.26,"h":0.26,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":6.12,"y":0.42,"z":0},{"d":0.12,"h":0.12,"look":"cyan","name":"Bead","pitch":0,"roll":0,"shape":"ball","w":0.12,"x":5.75,"y":0.64,"z":0},{"d":0.34,"h":0.34,"look":"gun","name":"MagTube","pitch":0,"roll":0,"shape":"cylX","w":3.9,"x":3.25,"y":0.02,"z":0},{"d":0.4,"h":0.4,"look":"steel","name":"MagCap","pitch":0,"roll":0,"shape":"cylX","w":0.26,"x":5.3,"y":0.02,"z":0},{"d":0.44,"h":0.72,"look":"poly","name":"Clamp","pitch":0,"roll":0,"shape":"box","w":0.22,"x":4.9,"y":0.22,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"ClampScrew","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":4.9,"y":0.22,"z":0},{"d":0.56,"h":0.5,"look":"poly","name":"Pump","pitch":0,"roll":0,"shape":"box","w":1.9,"x":2.6,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.95,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.2,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.45,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.7,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.95,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib6","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.2,"y":0.02,"z":0},{"d":0.58,"h":0.03,"look":"cyan","name":"PumpLine","pitch":0,"roll":0,"shape":"box","w":1.4,"x":2.6,"y":-0.24,"z":0},{"d":0.5,"h":0.3,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":1.6,"x":-0.2,"y":-0.12,"z":0},{"d":0.12,"h":0.12,"look":"steel","name":"Safety","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":-0.75,"y":-0.05,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"Pin1","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":0.35,"y":0.05,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"Pin2","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":-0.45,"y":0.18,"z":0},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":-0.15,"y":-0.62,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.3,"y":-0.42,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.2,"y":-0.42,"z":0},{"d":0.06,"h":0.5,"look":"poly","name":"Saddle","pitch":0,"roll":0,"shape":"box","w":1.4,"x":-0.1,"y":0.38,"z":-0.31},{"d":0.17,"h":0.17,"look":"hull","name":"Shell1","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":-0.6,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell2","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":-0.27,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell3","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":0.06,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell4","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":0.39,"y":0.42,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head1","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":-0.6,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head2","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":-0.27,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head3","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":0.06,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head4","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":0.39,"y":0.17,"z":-0.42},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.55,"y":0.12,"z":0.28},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.71,"y":0.12,"z":0.28},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.87,"y":0.12,"z":0.28},{"d":0.48,"frame":"grip","h":1.35,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.245},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.245},{"d":0.52,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.72,"x":0,"y":-0.7,"z":0},{"d":0.48,"frame":"stock","h":0.42,"look":"poly","name":"StockTop","pitch":0,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.15,"z":0},{"d":0.46,"frame":"stock","h":0.38,"look":"poly","name":"StockLower","pitch":0,"roll":0.18,"shape":"box","w":2.5,"x":-0.2,"y":-0.4,"z":0},{"d":0.46,"frame":"stock","h":0.5,"look":"poly","name":"StockWeb","pitch":0,"roll":0,"shape":"box","w":1.3,"x":-0.75,"y":-0.1,"z":0},{"d":0.5,"frame":"stock","h":0.22,"look":"dark","name":"StockCut","pitch":0,"roll":0,"shape":"box","w":0.9,"x":0.3,"y":-0.13,"z":0},{"d":0.56,"frame":"stock","h":1.25,"look":"rubber","name":"Pad","pitch":0,"roll":0,"shape":"box","w":0.3,"x":-1.42,"y":-0.15,"z":0},{"d":0.58,"frame":"stock","h":0.03,"look":"cyan","name":"PadLine","pitch":0,"roll":0,"shape":"box","w":0.32,"x":-1.42,"y":0.25,"z":0},{"d":0.08,"frame":"stock","h":0.24,"look":"steel","name":"SlingLoop","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.9,"y":-0.72,"z":0}]},"hornet":{"frames":{"grip":{"tilt":-0.25,"x":-0.85,"y":-0.72},"mag":{"tilt":0.05,"x":0.95,"y":-0.4},"stock":{"tilt":0,"x":-2.35,"y":0.2}},"hold":{"x":1.3,"y":-0.1,"z":-1.3},"id":"hornet","parts":[{"d":0.5,"h":0.6,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.42,"z":0},{"d":0.12,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.72,"z":0.17},{"d":0.12,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.72,"z":-0.17},{"d":0.46,"h":0.32,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.4,"x":0.1,"y":-0.02,"z":0},{"d":0.04,"h":0.24,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.8,"x":0.6,"y":0.48,"z":0.255},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0.55,"y":0.47,"z":0.262},{"d":0.5,"h":0.12,"look":"steel","name":"Charger","pitch":0,"roll":0,"shape":"box","w":0.28,"x":-0.95,"y":0.55,"z":-0.2},{"d":0.12,"h":0.16,"look":"gun","name":"ChargerKnob","pitch":0,"roll":0,"shape":"box","w":0.2,"x":-0.95,"y":0.55,"z":-0.5},{"d":0.54,"h":0.58,"look":"poly","name":"Handguard","pitch":0,"roll":0,"shape":"box","w":1.8,"x":2.7,"y":0.36,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent1","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.15,"y":0.4,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent2","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.7,"y":0.4,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent3","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.25,"y":0.4,"z":0},{"d":0.3,"h":0.1,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":4.2,"x":1.2,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.6,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.4,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.8,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.2,"y":0.78,"z":0},{"d":0.26,"h":0.26,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":0.6,"x":3.85,"y":0.4,"z":0},{"d":0.36,"h":0.36,"look":"gun","name":"Comp","pitch":0,"roll":0,"shape":"cylX","w":0.7,"x":4.4,"y":0.4,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut1","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.22,"y":0.58,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut2","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.4,"y":0.58,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut3","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.58,"y":0.58,"z":0},{"d":0.18,"h":0.18,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":4.76,"y":0.4,"z":0},{"d":0.36,"h":0.12,"look":"gun","name":"DotBase","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":0.89,"z":0},{"d":0.44,"h":0.5,"look":"gun","name":"DotBody","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.18,"z":0},{"d":0.06,"h":0.1,"look":"gun","name":"DotHoodL","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.38,"z":-0.19},{"d":0.06,"h":0.1,"look":"gun","name":"DotHoodR","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.38,"z":0.19},{"d":0.34,"h":0.32,"look":"glass","name":"DotLensF","pitch":0,"roll":0,"shape":"box","w":0.04,"x":0.31,"y":1.2,"z":0},{"d":0.34,"h":0.32,"look":"glass","name":"DotLensB","pitch":0,"roll":0,"shape":"box","w":0.04,"x":-0.51,"y":1.2,"z":0},{"d":0.05,"h":0.05,"look":"coral","name":"DotReticle","pitch":0,"roll":0,"shape":"box","w":0.03,"x":0.25,"y":1.2,"z":0},{"d":0.2,"h":0.2,"look":"steel","name":"DotKnob","pitch":0,"roll":0,"shape":"cylZ","w":0.12,"x":-0.1,"y":1.18,"z":0.26},{"d":0.04,"h":0.1,"look":"steel","name":"Selector","pitch":0,"roll":0.5,"shape":"box","w":0.18,"x":-0.55,"y":0.1,"z":0.24},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0,"y":0,"z":-0.235},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.16,"y":0,"z":-0.235},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.32,"y":0,"z":-0.235},{"d":0.42,"h":0.95,"look":"poly","name":"Foregrip","pitch":0,"roll":0,"shape":"box","w":0.42,"x":2.7,"y":-0.4,"z":0},{"d":0.44,"h":0.06,"look":"dark","name":"ForegripRing1","pitch":0,"roll":0,"shape":"box","w":0.44,"x":2.7,"y":-0.3,"z":0},{"d":0.44,"h":0.06,"look":"dark","name":"ForegripRing2","pitch":0,"roll":0,"shape":"box","w":0.44,"x":2.7,"y":-0.55,"z":0},{"d":0.5,"h":0.1,"look":"poly","name":"ForegripCap","pitch":0,"roll":0,"shape":"box","w":0.5,"x":2.7,"y":-0.88,"z":0},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.9,"x":-0.1,"y":-0.56,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.33,"y":-0.36,"z":0},{"d":0.1,"h":0.3,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.18,"y":-0.36,"z":0},{"d":0.52,"frame":"mag","h":0.5,"look":"poly","name":"Magwell","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0.3,"z":0},{"d":0.36,"frame":"mag","h":1.7,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.55,"z":0},{"d":0.03,"frame":"mag","h":1.3,"look":"dark","name":"MagRibR","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0,"y":-0.55,"z":0.19},{"d":0.03,"frame":"mag","h":1.3,"look":"dark","name":"MagRibL","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0,"y":-0.55,"z":-0.19},{"d":0.44,"frame":"mag","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.54,"x":0,"y":-1.45,"z":0},{"d":0.46,"frame":"mag","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.38,"x":0,"y":-1.5,"z":0},{"d":0.46,"frame":"grip","h":1.3,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.235},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.235},{"d":0.5,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.68,"z":0},{"d":0.52,"frame":"stock","h":0.55,"look":"poly","name":"Hinge","pitch":0,"roll":0,"shape":"box","w":0.4,"x":1.2,"y":0,"z":0},{"d":0.12,"frame":"stock","h":0.12,"look":"steel","name":"RodTopR","pitch":0,"roll":0,"shape":"cylX","w":2.4,"x":0,"y":0.15,"z":0.18},{"d":0.12,"frame":"stock","h":0.12,"look":"steel","name":"RodTopL","pitch":0,"roll":0,"shape":"cylX","w":2.4,"x":0,"y":0.15,"z":-0.18},{"d":0.1,"frame":"stock","h":0.1,"look":"steel","name":"RodLowR","pitch":0,"roll":0.18,"shape":"box","w":2.3,"x":0,"y":-0.32,"z":0.18},{"d":0.1,"frame":"stock","h":0.1,"look":"steel","name":"RodLowL","pitch":0,"roll":0.18,"shape":"box","w":2.3,"x":0,"y":-0.32,"z":-0.18},{"d":0.52,"frame":"stock","h":1.1,"look":"rubber","name":"Butt","pitch":0,"roll":0,"shape":"box","w":0.2,"x":-1.25,"y":-0.15,"z":0},{"d":0.54,"frame":"stock","h":0.03,"look":"cyan","name":"ButtLine","pitch":0,"roll":0,"shape":"box","w":0.22,"x":-1.25,"y":0.3,"z":0}]},"longline":{"frames":{"grip":{"tilt":-0.3,"x":-0.95,"y":-0.72},"mag":{"tilt":0,"x":0.75,"y":-0.45},"stock":{"tilt":0,"x":-2.75,"y":0.15}},"hold":{"x":1.3,"y":-0.1,"z":-2},"id":"longline","parts":[{"d":0.52,"h":0.62,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3,"x":0,"y":0.42,"z":0},{"d":0.13,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3,"x":0,"y":0.73,"z":0.18},{"d":0.13,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3,"x":0,"y":0.73,"z":-0.18},{"d":0.48,"h":0.34,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.4,"x":0,"y":0,"z":0},{"d":0.04,"h":0.24,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.8,"x":0.3,"y":0.5,"z":0.265},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.42,"x":0.3,"y":0.5,"z":0.272},{"d":0.1,"h":0.1,"look":"steel","name":"BoltArm","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":-0.6,"y":0.5,"z":0.45},{"d":0.22,"h":0.22,"look":"gun","name":"BoltKnob","pitch":0,"roll":0,"shape":"ball","w":0.22,"x":-0.6,"y":0.5,"z":0.72},{"d":0.56,"h":0.6,"look":"tan","name":"Handguard","pitch":0,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.38,"z":0},{"d":0.12,"h":0.1,"look":"tan","name":"HgBevelR","pitch":0.8,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.66,"z":0.2},{"d":0.12,"h":0.1,"look":"tan","name":"HgBevelL","pitch":-0.8,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.66,"z":-0.2},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok1","pitch":0,"roll":0,"shape":"box","w":0.4,"x":2.2,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok2","pitch":0,"roll":0,"shape":"box","w":0.4,"x":2.8,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok3","pitch":0,"roll":0,"shape":"box","w":0.4,"x":3.4,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok4","pitch":0,"roll":0,"shape":"box","w":0.4,"x":4,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok5","pitch":0,"roll":0,"shape":"box","w":0.4,"x":4.6,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok6","pitch":0,"roll":0,"shape":"box","w":0.4,"x":5.2,"y":0.32,"z":0},{"d":0.58,"h":0.03,"look":"cyan","name":"HgLine","pitch":0,"roll":0,"shape":"box","w":1.2,"x":5.1,"y":0.12,"z":0},{"d":0.32,"h":0.08,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":6.4,"x":2.4,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.1,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":4.1,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":4.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot6","pitch":0,"roll":0,"shape":"box","w":0.07,"x":5.1,"y":0.78,"z":0},{"d":0.3,"h":0.3,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":2.6,"x":7.2,"y":0.42,"z":0},{"d":0.06,"h":0.03,"look":"dark","name":"Flute1","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.57,"z":0},{"d":0.03,"h":0.06,"look":"dark","name":"Flute2","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.42,"z":0.15},{"d":0.03,"h":0.06,"look":"dark","name":"Flute3","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.42,"z":-0.15},{"d":0.44,"h":0.42,"look":"gun","name":"Brake","pitch":0,"roll":0,"shape":"box","w":0.7,"x":8.8,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.62,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.8,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.98,"y":0.42,"z":0},{"d":0.18,"h":0.18,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":9.16,"y":0.42,"z":0},{"d":0.5,"h":0.5,"look":"gun","name":"RingRear","pitch":0,"roll":0,"shape":"box","w":0.3,"x":-0.3,"y":1.02,"z":0},{"d":0.5,"h":0.5,"look":"gun","name":"RingFront","pitch":0,"roll":0,"shape":"box","w":0.3,"x":1.3,"y":1.02,"z":0},{"d":0.42,"h":0.42,"look":"poly","name":"ScopeTube","pitch":0,"roll":0,"shape":"cylX","w":3.2,"x":0.5,"y":1.32,"z":0},{"d":0.58,"h":0.58,"look":"poly","name":"ScopeTaper","pitch":0,"roll":0,"shape":"cylX","w":0.4,"x":2.25,"y":1.32,"z":0},{"d":0.72,"h":0.72,"look":"poly","name":"ScopeBell","pitch":0,"roll":0,"shape":"cylX","w":0.9,"x":2.85,"y":1.32,"z":0},{"d":0.74,"h":0.74,"look":"cyan","name":"ScopeRing","pitch":0,"roll":0,"shape":"cylX","w":0.06,"x":2.5,"y":1.32,"z":0},{"d":0.62,"h":0.62,"look":"glass","name":"ScopeLensF","pitch":0,"roll":0,"shape":"cylX","w":0.03,"x":3.31,"y":1.32,"z":0},{"d":0.6,"h":0.6,"look":"poly","name":"Ocular","pitch":0,"roll":0,"shape":"cylX","w":0.8,"x":-1.45,"y":1.32,"z":0},{"d":0.5,"h":0.5,"look":"glass","name":"ScopeLensB","pitch":0,"roll":0,"shape":"cylX","w":0.03,"x":-1.86,"y":1.32,"z":0},{"d":0.36,"h":0.36,"look":"gun","name":"TurretTop","pitch":0,"roll":0,"shape":"cylY","w":0.34,"x":0.5,"y":1.62,"z":0},{"d":0.38,"h":0.38,"look":"cyan","name":"TurretCap","pitch":0,"roll":0,"shape":"cylY","w":0.04,"x":0.5,"y":1.8,"z":0},{"d":0.32,"h":0.32,"look":"gun","name":"TurretSide","pitch":0,"roll":0,"shape":"cylZ","w":0.3,"x":0.5,"y":1.32,"z":0.34},{"d":0.4,"h":0.2,"look":"gun","name":"BipodMount","pitch":0,"roll":0,"shape":"box","w":0.4,"x":5.6,"y":0.02,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"BipodLegR","pitch":0,"roll":0,"shape":"box","w":2,"x":4.6,"y":0,"z":0.14},{"d":0.1,"h":0.1,"look":"steel","name":"BipodLegL","pitch":0,"roll":0,"shape":"box","w":2,"x":4.6,"y":0,"z":-0.14},{"d":0.16,"h":0.16,"look":"rubber","name":"BipodFootR","pitch":0,"roll":0,"shape":"box","w":0.12,"x":3.6,"y":0,"z":0.14},{"d":0.16,"h":0.16,"look":"rubber","name":"BipodFootL","pitch":0,"roll":0,"shape":"box","w":0.12,"x":3.6,"y":0,"z":-0.14},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.4,"y":0,"z":-0.245},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.24,"y":0,"z":-0.245},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.08,"y":0,"z":-0.245},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":-0.2,"y":-0.6,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.25,"y":-0.4,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.25,"y":-0.4,"z":0},{"d":0.42,"frame":"mag","h":0.7,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.44,"frame":"mag","h":0.5,"look":"dark","name":"MagRib","pitch":0,"roll":0,"shape":"box","w":0.4,"x":0,"y":0,"z":0},{"d":0.48,"frame":"mag","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.38,"z":0},{"d":0.5,"frame":"mag","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.5,"x":0,"y":-0.44,"z":0},{"d":0.48,"frame":"grip","h":1.3,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.245},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.245},{"d":0.52,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.68,"z":0},{"d":0.36,"frame":"stock","h":0.36,"look":"poly","name":"Buffer","pitch":0,"roll":0,"shape":"cylX","w":1,"x":1,"y":-0.05,"z":0},{"d":0.5,"frame":"stock","h":0.55,"look":"tan","name":"StockBody","pitch":0,"roll":0,"shape":"box","w":2.4,"x":-0.2,"y":0.05,"z":0},{"d":0.46,"frame":"stock","h":0.25,"look":"poly","name":"Cheek","pitch":0,"roll":0,"shape":"box","w":1.4,"x":-0.3,"y":0.44,"z":0},{"d":0.48,"frame":"stock","h":0.03,"look":"cyan","name":"CheekLine","pitch":0,"roll":0,"shape":"box","w":1,"x":-0.3,"y":0.57,"z":0},{"d":0.42,"frame":"stock","h":0.3,"look":"tan","name":"StockSpine","pitch":0,"roll":0,"shape":"box","w":2,"x":-0.4,"y":-0.5,"z":0},{"d":0.42,"frame":"stock","h":0.5,"look":"tan","name":"StockPost","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0.45,"y":-0.3,"z":0},{"d":0.55,"frame":"stock","h":1.25,"look":"rubber","name":"Pad","pitch":0,"roll":0,"shape":"box","w":0.25,"x":-1.42,"y":-0.2,"z":0},{"d":0.16,"frame":"stock","h":0.16,"look":"steel","name":"Monopod","pitch":0,"roll":0,"shape":"cylY","w":0.35,"x":-0.9,"y":-0.8,"z":0}]},"volt_pistol":{"frames":{"grip":{"tilt":-0.2,"x":-1.05,"y":-0.78}},"hold":{"x":1.3,"y":-0.1,"z":-1},"id":"volt_pistol","parts":[{"d":0.5,"h":0.58,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.42,"z":0},{"d":0.12,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.72,"z":0.17},{"d":0.12,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.72,"z":-0.17},{"d":0.4,"h":0.42,"look":"gun","name":"FrontBlock","pitch":0,"roll":0,"shape":"box","w":0.5,"x":1.95,"y":0.35,"z":0},{"d":0.3,"h":0.3,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":0.4,"x":2.2,"y":0.38,"z":0},{"d":0.17,"h":0.17,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":2.41,"y":0.38,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.25,"y":0.76,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.47,"y":0.76,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.69,"y":0.76,"z":0},{"d":0.03,"h":0.46,"look":"dark","name":"SerRearR","pitch":0,"roll":0,"shape":"box","w":0.7,"x":-1.15,"y":0.42,"z":0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerRearL","pitch":0,"roll":0,"shape":"box","w":0.7,"x":-1.15,"y":0.42,"z":-0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerFrontR","pitch":0,"roll":0,"shape":"box","w":0.45,"x":1.15,"y":0.42,"z":0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerFrontL","pitch":0,"roll":0,"shape":"box","w":0.45,"x":1.15,"y":0.42,"z":-0.255},{"d":0.04,"h":0.22,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.78,"x":0.35,"y":0.55,"z":0.255},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.32,"x":0.3,"y":0.52,"z":0.262},{"d":0.04,"h":0.22,"look":"steel","name":"Extractor","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.85,"y":0.64,"z":0.262},{"d":0.3,"h":0.3,"look":"gun","name":"Striker","pitch":0,"roll":0.35,"shape":"box","w":0.18,"x":-1.68,"y":0.5,"z":0},{"d":0.4,"h":0.06,"look":"gun","name":"RearSightBase","pitch":0,"roll":0,"shape":"box","w":0.28,"x":-1.45,"y":0.76,"z":0},{"d":0.1,"h":0.17,"look":"gun","name":"RearSightR","pitch":0,"roll":0,"shape":"box","w":0.12,"x":-1.45,"y":0.86,"z":0.12},{"d":0.1,"h":0.17,"look":"gun","name":"RearSightL","pitch":0,"roll":0,"shape":"box","w":0.12,"x":-1.45,"y":0.86,"z":-0.12},{"d":0.08,"h":0.2,"look":"gun","name":"FrontSight","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.68,"y":0.84,"z":0},{"d":0.1,"h":0.05,"look":"cyan","name":"FrontDot","pitch":0,"roll":0,"shape":"box","w":0.05,"x":1.68,"y":0.92,"z":0},{"d":0.44,"h":0.28,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0,"z":0},{"d":0.07,"h":0.07,"look":"poly","name":"FrameBevelR","pitch":0.7,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0.13,"z":0.2},{"d":0.07,"h":0.07,"look":"poly","name":"FrameBevelL","pitch":-0.7,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0.13,"z":-0.2},{"d":0.44,"h":0.1,"look":"poly","name":"Beavertail","pitch":0,"roll":-0.15,"shape":"box","w":0.5,"x":-1.4,"y":0.14,"z":0},{"d":0.46,"h":0.22,"look":"poly","name":"RailBlock","pitch":0,"roll":0,"shape":"box","w":0.9,"x":1.4,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.1,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.35,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.6,"y":-0.02,"z":0},{"d":0.34,"h":0.24,"look":"gun","name":"Light","pitch":0,"roll":0,"shape":"box","w":0.62,"x":1.56,"y":-0.28,"z":0},{"d":0.13,"h":0.13,"look":"cyan","name":"LightLens","pitch":0,"roll":0,"shape":"box","w":0.05,"x":1.88,"y":-0.28,"z":0},{"d":0.04,"h":0.04,"look":"coral","name":"LightDot","pitch":0,"roll":0,"shape":"box","w":0.04,"x":1.88,"y":-0.17,"z":0},{"d":0.14,"h":0.14,"look":"steel","name":"TakedownPin","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.75,"y":-0.05,"z":0},{"d":0.06,"h":0.08,"look":"steel","name":"SlideStop","pitch":0,"roll":0,"shape":"box","w":0.55,"x":-0.2,"y":0.17,"z":0.255},{"d":0.13,"h":0.13,"look":"steel","name":"SpringGuide","pitch":0,"roll":0,"shape":"cylX","w":0.55,"x":2.1,"y":0.12,"z":0},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.3,"y":0.04,"z":-0.222},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.14,"y":0.04,"z":-0.222},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.02,"y":0.04,"z":-0.222},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":0.05,"y":-0.58,"z":0},{"d":0.34,"h":0.42,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.5,"y":-0.36,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.02,"y":-0.38,"z":0},{"d":0.46,"frame":"grip","h":1.5,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.72,"x":0,"y":0,"z":0},{"d":0.4,"frame":"grip","h":1.3,"look":"poly","name":"Backstrap","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.42,"y":-0.05,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove1","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":0.3,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove2","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":0,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove3","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":-0.3,"z":0},{"d":0.04,"frame":"grip","h":1,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.5,"x":-0.02,"y":-0.05,"z":0.235},{"d":0.04,"frame":"grip","h":1,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.5,"x":-0.02,"y":-0.05,"z":-0.235},{"d":0.54,"frame":"grip","h":0.1,"look":"poly","name":"Magwell","pitch":0,"roll":0,"shape":"box","w":0.86,"x":0,"y":-0.76,"z":0},{"d":0.08,"frame":"grip","h":0.22,"look":"steel","name":"Lanyard","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.4,"y":-0.78,"z":0},{"d":0.38,"frame":"grip","h":0.95,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.52,"x":0.03,"y":-0.55,"z":0},{"d":0.4,"frame":"grip","h":0.5,"look":"brass","name":"Rounds","pitch":0,"roll":0,"shape":"box","w":0.22,"x":0.03,"y":-0.55,"z":0},{"d":0.46,"frame":"grip","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.6,"x":0.03,"y":-1.05,"z":0},{"d":0.48,"frame":"grip","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.4,"x":0.03,"y":-1.1,"z":0}]}},"order":["ranger","bulwark","wisp","sentinel","rigger"],"spreads":[{"heroes":{"bulwark":{"blurb":"Lots of health and a pump shotgun. Slow on its feet.","guns":[{"id":"breaker","kind":"gun","lines":[{"bar":1,"key":"damage","label":"Damage","text":"7 x 6","value":42},{"bar":0.325,"key":"range","label":"Range","text":"26","value":26},{"bar":0.10101010101010101,"key":"rate","label":"Fire rate","text":"1.1/s","value":1.1111111111111112},{"bar":0.2,"key":"magazine","label":"Magazine","text":"6","value":6},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Breaker"},{"id":"bulwark_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.88,"key":"radius","label":"Blast size","text":"9.9","value":9.9},{"bar":0.6923076923076923,"key":"range","label":"Range","text":"54","value":54},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.625,"key":"reload","label":"Reload","text":"2.9 s","value":2.88}],"name":"Slam Pop"}],"health":118,"healthBar":1,"id":"bulwark","name":"Bulwark","role":"Tank","speed":0.96,"speedBar":0.923076923076923},"ranger":{"blurb":"Steady health, steady gun. Good at everything.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"ranger_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.8,"key":"radius","label":"Blast size","text":"9","value":9},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.75,"key":"reload","label":"Reload","text":"2.4 s","value":2.4}],"name":"Arc Mortar"}],"health":100,"healthBar":0.847457627118644,"id":"ranger","name":"Ranger","role":"All-rounder","speed":1,"speedBar":0.9615384615384615},"rigger":{"blurb":"Plain pistol, huge blasts. Two big pops, then wait.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"rigger_launcher","kind":"blast","lines":[{"bar":1,"key":"damage","label":"Damage","text":"58.5","value":58.5},{"bar":1,"key":"radius","label":"Blast size","text":"11.3","value":11.25},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.5357142857142857,"key":"reload","label":"Reload","text":"3.4 s","value":3.36}],"name":"Big Pop"}],"health":100,"healthBar":0.847457627118644,"id":"rigger","name":"Rigger","role":"Blaster","speed":0.975,"speedBar":0.9375},"sentinel":{"blurb":"Hits hard from far away. Keep your distance.","guns":[{"id":"longline","kind":"gun","lines":[{"bar":0.8095238095238095,"key":"damage","label":"Damage","text":"34","value":34},{"bar":1,"key":"range","label":"Range","text":"80","value":80},{"bar":0.07272727272727274,"key":"rate","label":"Fire rate","text":"0.8/s","value":0.8},{"bar":0.16666666666666666,"key":"magazine","label":"Magazine","text":"5","value":5},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Longline"},{"id":"sentinel_launcher","kind":"blast","lines":[{"bar":0.6923076923076923,"key":"damage","label":"Damage","text":"40.5","value":40.5},{"bar":0.72,"key":"radius","label":"Blast size","text":"8.1","value":8.1},{"bar":1,"key":"range","label":"Range","text":"78","value":78},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.6818181818181818,"key":"reload","label":"Reload","text":"2.6 s","value":2.64}],"name":"Far Pop"}],"health":100,"healthBar":0.847457627118644,"id":"sentinel","name":"Sentinel","role":"Sniper","speed":0.985,"speedBar":0.9471153846153846},"wisp":{"blurb":"Quick and fragile with a spray gun. Hit and run.","guns":[{"id":"hornet","kind":"gun","lines":[{"bar":0.11904761904761904,"key":"damage","label":"Damage","text":"5","value":5},{"bar":0.5625,"key":"range","label":"Range","text":"45","value":45},{"bar":1,"key":"rate","label":"Fire rate","text":"11/s","value":11},{"bar":1,"key":"magazine","label":"Magazine","text":"30","value":30},{"bar":0.6666666666666666,"key":"reload","label":"Reload","text":"1.8 s","value":1.8}],"name":"Hornet"},{"id":"wisp_launcher","kind":"blast","lines":[{"bar":0.5384615384615384,"key":"damage","label":"Damage","text":"31.5","value":31.499999999999996},{"bar":0.64,"key":"radius","label":"Blast size","text":"7.2","value":7.2},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":1,"key":"magazine","label":"Magazine","text":"4","value":4},{"bar":1,"key":"reload","label":"Reload","text":"1.8 s","value":1.7999999999999998}],"name":"Mini Pop"}],"health":90,"healthBar":0.7627118644067796,"id":"wisp","name":"Wisp","role":"Scout","speed":1.04,"speedBar":1}},"key":"A","name":"Small","spread":0.5},{"heroes":{"bulwark":{"blurb":"Lots of health and a pump shotgun. Slow on its feet.","guns":[{"id":"breaker","kind":"gun","lines":[{"bar":1,"key":"damage","label":"Damage","text":"7 x 6","value":42},{"bar":0.325,"key":"range","label":"Range","text":"26","value":26},{"bar":0.10101010101010101,"key":"rate","label":"Fire rate","text":"1.1/s","value":1.1111111111111112},{"bar":0.2,"key":"magazine","label":"Magazine","text":"6","value":6},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Breaker"},{"id":"bulwark_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.88,"key":"radius","label":"Blast size","text":"9.9","value":9.9},{"bar":0.6923076923076923,"key":"range","label":"Range","text":"54","value":54},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.625,"key":"reload","label":"Reload","text":"2.9 s","value":2.88}],"name":"Slam Pop"}],"health":135,"healthBar":1,"id":"bulwark","name":"Bulwark","role":"Tank","speed":0.92,"speedBar":0.8518518518518519},"ranger":{"blurb":"Steady health, steady gun. Good at everything.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"ranger_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.8,"key":"radius","label":"Blast size","text":"9","value":9},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.75,"key":"reload","label":"Reload","text":"2.4 s","value":2.4}],"name":"Arc Mortar"}],"health":100,"healthBar":0.7407407407407407,"id":"ranger","name":"Ranger","role":"All-rounder","speed":1,"speedBar":0.9259259259259258},"rigger":{"blurb":"Plain pistol, huge blasts. Two big pops, then wait.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"rigger_launcher","kind":"blast","lines":[{"bar":1,"key":"damage","label":"Damage","text":"58.5","value":58.5},{"bar":1,"key":"radius","label":"Blast size","text":"11.3","value":11.25},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.5357142857142857,"key":"reload","label":"Reload","text":"3.4 s","value":3.36}],"name":"Big Pop"}],"health":100,"healthBar":0.7407407407407407,"id":"rigger","name":"Rigger","role":"Blaster","speed":0.95,"speedBar":0.8796296296296295},"sentinel":{"blurb":"Hits hard from far away. Keep your distance.","guns":[{"id":"longline","kind":"gun","lines":[{"bar":0.8095238095238095,"key":"damage","label":"Damage","text":"34","value":34},{"bar":1,"key":"range","label":"Range","text":"80","value":80},{"bar":0.07272727272727274,"key":"rate","label":"Fire rate","text":"0.8/s","value":0.8},{"bar":0.16666666666666666,"key":"magazine","label":"Magazine","text":"5","value":5},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Longline"},{"id":"sentinel_launcher","kind":"blast","lines":[{"bar":0.6923076923076923,"key":"damage","label":"Damage","text":"40.5","value":40.5},{"bar":0.72,"key":"radius","label":"Blast size","text":"8.1","value":8.1},{"bar":1,"key":"range","label":"Range","text":"78","value":78},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.6818181818181818,"key":"reload","label":"Reload","text":"2.6 s","value":2.64}],"name":"Far Pop"}],"health":100,"healthBar":0.7407407407407407,"id":"sentinel","name":"Sentinel","role":"Sniper","speed":0.97,"speedBar":0.898148148148148},"wisp":{"blurb":"Quick and fragile with a spray gun. Hit and run.","guns":[{"id":"hornet","kind":"gun","lines":[{"bar":0.11904761904761904,"key":"damage","label":"Damage","text":"5","value":5},{"bar":0.5625,"key":"range","label":"Range","text":"45","value":45},{"bar":1,"key":"rate","label":"Fire rate","text":"11/s","value":11},{"bar":1,"key":"magazine","label":"Magazine","text":"30","value":30},{"bar":0.6666666666666666,"key":"reload","label":"Reload","text":"1.8 s","value":1.8}],"name":"Hornet"},{"id":"wisp_launcher","kind":"blast","lines":[{"bar":0.5384615384615384,"key":"damage","label":"Damage","text":"31.5","value":31.499999999999996},{"bar":0.64,"key":"radius","label":"Blast size","text":"7.2","value":7.2},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":1,"key":"magazine","label":"Magazine","text":"4","value":4},{"bar":1,"key":"reload","label":"Reload","text":"1.8 s","value":1.7999999999999998}],"name":"Mini Pop"}],"health":80,"healthBar":0.5925925925925926,"id":"wisp","name":"Wisp","role":"Scout","speed":1.08,"speedBar":1}},"key":"B","name":"Medium","spread":1},{"heroes":{"bulwark":{"blurb":"Lots of health and a pump shotgun. Slow on its feet.","guns":[{"id":"breaker","kind":"gun","lines":[{"bar":1,"key":"damage","label":"Damage","text":"7 x 6","value":42},{"bar":0.325,"key":"range","label":"Range","text":"26","value":26},{"bar":0.10101010101010101,"key":"rate","label":"Fire rate","text":"1.1/s","value":1.1111111111111112},{"bar":0.2,"key":"magazine","label":"Magazine","text":"6","value":6},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Breaker"},{"id":"bulwark_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.88,"key":"radius","label":"Blast size","text":"9.9","value":9.9},{"bar":0.6923076923076923,"key":"range","label":"Range","text":"54","value":54},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.625,"key":"reload","label":"Reload","text":"2.9 s","value":2.88}],"name":"Slam Pop"}],"health":153,"healthBar":1,"id":"bulwark","name":"Bulwark","role":"Tank","speed":0.88,"speedBar":0.7857142857142857},"ranger":{"blurb":"Steady health, steady gun. Good at everything.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"ranger_launcher","kind":"blast","lines":[{"bar":0.7692307692307693,"key":"damage","label":"Damage","text":"45","value":45},{"bar":0.8,"key":"radius","label":"Blast size","text":"9","value":9},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.75,"key":"reload","label":"Reload","text":"2.4 s","value":2.4}],"name":"Arc Mortar"}],"health":100,"healthBar":0.6535947712418301,"id":"ranger","name":"Ranger","role":"All-rounder","speed":1,"speedBar":0.8928571428571428},"rigger":{"blurb":"Plain pistol, huge blasts. Two big pops, then wait.","guns":[{"id":"volt_pistol","kind":"gun","lines":[{"bar":0.23809523809523808,"key":"damage","label":"Damage","text":"10","value":10},{"bar":0.875,"key":"range","label":"Range","text":"70","value":70},{"bar":0.45454545454545453,"key":"rate","label":"Fire rate","text":"5/s","value":5},{"bar":0.4,"key":"magazine","label":"Magazine","text":"12","value":12},{"bar":1,"key":"reload","label":"Reload","text":"1.2 s","value":1.2}],"name":"Volt Pistol"},{"id":"rigger_launcher","kind":"blast","lines":[{"bar":1,"key":"damage","label":"Damage","text":"58.5","value":58.5},{"bar":1,"key":"radius","label":"Blast size","text":"11.3","value":11.25},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":0.5,"key":"magazine","label":"Magazine","text":"2","value":2},{"bar":0.5357142857142857,"key":"reload","label":"Reload","text":"3.4 s","value":3.36}],"name":"Big Pop"}],"health":100,"healthBar":0.6535947712418301,"id":"rigger","name":"Rigger","role":"Blaster","speed":0.925,"speedBar":0.8258928571428571},"sentinel":{"blurb":"Hits hard from far away. Keep your distance.","guns":[{"id":"longline","kind":"gun","lines":[{"bar":0.8095238095238095,"key":"damage","label":"Damage","text":"34","value":34},{"bar":1,"key":"range","label":"Range","text":"80","value":80},{"bar":0.07272727272727274,"key":"rate","label":"Fire rate","text":"0.8/s","value":0.8},{"bar":0.16666666666666666,"key":"magazine","label":"Magazine","text":"5","value":5},{"bar":0.5454545454545454,"key":"reload","label":"Reload","text":"2.2 s","value":2.2}],"name":"Longline"},{"id":"sentinel_launcher","kind":"blast","lines":[{"bar":0.6923076923076923,"key":"damage","label":"Damage","text":"40.5","value":40.5},{"bar":0.72,"key":"radius","label":"Blast size","text":"8.1","value":8.1},{"bar":1,"key":"range","label":"Range","text":"78","value":78},{"bar":0.75,"key":"magazine","label":"Magazine","text":"3","value":3},{"bar":0.6818181818181818,"key":"reload","label":"Reload","text":"2.6 s","value":2.64}],"name":"Far Pop"}],"health":100,"healthBar":0.6535947712418301,"id":"sentinel","name":"Sentinel","role":"Sniper","speed":0.955,"speedBar":0.8526785714285713},"wisp":{"blurb":"Quick and fragile with a spray gun. Hit and run.","guns":[{"id":"hornet","kind":"gun","lines":[{"bar":0.11904761904761904,"key":"damage","label":"Damage","text":"5","value":5},{"bar":0.5625,"key":"range","label":"Range","text":"45","value":45},{"bar":1,"key":"rate","label":"Fire rate","text":"11/s","value":11},{"bar":1,"key":"magazine","label":"Magazine","text":"30","value":30},{"bar":0.6666666666666666,"key":"reload","label":"Reload","text":"1.8 s","value":1.8}],"name":"Hornet"},{"id":"wisp_launcher","kind":"blast","lines":[{"bar":0.5384615384615384,"key":"damage","label":"Damage","text":"31.5","value":31.499999999999996},{"bar":0.64,"key":"radius","label":"Blast size","text":"7.2","value":7.2},{"bar":0.7692307692307693,"key":"range","label":"Range","text":"60","value":60},{"bar":1,"key":"magazine","label":"Magazine","text":"4","value":4},{"bar":1,"key":"reload","label":"Reload","text":"1.8 s","value":1.7999999999999998}],"name":"Mini Pop"}],"health":70,"healthBar":0.45751633986928103,"id":"wisp","name":"Wisp","role":"Scout","speed":1.12,"speedBar":1}},"key":"C","name":"Big","spread":1.5}]};
+const ACCENT = { ranger: 0x36d9e8, bulwark: 0xffc44d, wisp: 0x7be0a0, sentinel: 0x9b72d6, rigger: 0xf15b64 };
+const SPREAD_NOTE = { A: "A little different", B: "Clearly different", C: "Very different" };
+const STAR = "B";
+
+// ---------- renderer ----------
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 4 / 3, 0.1, 300);
+
+scene.add(new THREE.HemisphereLight(0xbfdcff, 0x1a2230, 0.75));
+const key = new THREE.DirectionalLight(0xffffff, 1.5);
+key.position.set(6, 14, 9); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -14, right: 14, top: 10, bottom: -10, near: 1, far: 50 });
+key.shadow.bias = -0.0006;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x36d9e8, 0.8); rim.position.set(-8, 5, -9); scene.add(rim);
+
+// plaza floor: pavement slab, cyan grid, navy edge (the lobby colours)
+const floor = new THREE.Mesh(new THREE.BoxGeometry(30, 0.4, 14), new THREE.MeshStandardMaterial({ color: 0x1b2e47, roughness: 0.8 }));
+floor.position.y = -0.2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(30, 30, 0x36d9e8, 0x24476a); grid.scale.z = 14 / 30; grid.position.y = 0.01;
+grid.material.transparent = true; grid.material.opacity = 0.45; scene.add(grid);
+
+const M = {};
+function mat(hex, o) {
+  const k = hex + JSON.stringify(o || {});
+  if (!M[k]) {
+    const c = new THREE.Color(hex).convertSRGBToLinear();
+    M[k] = o && o.neon ? new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 2, roughness: 0.4 })
+      : new THREE.MeshStandardMaterial({ color: c, roughness: (o && o.r) ?? 0.55, metalness: (o && o.m) ?? 0.05 });
+  }
+  return M[k];
+}
+const boxG = new THREE.BoxGeometry(1, 1, 1), ballG = new THREE.SphereGeometry(0.5, 28, 18), cylG = new THREE.CylinderGeometry(0.5, 0.5, 1, 28);
+function B(g, w, h, d, m, x, y, z, rx, ry, rz) {
+  const mesh = new THREE.Mesh(g, m); mesh.scale.set(w, h, d); mesh.position.set(x, y, z);
+  mesh.rotation.set(rx || 0, ry || 0, rz || 0); mesh.castShadow = true; mesh.receiveShadow = true; g_add(mesh); return mesh;
+}
+let cur = null; function g_add(m) { cur.add(m); }
+const box = (...a) => B(boxG, ...a), ball = (...a) => B(ballG, ...a), cyl = (...a) => B(cylG, ...a);
+
+// ---------- guns (the real part lists from WeaponModels) ----------
+const GL = {
+  poly: [0x303640, 0.05, 0.55], gun: [0x5a6676, 0.85, 0.38], steel: [0x9aa5b3, 0.95, 0.25], blued: [0x68778f, 0.85, 0.32],
+  brass: [0xc9a24a, 0.95, 0.3], dark: [0x07090c, 0, 0.8], hull: [0xc9454d, 0, 0.45], rubber: [0x15171b, 0, 0.9],
+  tan: [0x8c7656, 0, 0.6], glass: [0x36d9e8, 0.2, 0.05], cyan: [0x36d9e8, "neon"], coral: [0xf15b64, "neon"],
+};
+function gunMat(n) { const L = GL[n] || GL.poly; return L[1] === "neon" ? mat(L[0], { neon: true }) : mat(L[0], { m: L[1], r: L[2] }); }
+function gunModel(model) {
+  const g = new THREE.Group();
+  for (const p of model.parts) {
+    let mesh, sx, sy, sz;
+    if (p.shape === "box") { mesh = new THREE.Mesh(boxG, gunMat(p.look)); [sx, sy, sz] = [p.w, p.h, p.d]; }
+    else if (p.shape === "ball") { mesh = new THREE.Mesh(ballG, gunMat(p.look)); [sx, sy, sz] = [p.w, p.w, p.w]; }
+    else { mesh = new THREE.Mesh(cylG, gunMat(p.look)); [sx, sy, sz] = [p.h, p.w, p.h]; }
+    const shape = new THREE.Matrix4();
+    if (p.shape === "cylX") shape.makeRotationZ(Math.PI / 2); else if (p.shape === "cylZ") shape.makeRotationX(Math.PI / 2);
+    const local = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z)
+      .multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(p.pitch, 0, p.roll, "XYZ"))).multiply(shape);
+    const fr = p.frame && model.frames[p.frame];
+    const base = fr ? new THREE.Matrix4().makeTranslation(fr.x, fr.y, 0).multiply(new THREE.Matrix4().makeRotationZ(fr.tilt)) : new THREE.Matrix4();
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.copy(base.multiply(local).multiply(new THREE.Matrix4().makeScale(sx, sy, sz)));
+    mesh.castShadow = true; g.add(mesh);
+  }
+  return g;
+}
+
+// ---------- heroes: original placeholder bodies (Claude Design owns the real looks) ----------
+const GUN_OF = { ranger: "volt_pistol", bulwark: "breaker", wisp: "hornet", sentinel: "longline", rigger: "volt_pistol" };
+const NAVY = 0x14243a, CREAM = 0xfff4d6;
+function figure(id) {
+  const grp = new THREE.Group(); cur = grp;
+  const A = ACCENT[id], suit = mat(0x24456b), dark = mat(NAVY), glove = mat(CREAM), glow = mat(A, { neon: true }), trim = mat(A, { r: 0.5 });
+  const k = { ranger: [1, 1, 1], bulwark: [1.28, 1.02, 1.2], wisp: [0.82, 0.96, 0.82], sentinel: [0.95, 1.12, 0.95], rigger: [1.08, 1, 1.05] }[id];
+  const [wx, hy, dz] = k;
+  // legs + boots
+  for (const s of [-1, 1]) {
+    box(0.55 * wx, 1.15 * hy, 0.6 * dz, suit, 0.36 * s * wx, 0.95 * hy, 0);
+    box(0.62 * wx, 0.4, 0.85 * dz, dark, 0.36 * s * wx, 0.2, 0.1);
+    box(0.64 * wx, 0.09, 0.5 * dz, glow, 0.36 * s * wx, 0.42, 0.28 * dz);
+  }
+  // torso, belt, chest stripe
+  const ty = 2.35 * hy;
+  box(1.45 * wx, 1.25 * hy, 0.85 * dz, suit, 0, ty, 0);
+  box(1.5 * wx, 0.2, 0.9 * dz, dark, 0, ty - 0.55 * hy, 0);
+  box(0.22 * wx, 1.0 * hy, 0.9 * dz, trim, 0.4 * wx, ty + 0.05, 0);
+  box(0.3, 0.16, 0.05, glow, -0.35 * wx, ty + 0.25, 0.45 * dz);
+  // arms: right arm raised holding the gun, left arm at the side
+  const sx = 0.92 * wx;
+  box(0.42 * wx, 1.1 * hy, 0.42 * dz, suit, -sx, ty - 0.15, 0, 0, 0, 0.06);
+  ball(0.44, 0.44, 0.44, glove, -sx - 0.02, ty - 0.78 * hy, 0);
+  const armR = new THREE.Group(); armR.position.set(sx, ty + 0.35, 0); grp.add(armR); cur = armR;
+  box(0.42 * wx, 0.95, 0.42 * dz, suit, 0, -0.35, 0.35, -1.0, 0, 0);
+  cur = grp;
+  // head (the big readable head)
+  const hy0 = ty + 1.45 * hy;
+  ball(1.15, 1.15, 1.15, mat(0xe9eef5, { r: 0.35 }), 0, hy0, 0);
+  box(0.9, 0.34, 0.2, mat(0x0c1626, { r: 0.2, m: 0.3 }), 0, hy0 + 0.05, 0.5);
+  box(0.74, 0.1, 0.06, glow, 0, hy0 + 0.05, 0.61);
+  // per-hero parts
+  if (id === "ranger") {
+    box(0.18, 0.5, 0.7, glow, 0, hy0 + 0.62, -0.05);
+    ball(0.5, 0.5, 0.5, mat(0xe9eef5), -sx, ty + 0.55, 0); ball(0.5, 0.5, 0.5, mat(0xe9eef5), sx, ty + 0.55, 0);
+  } else if (id === "bulwark") {
+    ball(0.95, 0.95, 0.95, trim, -1.05 * wx, ty + 0.55, 0); ball(0.95, 0.95, 0.95, trim, 1.05 * wx, ty + 0.55, 0);
+    box(1.35 * wx, 0.8 * hy, 0.2, trim, 0, ty + 0.1, 0.52 * dz);
+    box(1.2, 0.3, 1.2, dark, 0, hy0 + 0.52, 0);
+    box(1.28, 0.08, 1.28, glow, 0, hy0 + 0.34, 0);
+  } else if (id === "wisp") {
+    for (const s of [-1, 1]) cyl(0.12, 0.9, 0.12, glow, 0.5 * s, hy0 + 0.55, -0.35, -0.5, 0, -0.5 * s);
+    box(1.0 * wx, 0.28, 0.5, glow, 0, ty + 0.62 * hy, -0.1);
+    box(0.5, 0.16, 1.5, glow, 0, ty - 0.2, -0.95, -0.35, 0, 0);
+  } else if (id === "sentinel") {
+    cyl(0.1, 0.1, 1.2, trim, 0, 0, 0, 0, 0, 0).visible = false;
+    box(1.8, 1.9 * hy, 0.18, mat(0x1c2c47), 0, ty - 0.3, -0.55, 0.12, 0, 0);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.9, 20), trim); cone.position.set(0, hy0 + 0.62, 0); cone.castShadow = true; grp.add(cone);
+    cyl(0.34, 0.2, 0.34, glow, 0.38, hy0 + 0.1, 0.55, Math.PI / 2, 0, 0);
+  } else if (id === "rigger") {
+    cyl(0.5, 1.5, 0.5, mat(0xc9454d), -0.4, ty + 0.1, -0.85); cyl(0.5, 1.5, 0.5, mat(0xc9454d), 0.4, ty + 0.1, -0.85);
+    box(1.3, 0.35, 0.3, dark, 0, ty + 0.1, -0.6);
+    cyl(0.4, 0.2, 0.4, glow, -0.32, hy0 + 0.25, 0.52, Math.PI / 2, 0, 0); cyl(0.4, 0.2, 0.4, glow, 0.32, hy0 + 0.25, 0.52, Math.PI / 2, 0, 0);
+    box(1.2, 0.12, 1.2, dark, 0, hy0 + 0.5, 0);
+  }
+  // slot 1 gun in the raised hand (the real model, turned to face forward)
+  cur = grp;
+  const gun = gunModel(DATA.guns[GUN_OF[id]]);
+  const gs = 0.62; gun.scale.set(gs, gs, gs);
+  const holder = new THREE.Group(); holder.rotation.y = -Math.PI / 2; holder.position.set(sx, ty + 0.0, 1.0 * dz); holder.add(gun);
+  grp.add(holder);
+  // slot 2 launcher: a chunky tube on the left shoulder, muzzle size follows its blast size
+  const lg = new THREE.Group(); lg.position.set(-sx - 0.1, ty + 0.9, -0.1); grp.add(lg); cur = lg;
+  cyl(0.46, 1.5, 0.46, mat(0x3a4a62, { m: 0.5, r: 0.4 }), 0, 0, 0, Math.PI / 2 - 0.35, 0, 0);
+  lg.userData.muzzle = ball(0.4, 0.4, 0.4, glow, 0, 0.3, 0.75);
+  lg.userData.tube = lg.children[0];
+  grp.userData.launcher = lg;
+  cur = null;
+  return grp;
+}
+
+// ---------- scene state ----------
+const heroes = {}, hitboxes = [], X0 = -6.4, DX = 3.2;
+DATA.order.forEach((id, i) => {
+  const f = figure(id); f.position.set(X0 + i * DX, 0, 0); f.rotation.y = 0.18 * (i - 2) * -1;
+  scene.add(f);
+  const bar = new THREE.Group(); bar.position.set(0, 5.35, 0); f.add(bar);
+  const back = new THREE.Mesh(boxG, mat(NAVY)); back.scale.set(2.5, 0.28, 0.12); bar.add(back);
+  const fill = new THREE.Mesh(boxG, mat(ACCENT[id], { neon: true })); fill.scale.set(2.3, 0.18, 0.16); fill.position.z = 0.03; bar.add(fill);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.75, 40), new THREE.MeshBasicMaterial({ color: ACCENT[id], transparent: true, opacity: 0.0, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; f.add(ring);
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 6, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.y = 3; hit.userData.id = id; f.add(hit); hitboxes.push(hit);
+  heroes[id] = { f, fill, bar, ring };
+});
+
+const labelsEl = document.getElementById("labels");
+const labs = {};
+DATA.order.forEach((id) => { const d = document.createElement("div"); d.className = "lab"; labelsEl.appendChild(d); labs[id] = d; });
+
+let spreadKey = STAR, sel = "bulwark", mode = "lineup";
+const spreadOf = () => DATA.spreads.find((s) => s.key === spreadKey);
+const MAXHP = 160;
+
+function refresh() {
+  const S = spreadOf();
+  for (const id of DATA.order) {
+    const c = S.heroes[id], h = heroes[id];
+    const w = 2.3 * (c.health / MAXHP) / (140 / MAXHP) * (1 / 1.0) * 0.55 + 0.25;
+    h.targetW = Math.max(0.3, 2.3 * c.health / 160);
+    h.ring.material.opacity = id === sel ? 0.9 : 0;
+    labs[id].className = "lab" + (id === sel ? " sel" : "");
+    labs[id].innerHTML = `${c.name}<b>${c.health} HP</b>`;
+    // launcher muzzle follows blast size
+    const blast = c.guns[1].lines.find((l) => l.key === "radius");
+    const sc = 0.55 + 0.9 * blast.bar;
+    h.f.userData.launcher.userData.muzzle.scale.set(0.3 * sc + 0.15, 0.3 * sc + 0.15, 0.3 * sc + 0.15);
+  }
+  document.querySelectorAll(".pick").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === spreadKey)));
+  document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === sel)));
+  plate();
+}
+function bars(lines) {
+  return lines.map((l) => `<div class="row"><span class="k">${l.label}</span><span class="bar"><i style="width:${Math.round(l.bar * 100)}%"></i></span><span class="v">${l.text}</span></div>`).join("");
+}
+function plate() {
+  const c = spreadOf().heroes[sel];
+  const kinds = ["SLOT 1 GUN", "SLOT 2 BLASTER"];
+  document.getElementById("plate").innerHTML =
+    `<h2>${c.name}<small>${c.role.toUpperCase()}</small></h2><p class="blurb">${c.blurb}</p>
+     <div class="card"><div class="row"><span class="k">Health</span><span class="bar"><i class="hp" style="width:${Math.round(c.healthBar * 100)}%"></i></span><span class="v">${c.health}</span></div>
+     <div class="row"><span class="k">Run speed</span><span class="bar"><i class="sp" style="width:${Math.round(c.speedBar * 100)}%"></i></span><span class="v">${Math.round(c.speed * 100)}%</span></div></div>
+     <div class="cards">${c.guns.map((g, i) => `<div class="card"><h3>${g.name}<small>${kinds[i]}</small></h3>${bars(g.lines)}</div>`).join("")}</div>`;
+}
+
+const spreadsEl = document.getElementById("spreads");
+DATA.spreads.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "pick"; b.dataset.k = s.key;
+  b.innerHTML = `${s.key === STAR ? "⭐ " : ""}${s.key} ${s.name}<span>${SPREAD_NOTE[s.key]}</span>`;
+  b.onclick = () => { spreadKey = s.key; refresh(); };
+  spreadsEl.appendChild(b);
+});
+const chipsEl = document.getElementById("chips");
+DATA.order.forEach((id) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.dataset.id = id; b.textContent = DATA.spreads[1].heroes[id].name;
+  b.onclick = () => { sel = id; refresh(); };
+  chipsEl.appendChild(b);
+});
+const viewsEl = document.getElementById("views");
+const VIEWS = { lineup: "All", close: "Close", game: "Game view" };
+for (const k in VIEWS) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = VIEWS[k]; b.dataset.m = k;
+  b.onclick = () => { mode = k; yawOff = 0; pitchOff = 0; idle = 0; setViews(); };
+  viewsEl.appendChild(b);
+}
+function setViews() { viewsEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === mode))); }
+
+// ---------- camera ----------
+let yawOff = 0, pitchOff = 0, idle = 0;
+const cam = { tx: 0, ty: 2.6, tz: 0, dist: 20, yaw: 0, pitch: 0.2 };
+function target() {
+  const aspect = camera.aspect, wide = Math.max(1, 1.33 / aspect);
+  if (mode === "close") { const f = heroes[sel].f.position; return { tx: f.x, ty: 3.0, tz: 0, dist: 17, yaw: 0.35, pitch: 0.1 }; }
+  if (mode === "game") return { tx: 0, ty: 0, tz: 0, dist: 34 * wide, yaw: 0, pitch: 0.96 };
+  return { tx: 0, ty: 2.7, tz: 0, dist: 21 * wide, yaw: 0, pitch: 0.17 };
+}
+function frame(t) {
+  const dt = Math.min(0.05, (t - (frame.last || t)) / 1000); frame.last = t; idle += dt;
+  const T = target(), k = 1 - Math.exp(-dt * 6);
+  for (const p of ["tx", "ty", "tz", "dist", "yaw", "pitch"]) cam[p] += (T[p] - cam[p]) * k;
+  const yaw = cam.yaw + yawOff, pitch = Math.min(1.3, Math.max(0, cam.pitch + pitchOff));
+  camera.position.set(cam.tx + Math.sin(yaw) * Math.cos(pitch) * cam.dist, cam.ty + Math.sin(pitch) * cam.dist, cam.tz + Math.cos(yaw) * Math.cos(pitch) * cam.dist);
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+  for (const id of DATA.order) {
+    const h = heroes[id]; const w = h.targetW || 2.3;
+    h.fill.scale.x += (w - h.fill.scale.x) * k; h.fill.position.x = -(2.3 - h.fill.scale.x) / 2;
+    h.bar.quaternion.copy(camera.quaternion);
+    h.ring.rotation.z += dt * 0.8;
+    if (!still) h.f.rotation.y = (id === sel && mode !== "game" ? Math.sin(t / 1400) * 0.25 : h.f.rotation.y);
+  }
+  renderer.render(scene, camera);
+  const r = canvas.getBoundingClientRect();
+  for (const id of DATA.order) {
+    const v = new THREE.Vector3(); heroes[id].f.getWorldPosition(v); v.y += 5.9;
+    v.project(camera);
+    const L = labs[id]; L.style.left = ((v.x * 0.5 + 0.5) * r.width) + "px"; L.style.top = ((-v.y * 0.5 + 0.5) * r.height) + "px";
+    L.style.display = mode === "game" || (mode === "close" && id !== sel) ? "none" : "block";
+  }
+  requestAnimationFrame(frame);
+}
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- input ----------
+const ray = new THREE.Raycaster(), pts = new Map(); let drag = null, moved = 0;
+canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); drag = [e.clientX, e.clientY]; moved = 0; });
+canvas.addEventListener("pointermove", (e) => {
+  if (!pts.has(e.pointerId) || !drag) return;
+  const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved += Math.abs(dx) + Math.abs(dy);
+  yawOff -= dx * 0.006; pitchOff += dy * 0.005; drag = [e.clientX, e.clientY];
+});
+canvas.addEventListener("pointerup", (e) => {
+  pts.delete(e.pointerId); drag = null;
+  if (moved < 6) {
+    const r = canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    const hit = ray.intersectObjects(hitboxes)[0];
+    if (hit) { sel = hit.object.userData.id; refresh(); }
+  }
+});
+canvas.addEventListener("pointercancel", () => { pts.clear(); drag = null; });
+function resize() {
+  const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize(); refresh(); setViews();
+requestAnimationFrame(frame);
+window.__heroPreview = { set(k, s, m) { if (k) spreadKey = k; if (s) sel = s; if (m) mode = m; yawOff = pitchOff = 0; refresh(); setViews(); } };
+</script>

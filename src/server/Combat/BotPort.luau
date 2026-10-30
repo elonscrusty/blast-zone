@@ -69,7 +69,7 @@ function BotPort.state(id: string): BotState?
 	local slot = c.weapons.slot
 	return {
 		health = hp,
-		maxHealth = Config.Health.max,
+		maxHealth = Combatants.maxHealth(id),
 		ammo = c.weapons.ammo[slot],
 		magazine = Combatants.slotStats(id, slot).magazine,
 		reloading = c.weapons.reloadEndsAt[slot] ~= nil,

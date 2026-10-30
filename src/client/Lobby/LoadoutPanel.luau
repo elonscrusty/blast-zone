@@ -107,7 +107,14 @@ local function redraw()
 		b.Size = UDim2.new(0.23, 0, 1, -8)
 		b.Position = UDim2.new((i - 1) * 0.245, 0, 0, 4)
 		label(b, card.name, UDim2.fromScale(0.9, 0.34), UDim2.fromScale(0.05, 0.08))
-		local desc = label(b, card.desc, UDim2.fromScale(0.9, 0.32), UDim2.fromScale(0.05, 0.44))
+		-- Hero cards show health and both guns (GunCards lines); other cards show their one-line description.
+		local detail = card.detail
+		local desc = label(
+			b,
+			if detail then table.concat(detail, "\n") else card.desc,
+			UDim2.fromScale(0.9, if detail then 0.5 else 0.32),
+			UDim2.fromScale(0.05, if detail then 0.26 else 0.44)
+		)
 		desc.Font = Enum.Font.GothamBold
 		desc.TextTransparency = 0.25
 		label(b, card.status, UDim2.fromScale(0.9, 0.2), UDim2.fromScale(0.05, 0.78))
