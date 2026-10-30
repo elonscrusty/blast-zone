@@ -160,6 +160,14 @@ local Defs: { Def } = {
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 
+	-- ===== 19 lobby + loadout =====
+	ask("19", "LoadoutEquip", {
+		{ name = "slot", kind = "id", maxLen = 12 },
+		{ name = "itemId", kind = "id", maxLen = 24 },
+	}, 3, 4),
+	ask("19", "LoadoutSync", {}, 1, 2),
+	tell("19", "LoadoutState", "LoadoutState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
