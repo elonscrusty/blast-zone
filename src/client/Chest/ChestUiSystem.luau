@@ -183,7 +183,7 @@ function ChestUiSystem.start()
 	tapLine.Visible = false
 
 	-- ===== "new chest" strip =====
-	local toastGui, toastRoot = Components.screen("ChestToast", "Toast")
+	local _, toastRoot = Components.screen("ChestToast", "Toast")
 	local toast = Components.text(toastRoot, toastRoot, "Strip", "title", {
 		color = "inkOnAccent",
 		anchor = Vector2.new(0.5, 0),
