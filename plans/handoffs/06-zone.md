@@ -1,0 +1,11 @@
+# 06 Safe zone + sudden death
+- Done: server-owned shrinking circle. `src/server/Zone/ZoneModel.luau` (pure rules + Runner), `ZoneSystem.luau` (starts itself), client `ZoneClientSystem`, `ZoneBoundary` (look A, Neon Wall, picked by carter), `ZoneHud`, `ZoneView`.
+- All numbers come from `Config.Zone`. Starts when the phase becomes `Active`, stops when the match leaves combat. No damage in any other phase.
+- Damage: every 0.5 s, anyone outside gets `Damage:apply({cause="zone", sourceId=nil})` with the current stage damage (zero before the first closing). Edge: exactly on the line is inside, plus `edgeTolerance` studs.
+- Sudden death is the stage-99 circle: it keeps closing to radius 4 and hurts 25/s outside. The circle is never empty, so the last two must meet.
+- Piece 05: listen to `ZoneSystem.FinalPressure` (fires once with the last warning) and call `setPhase("FinalPressure")`. `ZoneSystem.Event` also gives WarningStarted, ClosingStarted, ClosingEnded, SuddenDeath.
+- Piece 09 (bots): `ZoneSystem.getSample()` and `ZoneSystem.nearestSafePoint(x, z, margin)`. Bot characters need the `ParticipantId` attribute and must sit in Workspace or `Workspace.Participants`, so the zone can find their position.
+- Piece 10 (minimap): `require(script...Zone.ZoneView).get(workspace:GetServerTimeNow())` gives `{centerX, centerZ, radius, targetRadius, phase, stage, suddenDeath, secondsToClose, secondsToSettle, damagePerSecond}`. Draw the circle from that. I draw no banner or timer text (piece 10 owns it); `ZoneHud` only draws the red edges and the arrow back in.
+- Wire: `ZoneState` remote at every warning and closing; `ZoneStateRequest` (mine) lets a late joiner ask. Client shows the ring only while `MatchState` says a combat phase for the same matchId.
+- Tests: `tests/zone.test.luau` (timeline, edge, damage, events, restart, client matches server). luau-lsp type check clean for Zone files. Nothing run in Studio.
+- Left: the floor is assumed at Y=0 (`GROUND_Y` in ZoneClientSystem). The look is a ring only; no darkened outside. Skins B (Storm Static) and C (Laser Fence) are not built.
