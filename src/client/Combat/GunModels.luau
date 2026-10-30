@@ -1,219 +1,162 @@
 --!strict
--- The Volt Pistol you see in every fighter's hand: the realistic "A++" look carter picked on the preview
--- page, built from parts and welded to the body so it turns with it. Local only (every client builds its
--- own copy). Fine engraving and stippling from the preview are left out: about 45 parts per gun is enough
--- at game distance and keeps eight fighters cheap.
+-- The gun you see in every fighter's hand, and on the ground when a gun drops. Part lists live in
+-- WeaponModels (the Volt Pistol is carter's "A++" pick; Breaker, Hornet and Longline match it).
+-- Local only: every client builds its own copy. The held gun follows the fighter's WeaponId attribute
+-- (set by the server) and is rebuilt when it changes; it is always a Model named "CombatGun" with
+-- parts named "Slide" and "Grip".
 
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local WeaponModels = require("./WeaponModels")
 
 local GunModels = {}
 
 local SCALE = 0.75
+local DROP_SCALE = 0.6
 local CYAN = Color3.fromHex(Config.Palette.Cyan)
 local CORAL = Color3.fromHex(Config.Palette.DangerCoral)
 
-type Look = { color: Color3, material: Enum.Material, neon: boolean }
+type Look = { color: Color3, material: Enum.Material, transparency: number }
 
 local LOOK: { [string]: Look } = {
 	poly = {
 		color = Color3.fromHex("303640"),
 		material = Enum.Material.SmoothPlastic,
-		neon = false,
+		transparency = 0,
 	},
-	gun = { color = Color3.fromHex("5A6676"), material = Enum.Material.Metal, neon = false },
-	steel = { color = Color3.fromHex("9AA5B3"), material = Enum.Material.Metal, neon = false },
-	blued = { color = Color3.fromHex("68778F"), material = Enum.Material.Metal, neon = false },
-	brass = { color = Color3.fromHex("C9A24A"), material = Enum.Material.Metal, neon = false },
+	gun = { color = Color3.fromHex("5A6676"), material = Enum.Material.Metal, transparency = 0 },
+	steel = { color = Color3.fromHex("9AA5B3"), material = Enum.Material.Metal, transparency = 0 },
+	blued = { color = Color3.fromHex("68778F"), material = Enum.Material.Metal, transparency = 0 },
+	brass = { color = Color3.fromHex("C9A24A"), material = Enum.Material.Metal, transparency = 0 },
 	dark = {
 		color = Color3.fromHex("07090C"),
 		material = Enum.Material.SmoothPlastic,
-		neon = false,
+		transparency = 0,
 	},
-	cyan = { color = CYAN, material = Enum.Material.Neon, neon = true },
-	coral = { color = CORAL, material = Enum.Material.Neon, neon = true },
+	hull = {
+		color = Color3.fromHex("C9454D"),
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0,
+	},
+	rubber = {
+		color = Color3.fromHex("15171B"),
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0,
+	},
+	tan = {
+		color = Color3.fromHex("8C7656"),
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0,
+	},
+	glass = { color = CYAN, material = Enum.Material.Glass, transparency = 0.45 },
+	cyan = { color = CYAN, material = Enum.Material.Neon, transparency = 0 },
+	coral = { color = CORAL, material = Enum.Material.Neon, transparency = 0 },
 }
 
-type PartDef = {
-	name: string,
-	shape: "box" | "cylX" | "cylZ",
-	size: Vector3, -- box: width, height, depth. cylinders: length, diameter
-	offset: Vector3, -- from the gun centre (the gun points along +X), or from the grip centre
-	look: string,
-	pitch: number, -- roll about X (bevels)
-	roll: number, -- roll about Z
-	onGrip: boolean,
-}
+GunModels.LOOKS = LOOK
 
--- The grip is tilted back this much; the magazine and grip texture live in the grip's own space.
-local GRIP_CENTRE = Vector3.new(-1.05, -0.78, 0)
-local GRIP_TILT = 0.2
-
-local function box(
-	name: string,
-	w: number,
-	h: number,
-	d: number,
-	look: string,
-	x: number,
-	y: number,
-	z: number,
-	pitch: number?,
-	roll: number?
-): PartDef
-	return {
-		name = name,
-		shape = "box",
-		size = Vector3.new(w, h, d),
-		offset = Vector3.new(x, y, z),
-		look = look,
-		pitch = pitch or 0,
-		roll = roll or 0,
-		onGrip = false,
-	}
-end
-
-local function cyl(
-	name: string,
-	length: number,
-	diameter: number,
-	look: string,
-	x: number,
-	y: number,
-	z: number,
-	alongZ: boolean?
-): PartDef
-	return {
-		name = name,
-		shape = if alongZ then "cylZ" else "cylX",
-		size = Vector3.new(length, diameter, diameter),
-		offset = Vector3.new(x, y, z),
-		look = look,
-		pitch = 0,
-		roll = 0,
-		onGrip = false,
-	}
-end
-
-local function inGrip(def: PartDef): PartDef
-	def.onGrip = true
-	return def
-end
-
-local PARTS: { PartDef } = {
-	-- slide: body, bevelled top edges, front block, barrel, bore, compensator cuts
-	box("Slide", 3.3, 0.58, 0.5, "gun", 0.15, 0.42, 0),
-	box("BevelR", 3.3, 0.1, 0.12, "gun", 0.15, 0.72, 0.17, 0.8),
-	box("BevelL", 3.3, 0.1, 0.12, "gun", 0.15, 0.72, -0.17, -0.8),
-	box("FrontBlock", 0.5, 0.42, 0.4, "gun", 1.95, 0.35, 0),
-	cyl("Barrel", 0.4, 0.3, "steel", 2.2, 0.38, 0),
-	cyl("Bore", 0.05, 0.17, "dark", 2.41, 0.38, 0),
-	box("Cut1", 0.1, 0.05, 0.2, "dark", 1.25, 0.76, 0),
-	box("Cut2", 0.1, 0.05, 0.2, "dark", 1.47, 0.76, 0),
-	box("Cut3", 0.1, 0.05, 0.2, "dark", 1.69, 0.76, 0),
-	-- serrations (rear and front, both sides), ejection port, brass, extractor, striker
-	box("SerRearR", 0.7, 0.46, 0.03, "dark", -1.15, 0.42, 0.255),
-	box("SerRearL", 0.7, 0.46, 0.03, "dark", -1.15, 0.42, -0.255),
-	box("SerFrontR", 0.45, 0.46, 0.03, "dark", 1.15, 0.42, 0.255),
-	box("SerFrontL", 0.45, 0.46, 0.03, "dark", 1.15, 0.42, -0.255),
-	box("Port", 0.78, 0.22, 0.04, "dark", 0.35, 0.55, 0.255),
-	box("Brass", 0.32, 0.1, 0.03, "brass", 0.3, 0.52, 0.262),
-	box("Extractor", 0.1, 0.22, 0.04, "steel", 0.85, 0.64, 0.262),
-	box("Striker", 0.18, 0.3, 0.3, "gun", -1.68, 0.5, 0, 0, 0.35),
-	-- sights
-	box("RearSightBase", 0.28, 0.06, 0.4, "gun", -1.45, 0.76, 0),
-	box("RearSightR", 0.12, 0.17, 0.1, "gun", -1.45, 0.86, 0.12),
-	box("RearSightL", 0.12, 0.17, 0.1, "gun", -1.45, 0.86, -0.12),
-	box("FrontSight", 0.1, 0.2, 0.08, "gun", 1.68, 0.84, 0),
-	box("FrontDot", 0.05, 0.05, 0.1, "cyan", 1.68, 0.92, 0),
-	-- frame, bevels, rail with slots, rail light, takedown pin, slide stop, spring guide
-	box("Frame", 2.6, 0.28, 0.44, "poly", -0.05, 0, 0),
-	box("FrameBevelR", 2.6, 0.07, 0.07, "poly", -0.05, 0.13, 0.2, 0.7),
-	box("FrameBevelL", 2.6, 0.07, 0.07, "poly", -0.05, 0.13, -0.2, -0.7),
-	box("Beavertail", 0.5, 0.1, 0.44, "poly", -1.4, 0.14, 0, 0, -0.15),
-	box("RailBlock", 0.9, 0.22, 0.46, "poly", 1.4, -0.02, 0),
-	box("Slot1", 0.07, 0.2, 0.48, "dark", 1.1, -0.02, 0),
-	box("Slot2", 0.07, 0.2, 0.48, "dark", 1.35, -0.02, 0),
-	box("Slot3", 0.07, 0.2, 0.48, "dark", 1.6, -0.02, 0),
-	box("Light", 0.62, 0.24, 0.34, "gun", 1.56, -0.28, 0),
-	box("LightLens", 0.05, 0.13, 0.13, "cyan", 1.88, -0.28, 0),
-	box("LightDot", 0.04, 0.04, 0.04, "coral", 1.88, -0.17, 0),
-	cyl("TakedownPin", 0.5, 0.14, "steel", 0.75, -0.05, 0, true),
-	box("SlideStop", 0.55, 0.08, 0.06, "steel", -0.2, 0.17, 0.255),
-	cyl("SpringGuide", 0.55, 0.13, "steel", 2.1, 0.12, 0),
-	box("CellBar1", 0.1, 0.04, 0.02, "cyan", -0.3, 0.04, -0.222),
-	box("CellBar2", 0.1, 0.04, 0.02, "cyan", -0.14, 0.04, -0.222),
-	box("CellBar3", 0.1, 0.04, 0.02, "cyan", 0.02, 0.04, -0.222),
-	-- trigger and guard
-	box("GuardBottom", 0.95, 0.07, 0.34, "poly", 0.05, -0.58, 0),
-	box("GuardFront", 0.07, 0.42, 0.34, "poly", 0.5, -0.36, 0),
-	box("Trigger", 0.07, 0.32, 0.1, "steel", -0.02, -0.38, 0, 0, 0.25),
-	-- grip: body, backstrap, finger grooves, magwell, panel texture, lanyard
-	inGrip(box("Grip", 0.72, 1.5, 0.46, "poly", 0, 0, 0)),
-	inGrip(box("Backstrap", 0.14, 1.3, 0.4, "poly", -0.42, -0.05, 0)),
-	inGrip(cyl("Groove1", 0.5, 0.18, "dark", 0.37, 0.3, 0, true)),
-	inGrip(cyl("Groove2", 0.5, 0.18, "dark", 0.37, 0, 0, true)),
-	inGrip(cyl("Groove3", 0.5, 0.18, "dark", 0.37, -0.3, 0, true)),
-	inGrip(box("TextureR", 0.5, 1.0, 0.04, "dark", -0.02, -0.05, 0.235)),
-	inGrip(box("TextureL", 0.5, 1.0, 0.04, "dark", -0.02, -0.05, -0.235)),
-	inGrip(box("Magwell", 0.86, 0.1, 0.54, "poly", 0, -0.76, 0)),
-	inGrip(box("Lanyard", 0.1, 0.22, 0.08, "steel", -0.4, -0.78, 0)),
-	-- magazine: blued steel, brass rounds in the window, floorplate with a cyan line
-	inGrip(box("Magazine", 0.52, 0.95, 0.38, "blued", 0.03, -0.55, 0)),
-	inGrip(box("Rounds", 0.22, 0.5, 0.4, "brass", 0.03, -0.55, 0)),
-	inGrip(box("Floorplate", 0.6, 0.1, 0.46, "poly", 0.03, -1.05, 0)),
-	inGrip(box("FloorLine", 0.4, 0.03, 0.48, "cyan", 0.03, -1.1, 0)),
-}
-
-local function attach(model: Model)
-	if model:FindFirstChild("CombatGun") ~= nil then
-		return
+local function shapeTurn(shape: WeaponModels.Shape): CFrame
+	if shape == "cylY" then
+		return CFrame.Angles(0, 0, math.rad(90))
+	elseif shape == "cylZ" then
+		return CFrame.Angles(0, math.rad(90), 0)
 	end
-	local root = model:FindFirstChild("HumanoidRootPart")
-	if root == nil or not root:IsA("BasePart") then
-		return
-	end
+	return CFrame.identity
+end
+
+-- Builds gun `weaponId` with its centre at `base` (gun +X along base's X). Parts are unanchored,
+-- massless and touch nothing; `weldTo` (if given) holds every part, else they are anchored.
+function GunModels.build(weaponId: string, base: CFrame, scale: number, weldTo: BasePart?): Model
+	local def = WeaponModels.get(weaponId)
 	local gun = Instance.new("Model")
 	gun.Name = "CombatGun"
-	-- Gun +X becomes the character's forward (-Z); held low on the right side.
-	local base = root.CFrame * CFrame.new(1.3, -0.1, -1.0) * CFrame.Angles(0, math.rad(90), 0)
-	local gripBase = base * CFrame.new(GRIP_CENTRE * SCALE) * CFrame.Angles(0, 0, GRIP_TILT)
-	for _, def in PARTS do
-		local look = LOOK[def.look]
+	gun:SetAttribute("WeaponId", def.id)
+	gun.WorldPivot = base
+	local frames: { [string]: CFrame } = {}
+	for name, f in def.frames do
+		frames[name] = base * CFrame.new(f.x * scale, f.y * scale, 0) * CFrame.Angles(0, 0, f.tilt)
+	end
+	for _, p in def.parts do
+		local look = LOOK[p.look] or LOOK.poly
 		local piece = Instance.new("Part")
-		piece.Name = def.name
+		piece.Name = p.name
 		piece.Material = look.material
 		piece.Color = look.color
-		local frame = if def.onGrip then gripBase else base
-		local local_ = CFrame.new(def.offset * SCALE) * CFrame.Angles(def.pitch, 0, def.roll)
-		if def.shape == "box" then
-			piece.Size = def.size * SCALE
-		else
+		piece.Transparency = look.transparency
+		if p.shape == "ball" then
+			piece.Shape = Enum.PartType.Ball
+		elseif p.shape ~= "box" then
 			piece.Shape = Enum.PartType.Cylinder
-			piece.Size = def.size * SCALE
-			if def.shape == "cylZ" then
-				local_ = local_ * CFrame.Angles(0, math.rad(90), 0)
-			end
 		end
-		piece.CFrame = frame * local_
+		piece.Size = Vector3.new(p.w, p.h, p.d) * scale
+		local frame = if p.frame ~= nil then frames[p.frame] or base else base
+		piece.CFrame = frame
+			* CFrame.new(p.x * scale, p.y * scale, p.z * scale)
+			* CFrame.Angles(p.pitch, 0, p.roll)
+			* shapeTurn(p.shape)
 		piece.Massless = true
 		piece.CanCollide = false
 		piece.CanQuery = false
 		piece.CanTouch = false
 		piece.CastShadow = false
+		if weldTo ~= nil then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = weldTo
+			weld.Part1 = piece
+			weld.Parent = piece
+		else
+			piece.Anchored = true
+		end
 		piece.Parent = gun
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
-		weld.Part1 = piece
-		weld.Parent = piece
 	end
-	gun.Parent = model
+	return gun
+end
+
+-- ===== held guns =====
+
+local function equip(model: Model)
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if root == nil or not root:IsA("BasePart") or model:GetAttribute("Alive") == false then
+		return
+	end
+	local want = model:GetAttribute("WeaponId")
+	local weaponId = if type(want) == "string" then want else Config.Weapons.Firearm.id
+	local old = model:FindFirstChild("CombatGun")
+	if old ~= nil then
+		if old:GetAttribute("WeaponId") == WeaponModels.get(weaponId).id then
+			return
+		end
+		old:Destroy()
+	end
+	local hold = WeaponModels.get(weaponId).hold
+	-- Gun +X becomes the character's forward (-Z); held low on the right side.
+	local base = root.CFrame
+		* CFrame.new(hold.x, hold.y, hold.z)
+		* CFrame.Angles(0, math.rad(90), 0)
+	GunModels.build(weaponId, base, SCALE, root).Parent = model
+end
+
+local watched: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+local function attach(model: Model)
+	if watched[model] then
+		return
+	end
+	watched[model] = true
+	equip(model)
+	model:GetAttributeChangedSignal("WeaponId"):Connect(function()
+		equip(model)
+	end)
 	-- Gone when the fighter is out.
 	model:GetAttributeChangedSignal("Alive"):Connect(function()
 		if model:GetAttribute("Alive") == false then
-			gun:Destroy()
+			local gun = model:FindFirstChild("CombatGun")
+			if gun ~= nil then
+				gun:Destroy()
+			end
 		end
 	end)
 end
@@ -231,11 +174,97 @@ local function consider(inst: Instance)
 	end
 end
 
+-- ===== guns on the ground =====
+
+type Shown = { gun: Model, ring: Part }
+local shown: { [BasePart]: Shown } = {}
+
+local function showDrop(anchor: Instance)
+	if not anchor:IsA("BasePart") or shown[anchor] ~= nil then
+		return
+	end
+	local weaponId = anchor:GetAttribute("WeaponId")
+	if type(weaponId) ~= "string" then
+		return
+	end
+	local gun = GunModels.build(weaponId, CFrame.identity, DROP_SCALE, nil)
+	gun.Name = "DroppedGun"
+	local ring = Instance.new("Part")
+	ring.Name = "Ring"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = CYAN
+	ring.Transparency = 0.35
+	ring.Size = Vector3.new(0.08, 4.2, 4.2)
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.CFrame = CFrame.new(
+		anchor.Position - Vector3.new(0, Config.Weapons.Drops.height - 0.05, 0)
+	) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = anchor
+	gun.Parent = anchor
+	shown[anchor] = { gun = gun, ring = ring }
+end
+
+local function hideDrop(anchor: Instance)
+	if anchor:IsA("BasePart") then
+		local s = shown[anchor]
+		if s ~= nil then
+			s.gun:Destroy()
+			s.ring:Destroy()
+			shown[anchor] = nil
+		end
+	end
+end
+
+local function watchDrops(folder: Instance)
+	for _, child in folder:GetChildren() do
+		showDrop(child)
+	end
+	folder.ChildAdded:Connect(showDrop)
+	folder.ChildRemoved:Connect(hideDrop)
+end
+
+-- Slow spin and bob, so a gun on the ground reads as "pick me up".
+local function animateDrops()
+	local t = os.clock()
+	for anchor, s in shown do
+		if anchor.Parent == nil then
+			s.gun:Destroy()
+			s.ring:Destroy()
+			shown[anchor] = nil
+		else
+			local spin = CFrame.Angles(0, t * 1.4, 0)
+			local bob = math.sin(t * 2.5) * 0.15
+			s.gun:PivotTo(
+				CFrame.new(anchor.Position + Vector3.new(0, bob, 0))
+					* spin
+					* CFrame.Angles(0, 0, 0.12)
+			)
+		end
+	end
+end
+
 function GunModels.start()
 	for _, d in Workspace:GetDescendants() do
 		consider(d)
 	end
 	Workspace.DescendantAdded:Connect(consider)
+
+	local name = Config.Weapons.Drops.folder
+	local existing = Workspace:FindFirstChild(name)
+	if existing ~= nil then
+		watchDrops(existing)
+	end
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == name then
+			watchDrops(child)
+		end
+	end)
+	RunService.RenderStepped:Connect(animateDrops)
 end
 
 return GunModels

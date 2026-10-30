@@ -1,0 +1,306 @@
+<title>Circuit District Guns</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one showroom stage up top, gun picker and spec plate under it. Single dark look on purpose. */
+:root {
+  --bg: #0b1220;
+  --stage: #14243a;
+  --panel: #111c2e;
+  --line: #24364f;
+  --fg: #e8eef6;
+  --muted: #8ea2bb;
+  --cyan: #36d9e8;
+  --gold: #ffc44d;
+  --coral: #f15b64;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--body); }
+.wrap {
+  max-width: 880px; margin: 0 auto;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 14px;
+}
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-size: 1.5rem; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
+.hint { color: var(--muted); font-size: .85rem; }
+.stage {
+  position: relative; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 30%, #1d3352 0%, var(--stage) 55%, #0c1626 100%);
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3; max-height: 62vh; width: 100%; max-width: 100%;
+}
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.tag {
+  position: absolute; left: 14px; top: 12px;
+  font-family: var(--display); font-size: 2rem; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
+  text-shadow: 0 2px 12px rgba(0,0,0,.5); pointer-events: none;
+}
+.tag small { display: block; font-family: var(--mono); font-size: .75rem; color: var(--cyan); letter-spacing: .12em; margin-top: 4px; }
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.zoom button {
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(11,18,32,.75); color: var(--fg); font-size: 1.3rem; font-family: var(--mono);
+}
+.picks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pick {
+  min-height: 64px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  font-family: var(--display); font-size: 1rem; text-transform: uppercase; letter-spacing: .04em;
+  display: grid; gap: 2px; place-content: center; text-align: center; padding: 6px 4px;
+}
+.pick span { font-family: var(--mono); font-size: .68rem; color: var(--muted); letter-spacing: .1em; text-transform: none; }
+.pick[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+.pick:focus-visible, .zoom button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plate { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px; }
+.role { font-size: 1.05rem; margin: 0; }
+.role b { color: var(--gold); font-weight: 600; }
+.stats { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 4.5em; gap: 10px; align-items: center; font-size: .85rem; }
+.row .k { color: var(--muted); }
+.row .v { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: #1b2a40; position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--cyan); border-radius: 4px; transition: width .35s ease; }
+.bar u { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--gold); text-decoration: none; }
+.legend { font-size: .75rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.legend em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
+.legend em::before { content: ""; width: 12px; height: 6px; border-radius: 3px; background: var(--cyan); }
+.legend em.p::before { width: 2px; height: 12px; background: var(--gold); }
+@media (max-width: 520px) {
+  .tag { font-size: 1.45rem; }
+  .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>New guns</h1>
+    <div class="hint">Drag to spin. Pinch or +/− to zoom.</div>
+  </header>
+  <div class="stage">
+    <canvas id="view" aria-label="3D gun preview"></canvas>
+    <div class="tag" id="tag">Breaker<small>A · PUMP SHOTGUN</small></div>
+    <div class="zoom">
+      <button id="zin" type="button" aria-label="Zoom in">+</button>
+      <button id="zout" type="button" aria-label="Zoom out">−</button>
+    </div>
+  </div>
+  <div class="picks" id="picks"></div>
+  <section class="plate">
+    <p class="role" id="role"></p>
+    <div class="stats" id="stats"></div>
+    <div class="legend"><em>this gun</em><em class="p">Volt Pistol (you have it)</em></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DATA = {"breaker":{"frames":{"grip":{"tilt":-0.3,"x":-1,"y":-0.75},"stock":{"tilt":0,"x":-2.6,"y":0.1}},"hold":{"x":1.3,"y":-0.1,"z":-1.6},"id":"breaker","parts":[{"d":0.55,"h":0.75,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.35,"z":0},{"d":0.14,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.7,"z":0.2},{"d":0.14,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.7,"z":-0.2},{"d":0.04,"h":0.3,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.9,"x":0.25,"y":0.42,"z":0.28},{"d":0.03,"h":0.17,"look":"hull","name":"ShellInPort","pitch":0,"roll":0,"shape":"box","w":0.5,"x":0.3,"y":0.42,"z":0.29},{"d":0.035,"h":0.19,"look":"brass","name":"ShellHead","pitch":0,"roll":0,"shape":"box","w":0.12,"x":0.02,"y":0.42,"z":0.29},{"d":0.3,"h":0.08,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":2.2,"x":0,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":-0.7,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":-0.25,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.2,"y":0.76,"z":0},{"d":0.32,"h":0.09,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.65,"y":0.76,"z":0},{"d":0.08,"h":0.22,"look":"gun","name":"RearSightR","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":0.9,"z":0.12},{"d":0.08,"h":0.22,"look":"gun","name":"RearSightL","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":0.9,"z":-0.12},{"d":0.32,"h":0.06,"look":"gun","name":"RearSightTop","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.95,"y":1.02,"z":0},{"d":0.36,"h":0.36,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":4.6,"x":3.6,"y":0.42,"z":0},{"d":0.44,"h":0.1,"look":"gun","name":"HeatShield","pitch":0,"roll":0,"shape":"box","w":3.2,"x":3.1,"y":0.64,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent1","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent2","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.55,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent3","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.1,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent4","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.65,"y":0.7,"z":0},{"d":0.22,"h":0.03,"look":"dark","name":"Vent5","pitch":0,"roll":0,"shape":"box","w":0.3,"x":4.2,"y":0.7,"z":0},{"d":0.44,"h":0.44,"look":"gun","name":"Choke","pitch":0,"roll":0,"shape":"cylX","w":0.32,"x":5.95,"y":0.42,"z":0},{"d":0.26,"h":0.26,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":6.12,"y":0.42,"z":0},{"d":0.12,"h":0.12,"look":"cyan","name":"Bead","pitch":0,"roll":0,"shape":"ball","w":0.12,"x":5.75,"y":0.64,"z":0},{"d":0.34,"h":0.34,"look":"gun","name":"MagTube","pitch":0,"roll":0,"shape":"cylX","w":3.9,"x":3.25,"y":0.02,"z":0},{"d":0.4,"h":0.4,"look":"steel","name":"MagCap","pitch":0,"roll":0,"shape":"cylX","w":0.26,"x":5.3,"y":0.02,"z":0},{"d":0.44,"h":0.72,"look":"poly","name":"Clamp","pitch":0,"roll":0,"shape":"box","w":0.22,"x":4.9,"y":0.22,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"ClampScrew","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":4.9,"y":0.22,"z":0},{"d":0.56,"h":0.5,"look":"poly","name":"Pump","pitch":0,"roll":0,"shape":"box","w":1.9,"x":2.6,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.95,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.2,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.45,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.7,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.95,"y":0.02,"z":0},{"d":0.58,"h":0.44,"look":"dark","name":"PumpRib6","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.2,"y":0.02,"z":0},{"d":0.58,"h":0.03,"look":"cyan","name":"PumpLine","pitch":0,"roll":0,"shape":"box","w":1.4,"x":2.6,"y":-0.24,"z":0},{"d":0.5,"h":0.3,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":1.6,"x":-0.2,"y":-0.12,"z":0},{"d":0.12,"h":0.12,"look":"steel","name":"Safety","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":-0.75,"y":-0.05,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"Pin1","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":0.35,"y":0.05,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"Pin2","pitch":0,"roll":0,"shape":"cylZ","w":0.56,"x":-0.45,"y":0.18,"z":0},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":-0.15,"y":-0.62,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.3,"y":-0.42,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.2,"y":-0.42,"z":0},{"d":0.06,"h":0.5,"look":"poly","name":"Saddle","pitch":0,"roll":0,"shape":"box","w":1.4,"x":-0.1,"y":0.38,"z":-0.31},{"d":0.17,"h":0.17,"look":"hull","name":"Shell1","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":-0.6,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell2","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":-0.27,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell3","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":0.06,"y":0.42,"z":-0.42},{"d":0.17,"h":0.17,"look":"hull","name":"Shell4","pitch":0,"roll":0,"shape":"cylY","w":0.42,"x":0.39,"y":0.42,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head1","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":-0.6,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head2","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":-0.27,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head3","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":0.06,"y":0.17,"z":-0.42},{"d":0.18,"h":0.18,"look":"brass","name":"Head4","pitch":0,"roll":0,"shape":"cylY","w":0.1,"x":0.39,"y":0.17,"z":-0.42},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.55,"y":0.12,"z":0.28},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.71,"y":0.12,"z":0.28},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.87,"y":0.12,"z":0.28},{"d":0.48,"frame":"grip","h":1.35,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.245},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.245},{"d":0.52,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.72,"x":0,"y":-0.7,"z":0},{"d":0.48,"frame":"stock","h":0.42,"look":"poly","name":"StockTop","pitch":0,"roll":0,"shape":"box","w":2.6,"x":0,"y":0.15,"z":0},{"d":0.46,"frame":"stock","h":0.38,"look":"poly","name":"StockLower","pitch":0,"roll":0.18,"shape":"box","w":2.5,"x":-0.2,"y":-0.4,"z":0},{"d":0.46,"frame":"stock","h":0.5,"look":"poly","name":"StockWeb","pitch":0,"roll":0,"shape":"box","w":1.3,"x":-0.75,"y":-0.1,"z":0},{"d":0.5,"frame":"stock","h":0.22,"look":"dark","name":"StockCut","pitch":0,"roll":0,"shape":"box","w":0.9,"x":0.3,"y":-0.13,"z":0},{"d":0.56,"frame":"stock","h":1.25,"look":"rubber","name":"Pad","pitch":0,"roll":0,"shape":"box","w":0.3,"x":-1.42,"y":-0.15,"z":0},{"d":0.58,"frame":"stock","h":0.03,"look":"cyan","name":"PadLine","pitch":0,"roll":0,"shape":"box","w":0.32,"x":-1.42,"y":0.25,"z":0},{"d":0.08,"frame":"stock","h":0.24,"look":"steel","name":"SlingLoop","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.9,"y":-0.72,"z":0}]},"hornet":{"frames":{"grip":{"tilt":-0.25,"x":-0.85,"y":-0.72},"mag":{"tilt":0.05,"x":0.95,"y":-0.4},"stock":{"tilt":0,"x":-2.35,"y":0.2}},"hold":{"x":1.3,"y":-0.1,"z":-1.3},"id":"hornet","parts":[{"d":0.5,"h":0.6,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.42,"z":0},{"d":0.12,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.72,"z":0.17},{"d":0.12,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3,"x":0.3,"y":0.72,"z":-0.17},{"d":0.46,"h":0.32,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.4,"x":0.1,"y":-0.02,"z":0},{"d":0.04,"h":0.24,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.8,"x":0.6,"y":0.48,"z":0.255},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0.55,"y":0.47,"z":0.262},{"d":0.5,"h":0.12,"look":"steel","name":"Charger","pitch":0,"roll":0,"shape":"box","w":0.28,"x":-0.95,"y":0.55,"z":-0.2},{"d":0.12,"h":0.16,"look":"gun","name":"ChargerKnob","pitch":0,"roll":0,"shape":"box","w":0.2,"x":-0.95,"y":0.55,"z":-0.5},{"d":0.54,"h":0.58,"look":"poly","name":"Handguard","pitch":0,"roll":0,"shape":"box","w":1.8,"x":2.7,"y":0.36,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent1","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.15,"y":0.4,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent2","pitch":0,"roll":0,"shape":"box","w":0.3,"x":2.7,"y":0.4,"z":0},{"d":0.56,"h":0.12,"look":"dark","name":"HgVent3","pitch":0,"roll":0,"shape":"box","w":0.3,"x":3.25,"y":0.4,"z":0},{"d":0.3,"h":0.1,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":4.2,"x":1.2,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.6,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.4,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.8,"y":0.78,"z":0},{"d":0.32,"h":0.11,"look":"dark","name":"RailSlot5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.2,"y":0.78,"z":0},{"d":0.26,"h":0.26,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":0.6,"x":3.85,"y":0.4,"z":0},{"d":0.36,"h":0.36,"look":"gun","name":"Comp","pitch":0,"roll":0,"shape":"cylX","w":0.7,"x":4.4,"y":0.4,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut1","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.22,"y":0.58,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut2","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.4,"y":0.58,"z":0},{"d":0.2,"h":0.04,"look":"dark","name":"CompCut3","pitch":0,"roll":0,"shape":"box","w":0.08,"x":4.58,"y":0.58,"z":0},{"d":0.18,"h":0.18,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":4.76,"y":0.4,"z":0},{"d":0.36,"h":0.12,"look":"gun","name":"DotBase","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":0.89,"z":0},{"d":0.44,"h":0.5,"look":"gun","name":"DotBody","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.18,"z":0},{"d":0.06,"h":0.1,"look":"gun","name":"DotHoodL","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.38,"z":-0.19},{"d":0.06,"h":0.1,"look":"gun","name":"DotHoodR","pitch":0,"roll":0,"shape":"box","w":0.8,"x":-0.1,"y":1.38,"z":0.19},{"d":0.34,"h":0.32,"look":"glass","name":"DotLensF","pitch":0,"roll":0,"shape":"box","w":0.04,"x":0.31,"y":1.2,"z":0},{"d":0.34,"h":0.32,"look":"glass","name":"DotLensB","pitch":0,"roll":0,"shape":"box","w":0.04,"x":-0.51,"y":1.2,"z":0},{"d":0.05,"h":0.05,"look":"coral","name":"DotReticle","pitch":0,"roll":0,"shape":"box","w":0.03,"x":0.25,"y":1.2,"z":0},{"d":0.2,"h":0.2,"look":"steel","name":"DotKnob","pitch":0,"roll":0,"shape":"cylZ","w":0.12,"x":-0.1,"y":1.18,"z":0.26},{"d":0.04,"h":0.1,"look":"steel","name":"Selector","pitch":0,"roll":0.5,"shape":"box","w":0.18,"x":-0.55,"y":0.1,"z":0.24},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0,"y":0,"z":-0.235},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.16,"y":0,"z":-0.235},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.32,"y":0,"z":-0.235},{"d":0.42,"h":0.95,"look":"poly","name":"Foregrip","pitch":0,"roll":0,"shape":"box","w":0.42,"x":2.7,"y":-0.4,"z":0},{"d":0.44,"h":0.06,"look":"dark","name":"ForegripRing1","pitch":0,"roll":0,"shape":"box","w":0.44,"x":2.7,"y":-0.3,"z":0},{"d":0.44,"h":0.06,"look":"dark","name":"ForegripRing2","pitch":0,"roll":0,"shape":"box","w":0.44,"x":2.7,"y":-0.55,"z":0},{"d":0.5,"h":0.1,"look":"poly","name":"ForegripCap","pitch":0,"roll":0,"shape":"box","w":0.5,"x":2.7,"y":-0.88,"z":0},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.9,"x":-0.1,"y":-0.56,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.33,"y":-0.36,"z":0},{"d":0.1,"h":0.3,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.18,"y":-0.36,"z":0},{"d":0.52,"frame":"mag","h":0.5,"look":"poly","name":"Magwell","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0.3,"z":0},{"d":0.36,"frame":"mag","h":1.7,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.55,"z":0},{"d":0.03,"frame":"mag","h":1.3,"look":"dark","name":"MagRibR","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0,"y":-0.55,"z":0.19},{"d":0.03,"frame":"mag","h":1.3,"look":"dark","name":"MagRibL","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0,"y":-0.55,"z":-0.19},{"d":0.44,"frame":"mag","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.54,"x":0,"y":-1.45,"z":0},{"d":0.46,"frame":"mag","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.38,"x":0,"y":-1.5,"z":0},{"d":0.46,"frame":"grip","h":1.3,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.235},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.235},{"d":0.5,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.68,"z":0},{"d":0.52,"frame":"stock","h":0.55,"look":"poly","name":"Hinge","pitch":0,"roll":0,"shape":"box","w":0.4,"x":1.2,"y":0,"z":0},{"d":0.12,"frame":"stock","h":0.12,"look":"steel","name":"RodTopR","pitch":0,"roll":0,"shape":"cylX","w":2.4,"x":0,"y":0.15,"z":0.18},{"d":0.12,"frame":"stock","h":0.12,"look":"steel","name":"RodTopL","pitch":0,"roll":0,"shape":"cylX","w":2.4,"x":0,"y":0.15,"z":-0.18},{"d":0.1,"frame":"stock","h":0.1,"look":"steel","name":"RodLowR","pitch":0,"roll":0.18,"shape":"box","w":2.3,"x":0,"y":-0.32,"z":0.18},{"d":0.1,"frame":"stock","h":0.1,"look":"steel","name":"RodLowL","pitch":0,"roll":0.18,"shape":"box","w":2.3,"x":0,"y":-0.32,"z":-0.18},{"d":0.52,"frame":"stock","h":1.1,"look":"rubber","name":"Butt","pitch":0,"roll":0,"shape":"box","w":0.2,"x":-1.25,"y":-0.15,"z":0},{"d":0.54,"frame":"stock","h":0.03,"look":"cyan","name":"ButtLine","pitch":0,"roll":0,"shape":"box","w":0.22,"x":-1.25,"y":0.3,"z":0}]},"longline":{"frames":{"grip":{"tilt":-0.3,"x":-0.95,"y":-0.72},"mag":{"tilt":0,"x":0.75,"y":-0.45},"stock":{"tilt":0,"x":-2.75,"y":0.15}},"hold":{"x":1.3,"y":-0.1,"z":-2},"id":"longline","parts":[{"d":0.52,"h":0.62,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3,"x":0,"y":0.42,"z":0},{"d":0.13,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3,"x":0,"y":0.73,"z":0.18},{"d":0.13,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3,"x":0,"y":0.73,"z":-0.18},{"d":0.48,"h":0.34,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.4,"x":0,"y":0,"z":0},{"d":0.04,"h":0.24,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.8,"x":0.3,"y":0.5,"z":0.265},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.42,"x":0.3,"y":0.5,"z":0.272},{"d":0.1,"h":0.1,"look":"steel","name":"BoltArm","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":-0.6,"y":0.5,"z":0.45},{"d":0.22,"h":0.22,"look":"gun","name":"BoltKnob","pitch":0,"roll":0,"shape":"ball","w":0.22,"x":-0.6,"y":0.5,"z":0.72},{"d":0.56,"h":0.6,"look":"tan","name":"Handguard","pitch":0,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.38,"z":0},{"d":0.12,"h":0.1,"look":"tan","name":"HgBevelR","pitch":0.8,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.66,"z":0.2},{"d":0.12,"h":0.1,"look":"tan","name":"HgBevelL","pitch":-0.8,"roll":0,"shape":"box","w":4.4,"x":3.7,"y":0.66,"z":-0.2},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok1","pitch":0,"roll":0,"shape":"box","w":0.4,"x":2.2,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok2","pitch":0,"roll":0,"shape":"box","w":0.4,"x":2.8,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok3","pitch":0,"roll":0,"shape":"box","w":0.4,"x":3.4,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok4","pitch":0,"roll":0,"shape":"box","w":0.4,"x":4,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok5","pitch":0,"roll":0,"shape":"box","w":0.4,"x":4.6,"y":0.32,"z":0},{"d":0.58,"h":0.14,"look":"dark","name":"Mlok6","pitch":0,"roll":0,"shape":"box","w":0.4,"x":5.2,"y":0.32,"z":0},{"d":0.58,"h":0.03,"look":"cyan","name":"HgLine","pitch":0,"roll":0,"shape":"box","w":1.2,"x":5.1,"y":0.12,"z":0},{"d":0.32,"h":0.08,"look":"poly","name":"Rail","pitch":0,"roll":0,"shape":"box","w":6.4,"x":2.4,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":2.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.1,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":3.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot4","pitch":0,"roll":0,"shape":"box","w":0.07,"x":4.1,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot5","pitch":0,"roll":0,"shape":"box","w":0.07,"x":4.6,"y":0.78,"z":0},{"d":0.34,"h":0.09,"look":"dark","name":"RailSlot6","pitch":0,"roll":0,"shape":"box","w":0.07,"x":5.1,"y":0.78,"z":0},{"d":0.3,"h":0.3,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":2.6,"x":7.2,"y":0.42,"z":0},{"d":0.06,"h":0.03,"look":"dark","name":"Flute1","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.57,"z":0},{"d":0.03,"h":0.06,"look":"dark","name":"Flute2","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.42,"z":0.15},{"d":0.03,"h":0.06,"look":"dark","name":"Flute3","pitch":0,"roll":0,"shape":"box","w":2.2,"x":7.1,"y":0.42,"z":-0.15},{"d":0.44,"h":0.42,"look":"gun","name":"Brake","pitch":0,"roll":0,"shape":"box","w":0.7,"x":8.8,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.62,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.8,"y":0.42,"z":0},{"d":0.46,"h":0.22,"look":"dark","name":"BrakePort3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":8.98,"y":0.42,"z":0},{"d":0.18,"h":0.18,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":9.16,"y":0.42,"z":0},{"d":0.5,"h":0.5,"look":"gun","name":"RingRear","pitch":0,"roll":0,"shape":"box","w":0.3,"x":-0.3,"y":1.02,"z":0},{"d":0.5,"h":0.5,"look":"gun","name":"RingFront","pitch":0,"roll":0,"shape":"box","w":0.3,"x":1.3,"y":1.02,"z":0},{"d":0.42,"h":0.42,"look":"poly","name":"ScopeTube","pitch":0,"roll":0,"shape":"cylX","w":3.2,"x":0.5,"y":1.32,"z":0},{"d":0.58,"h":0.58,"look":"poly","name":"ScopeTaper","pitch":0,"roll":0,"shape":"cylX","w":0.4,"x":2.25,"y":1.32,"z":0},{"d":0.72,"h":0.72,"look":"poly","name":"ScopeBell","pitch":0,"roll":0,"shape":"cylX","w":0.9,"x":2.85,"y":1.32,"z":0},{"d":0.74,"h":0.74,"look":"cyan","name":"ScopeRing","pitch":0,"roll":0,"shape":"cylX","w":0.06,"x":2.5,"y":1.32,"z":0},{"d":0.62,"h":0.62,"look":"glass","name":"ScopeLensF","pitch":0,"roll":0,"shape":"cylX","w":0.03,"x":3.31,"y":1.32,"z":0},{"d":0.6,"h":0.6,"look":"poly","name":"Ocular","pitch":0,"roll":0,"shape":"cylX","w":0.8,"x":-1.45,"y":1.32,"z":0},{"d":0.5,"h":0.5,"look":"glass","name":"ScopeLensB","pitch":0,"roll":0,"shape":"cylX","w":0.03,"x":-1.86,"y":1.32,"z":0},{"d":0.36,"h":0.36,"look":"gun","name":"TurretTop","pitch":0,"roll":0,"shape":"cylY","w":0.34,"x":0.5,"y":1.62,"z":0},{"d":0.38,"h":0.38,"look":"cyan","name":"TurretCap","pitch":0,"roll":0,"shape":"cylY","w":0.04,"x":0.5,"y":1.8,"z":0},{"d":0.32,"h":0.32,"look":"gun","name":"TurretSide","pitch":0,"roll":0,"shape":"cylZ","w":0.3,"x":0.5,"y":1.32,"z":0.34},{"d":0.4,"h":0.2,"look":"gun","name":"BipodMount","pitch":0,"roll":0,"shape":"box","w":0.4,"x":5.6,"y":0.02,"z":0},{"d":0.1,"h":0.1,"look":"steel","name":"BipodLegR","pitch":0,"roll":0,"shape":"box","w":2,"x":4.6,"y":0,"z":0.14},{"d":0.1,"h":0.1,"look":"steel","name":"BipodLegL","pitch":0,"roll":0,"shape":"box","w":2,"x":4.6,"y":0,"z":-0.14},{"d":0.16,"h":0.16,"look":"rubber","name":"BipodFootR","pitch":0,"roll":0,"shape":"box","w":0.12,"x":3.6,"y":0,"z":0.14},{"d":0.16,"h":0.16,"look":"rubber","name":"BipodFootL","pitch":0,"roll":0,"shape":"box","w":0.12,"x":3.6,"y":0,"z":-0.14},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.4,"y":0,"z":-0.245},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.24,"y":0,"z":-0.245},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.08,"y":0,"z":-0.245},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":-0.2,"y":-0.6,"z":0},{"d":0.34,"h":0.4,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.25,"y":-0.4,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.25,"y":-0.4,"z":0},{"d":0.42,"frame":"mag","h":0.7,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.44,"frame":"mag","h":0.5,"look":"dark","name":"MagRib","pitch":0,"roll":0,"shape":"box","w":0.4,"x":0,"y":0,"z":0},{"d":0.48,"frame":"mag","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.38,"z":0},{"d":0.5,"frame":"mag","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.5,"x":0,"y":-0.44,"z":0},{"d":0.48,"frame":"grip","h":1.3,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.62,"x":0,"y":0,"z":0},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":0.245},{"d":0.04,"frame":"grip","h":0.9,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.44,"x":0,"y":-0.05,"z":-0.245},{"d":0.52,"frame":"grip","h":0.1,"look":"poly","name":"GripCap","pitch":0,"roll":0,"shape":"box","w":0.7,"x":0,"y":-0.68,"z":0},{"d":0.36,"frame":"stock","h":0.36,"look":"poly","name":"Buffer","pitch":0,"roll":0,"shape":"cylX","w":1,"x":1,"y":-0.05,"z":0},{"d":0.5,"frame":"stock","h":0.55,"look":"tan","name":"StockBody","pitch":0,"roll":0,"shape":"box","w":2.4,"x":-0.2,"y":0.05,"z":0},{"d":0.46,"frame":"stock","h":0.25,"look":"poly","name":"Cheek","pitch":0,"roll":0,"shape":"box","w":1.4,"x":-0.3,"y":0.44,"z":0},{"d":0.48,"frame":"stock","h":0.03,"look":"cyan","name":"CheekLine","pitch":0,"roll":0,"shape":"box","w":1,"x":-0.3,"y":0.57,"z":0},{"d":0.42,"frame":"stock","h":0.3,"look":"tan","name":"StockSpine","pitch":0,"roll":0,"shape":"box","w":2,"x":-0.4,"y":-0.5,"z":0},{"d":0.42,"frame":"stock","h":0.5,"look":"tan","name":"StockPost","pitch":0,"roll":0,"shape":"box","w":0.3,"x":0.45,"y":-0.3,"z":0},{"d":0.55,"frame":"stock","h":1.25,"look":"rubber","name":"Pad","pitch":0,"roll":0,"shape":"box","w":0.25,"x":-1.42,"y":-0.2,"z":0},{"d":0.16,"frame":"stock","h":0.16,"look":"steel","name":"Monopod","pitch":0,"roll":0,"shape":"cylY","w":0.35,"x":-0.9,"y":-0.8,"z":0}]},"volt_pistol":{"frames":{"grip":{"tilt":-0.2,"x":-1.05,"y":-0.78}},"hold":{"x":1.3,"y":-0.1,"z":-1},"id":"volt_pistol","parts":[{"d":0.5,"h":0.58,"look":"gun","name":"Slide","pitch":0,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.42,"z":0},{"d":0.12,"h":0.1,"look":"gun","name":"BevelR","pitch":0.8,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.72,"z":0.17},{"d":0.12,"h":0.1,"look":"gun","name":"BevelL","pitch":-0.8,"roll":0,"shape":"box","w":3.3,"x":0.15,"y":0.72,"z":-0.17},{"d":0.4,"h":0.42,"look":"gun","name":"FrontBlock","pitch":0,"roll":0,"shape":"box","w":0.5,"x":1.95,"y":0.35,"z":0},{"d":0.3,"h":0.3,"look":"steel","name":"Barrel","pitch":0,"roll":0,"shape":"cylX","w":0.4,"x":2.2,"y":0.38,"z":0},{"d":0.17,"h":0.17,"look":"dark","name":"Bore","pitch":0,"roll":0,"shape":"cylX","w":0.05,"x":2.41,"y":0.38,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.25,"y":0.76,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.47,"y":0.76,"z":0},{"d":0.2,"h":0.05,"look":"dark","name":"Cut3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.69,"y":0.76,"z":0},{"d":0.03,"h":0.46,"look":"dark","name":"SerRearR","pitch":0,"roll":0,"shape":"box","w":0.7,"x":-1.15,"y":0.42,"z":0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerRearL","pitch":0,"roll":0,"shape":"box","w":0.7,"x":-1.15,"y":0.42,"z":-0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerFrontR","pitch":0,"roll":0,"shape":"box","w":0.45,"x":1.15,"y":0.42,"z":0.255},{"d":0.03,"h":0.46,"look":"dark","name":"SerFrontL","pitch":0,"roll":0,"shape":"box","w":0.45,"x":1.15,"y":0.42,"z":-0.255},{"d":0.04,"h":0.22,"look":"dark","name":"Port","pitch":0,"roll":0,"shape":"box","w":0.78,"x":0.35,"y":0.55,"z":0.255},{"d":0.03,"h":0.1,"look":"brass","name":"Brass","pitch":0,"roll":0,"shape":"box","w":0.32,"x":0.3,"y":0.52,"z":0.262},{"d":0.04,"h":0.22,"look":"steel","name":"Extractor","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.85,"y":0.64,"z":0.262},{"d":0.3,"h":0.3,"look":"gun","name":"Striker","pitch":0,"roll":0.35,"shape":"box","w":0.18,"x":-1.68,"y":0.5,"z":0},{"d":0.4,"h":0.06,"look":"gun","name":"RearSightBase","pitch":0,"roll":0,"shape":"box","w":0.28,"x":-1.45,"y":0.76,"z":0},{"d":0.1,"h":0.17,"look":"gun","name":"RearSightR","pitch":0,"roll":0,"shape":"box","w":0.12,"x":-1.45,"y":0.86,"z":0.12},{"d":0.1,"h":0.17,"look":"gun","name":"RearSightL","pitch":0,"roll":0,"shape":"box","w":0.12,"x":-1.45,"y":0.86,"z":-0.12},{"d":0.08,"h":0.2,"look":"gun","name":"FrontSight","pitch":0,"roll":0,"shape":"box","w":0.1,"x":1.68,"y":0.84,"z":0},{"d":0.1,"h":0.05,"look":"cyan","name":"FrontDot","pitch":0,"roll":0,"shape":"box","w":0.05,"x":1.68,"y":0.92,"z":0},{"d":0.44,"h":0.28,"look":"poly","name":"Frame","pitch":0,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0,"z":0},{"d":0.07,"h":0.07,"look":"poly","name":"FrameBevelR","pitch":0.7,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0.13,"z":0.2},{"d":0.07,"h":0.07,"look":"poly","name":"FrameBevelL","pitch":-0.7,"roll":0,"shape":"box","w":2.6,"x":-0.05,"y":0.13,"z":-0.2},{"d":0.44,"h":0.1,"look":"poly","name":"Beavertail","pitch":0,"roll":-0.15,"shape":"box","w":0.5,"x":-1.4,"y":0.14,"z":0},{"d":0.46,"h":0.22,"look":"poly","name":"RailBlock","pitch":0,"roll":0,"shape":"box","w":0.9,"x":1.4,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot1","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.1,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot2","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.35,"y":-0.02,"z":0},{"d":0.48,"h":0.2,"look":"dark","name":"Slot3","pitch":0,"roll":0,"shape":"box","w":0.07,"x":1.6,"y":-0.02,"z":0},{"d":0.34,"h":0.24,"look":"gun","name":"Light","pitch":0,"roll":0,"shape":"box","w":0.62,"x":1.56,"y":-0.28,"z":0},{"d":0.13,"h":0.13,"look":"cyan","name":"LightLens","pitch":0,"roll":0,"shape":"box","w":0.05,"x":1.88,"y":-0.28,"z":0},{"d":0.04,"h":0.04,"look":"coral","name":"LightDot","pitch":0,"roll":0,"shape":"box","w":0.04,"x":1.88,"y":-0.17,"z":0},{"d":0.14,"h":0.14,"look":"steel","name":"TakedownPin","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.75,"y":-0.05,"z":0},{"d":0.06,"h":0.08,"look":"steel","name":"SlideStop","pitch":0,"roll":0,"shape":"box","w":0.55,"x":-0.2,"y":0.17,"z":0.255},{"d":0.13,"h":0.13,"look":"steel","name":"SpringGuide","pitch":0,"roll":0,"shape":"cylX","w":0.55,"x":2.1,"y":0.12,"z":0},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar1","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.3,"y":0.04,"z":-0.222},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar2","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.14,"y":0.04,"z":-0.222},{"d":0.02,"h":0.04,"look":"cyan","name":"CellBar3","pitch":0,"roll":0,"shape":"box","w":0.1,"x":0.02,"y":0.04,"z":-0.222},{"d":0.34,"h":0.07,"look":"poly","name":"GuardBottom","pitch":0,"roll":0,"shape":"box","w":0.95,"x":0.05,"y":-0.58,"z":0},{"d":0.34,"h":0.42,"look":"poly","name":"GuardFront","pitch":0,"roll":0,"shape":"box","w":0.07,"x":0.5,"y":-0.36,"z":0},{"d":0.1,"h":0.32,"look":"steel","name":"Trigger","pitch":0,"roll":0.25,"shape":"box","w":0.07,"x":-0.02,"y":-0.38,"z":0},{"d":0.46,"frame":"grip","h":1.5,"look":"poly","name":"Grip","pitch":0,"roll":0,"shape":"box","w":0.72,"x":0,"y":0,"z":0},{"d":0.4,"frame":"grip","h":1.3,"look":"poly","name":"Backstrap","pitch":0,"roll":0,"shape":"box","w":0.14,"x":-0.42,"y":-0.05,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove1","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":0.3,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove2","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":0,"z":0},{"d":0.18,"frame":"grip","h":0.18,"look":"dark","name":"Groove3","pitch":0,"roll":0,"shape":"cylZ","w":0.5,"x":0.37,"y":-0.3,"z":0},{"d":0.04,"frame":"grip","h":1,"look":"dark","name":"TextureR","pitch":0,"roll":0,"shape":"box","w":0.5,"x":-0.02,"y":-0.05,"z":0.235},{"d":0.04,"frame":"grip","h":1,"look":"dark","name":"TextureL","pitch":0,"roll":0,"shape":"box","w":0.5,"x":-0.02,"y":-0.05,"z":-0.235},{"d":0.54,"frame":"grip","h":0.1,"look":"poly","name":"Magwell","pitch":0,"roll":0,"shape":"box","w":0.86,"x":0,"y":-0.76,"z":0},{"d":0.08,"frame":"grip","h":0.22,"look":"steel","name":"Lanyard","pitch":0,"roll":0,"shape":"box","w":0.1,"x":-0.4,"y":-0.78,"z":0},{"d":0.38,"frame":"grip","h":0.95,"look":"blued","name":"Magazine","pitch":0,"roll":0,"shape":"box","w":0.52,"x":0.03,"y":-0.55,"z":0},{"d":0.4,"frame":"grip","h":0.5,"look":"brass","name":"Rounds","pitch":0,"roll":0,"shape":"box","w":0.22,"x":0.03,"y":-0.55,"z":0},{"d":0.46,"frame":"grip","h":0.1,"look":"poly","name":"Floorplate","pitch":0,"roll":0,"shape":"box","w":0.6,"x":0.03,"y":-1.05,"z":0},{"d":0.48,"frame":"grip","h":0.03,"look":"cyan","name":"FloorLine","pitch":0,"roll":0,"shape":"box","w":0.4,"x":0.03,"y":-1.1,"z":0}]}};
+// Proposed numbers (the same ones that go into Config.Weapons).
+const GUNS = [
+  { id: "breaker", letter: "A", name: "Breaker", kind: "Pump shotgun",
+    role: "<b>Close up king.</b> One blast of 6 pellets. Huge hit up close, weak far away.",
+    dmg: 42, dmgNote: "6×7", rate: 1.1, mag: 6, range: 26 },
+  { id: "hornet", letter: "B", name: "Hornet", kind: "SMG",
+    role: "<b>Bullet hose.</b> Tiny hits, super fast. Great on the run.",
+    dmg: 5, rate: 11, mag: 30, range: 45 },
+  { id: "longline", letter: "C", name: "Longline", kind: "Marksman rifle",
+    role: "<b>Long shot.</b> Slow, big hits. 3 hits win a fight.",
+    dmg: 34, rate: 0.8, mag: 5, range: 80 },
+  { id: "volt_pistol", letter: "", name: "Volt Pistol", kind: "You have it",
+    role: "<b>Your gun now.</b> Even all round. For size next to the new ones.",
+    dmg: 10, rate: 5, mag: 12, range: 70 },
+];
+const PISTOL = GUNS[3];
+const MAX = { dmg: 45, dps: 60, mag: 30, range: 100 };
+
+const LOOK = {
+  poly:   { c: 0x303640, m: 0.05, r: 0.55 },
+  gun:    { c: 0x5a6676, m: 0.85, r: 0.38 },
+  steel:  { c: 0x9aa5b3, m: 0.95, r: 0.25 },
+  blued:  { c: 0x68778f, m: 0.85, r: 0.32 },
+  brass:  { c: 0xc9a24a, m: 0.95, r: 0.3 },
+  dark:   { c: 0x07090c, m: 0.0, r: 0.8 },
+  hull:   { c: 0xc9454d, m: 0.0, r: 0.45 },
+  rubber: { c: 0x15171b, m: 0.0, r: 0.9 },
+  tan:    { c: 0x8c7656, m: 0.0, r: 0.6 },
+  glass:  { c: 0x36d9e8, m: 0.2, r: 0.05, glass: true },
+  cyan:   { c: 0x36d9e8, neon: true },
+  coral:  { c: 0xf15b64, neon: true },
+};
+
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 4 / 3, 0.1, 200);
+
+// Studio-style reflections: a dim room with a few bright softboxes.
+(function env() {
+  const pm = new THREE.PMREMGenerator(renderer);
+  const room = new THREE.Scene();
+  room.add(new THREE.Mesh(new THREE.BoxGeometry(40, 20, 40), new THREE.MeshBasicMaterial({ color: 0x0a1220, side: THREE.BackSide })));
+  const soft = (w, h, x, y, z, ry, rx, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0); room.add(m);
+  };
+  soft(16, 3, 0, 9.5, 0, 0, Math.PI / 2, 3);
+  soft(10, 6, -19.5, 3, 0, Math.PI / 2, 0, 3);
+  soft(10, 6, 19.5, 3, 4, -Math.PI / 2, 0, 2);
+  soft(14, 2, 0, 2, -19.5, 0, 0, 1.5);
+  scene.environment = pm.fromScene(room, 0.03).texture;
+})();
+
+scene.add(new THREE.HemisphereLight(0xbfdcff, 0x1a2230, 0.35));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(4, 10, 6); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
+key.shadow.bias = -0.0005; key.shadow.radius = 4;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x36d9e8, 0.7); rim.position.set(-6, 4, -8); scene.add(rim);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.35 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const mats = {};
+function mat(name) {
+  if (mats[name]) return mats[name];
+  const L = LOOK[name] || LOOK.poly;
+  let m;
+  const col = new THREE.Color(L.c).convertSRGBToLinear();
+  if (L.neon) m = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 2.2, roughness: 0.4 });
+  else if (L.glass) m = new THREE.MeshPhysicalMaterial({ color: col, metalness: L.m, roughness: L.r, transparent: true, opacity: 0.55, clearcoat: 1 });
+  else m = new THREE.MeshStandardMaterial({ color: col, metalness: L.m, roughness: L.r, envMapIntensity: 0.9 });
+  return (mats[name] = m);
+}
+
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+const cylGeo = new THREE.CylinderGeometry(0.5, 0.5, 1, 40);
+const ballGeo = new THREE.SphereGeometry(0.5, 32, 20);
+
+// Same maths as GunModels.luau: frame (offset + roll by tilt) * part offset * Angles(pitch, 0, roll) * shape turn.
+function build(model) {
+  const g = new THREE.Group();
+  for (const p of model.parts) {
+    let mesh;
+    if (p.shape === "box") { mesh = new THREE.Mesh(boxGeo, mat(p.look)); mesh.scale.set(p.w, p.h, p.d); }
+    else if (p.shape === "ball") { mesh = new THREE.Mesh(ballGeo, mat(p.look)); mesh.scale.set(p.w, p.w, p.w); }
+    else { mesh = new THREE.Mesh(cylGeo, mat(p.look)); mesh.scale.set(p.h, p.w, p.h); }
+    const shape = new THREE.Matrix4();
+    if (p.shape === "cylX") shape.makeRotationZ(Math.PI / 2);
+    else if (p.shape === "cylZ") shape.makeRotationX(Math.PI / 2);
+    const local = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z)
+      .multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(p.pitch, 0, p.roll, "XYZ")))
+      .multiply(shape);
+    const fr = p.frame && model.frames[p.frame];
+    const base = fr ? new THREE.Matrix4().makeTranslation(fr.x, fr.y, 0).multiply(new THREE.Matrix4().makeRotationZ(fr.tilt)) : new THREE.Matrix4();
+    const m = base.multiply(local).multiply(new THREE.Matrix4().makeScale(mesh.scale.x, mesh.scale.y, mesh.scale.z));
+    mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    g.add(mesh);
+  }
+  // centre it and sit it above the floor
+  const bb = new THREE.Box3().setFromObject(g);
+  const c = bb.getCenter(new THREE.Vector3());
+  const holder = new THREE.Group();
+  g.position.set(-c.x, -bb.min.y + 0.6, -c.z);
+  holder.add(g);
+  holder.userData.size = bb.getSize(new THREE.Vector3());
+  return holder;
+}
+
+const built = {};
+let current = null, yaw = -0.55, pitch = 0.28, zoom = 1, idle = 0;
+function show(i) {
+  const gun = GUNS[i];
+  if (current) scene.remove(current);
+  current = built[gun.id] || (built[gun.id] = build(DATA[gun.id]));
+  scene.add(current);
+  document.getElementById("tag").innerHTML = `${gun.name}<small>${gun.letter ? gun.letter + " · " : ""}${gun.kind.toUpperCase()}</small>`;
+  document.querySelectorAll(".pick").forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+  document.getElementById("role").innerHTML = gun.role;
+  const dps = Math.round(gun.dmg * gun.rate);
+  const rows = [
+    ["Hit", gun.dmgNote || gun.dmg, gun.dmg / MAX.dmg, PISTOL.dmg / MAX.dmg],
+    ["Shots / sec", gun.rate, gun.rate / 11, PISTOL.rate / 11],
+    ["Damage / sec", dps, dps / MAX.dps, (PISTOL.dmg * PISTOL.rate) / MAX.dps],
+    ["Magazine", gun.mag, gun.mag / MAX.mag, PISTOL.mag / MAX.mag],
+    ["Range", gun.range, gun.range / MAX.range, PISTOL.range / MAX.range],
+  ];
+  document.getElementById("stats").innerHTML = rows.map(([k, v, f, p]) =>
+    `<div class="row"><span class="k">${k}</span><span class="bar"><i style="width:${Math.min(100, f * 100)}%"></i><u style="left:${Math.min(99, p * 100)}%"></u></span><span class="v">${v}</span></div>`).join("");
+}
+
+const picks = document.getElementById("picks");
+GUNS.forEach((g, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "pick"; b.id = "pick-" + g.id;
+  b.innerHTML = `${g.letter ? g.letter + " " : ""}${g.name}<span>${g.kind}</span>`;
+  b.addEventListener("click", () => { show(i); idle = 0; });
+  picks.appendChild(b);
+});
+
+// drag / pinch
+let drag = null, pinch = null;
+const pts = new Map();
+canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); drag = [e.clientX, e.clientY]; idle = 0; });
+canvas.addEventListener("pointermove", (e) => {
+  if (!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pts.size === 2) {
+    const [a, b] = [...pts.values()];
+    const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinch) zoom = Math.min(2.6, Math.max(0.6, zoom * (d / pinch)));
+    pinch = d; return;
+  }
+  if (drag) {
+    yaw += (e.clientX - drag[0]) * 0.008;
+    pitch = Math.min(1.2, Math.max(-0.2, pitch + (e.clientY - drag[1]) * 0.006));
+    drag = [e.clientX, e.clientY];
+  }
+});
+const up = (e) => { pts.delete(e.pointerId); pinch = null; drag = pts.size ? [...pts.values()][0] : null; };
+canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoom = Math.min(2.6, Math.max(0.6, zoom * (e.deltaY < 0 ? 1.1 : 0.9))); }, { passive: false });
+document.getElementById("zin").onclick = () => { zoom = Math.min(2.6, zoom * 1.25); };
+document.getElementById("zout").onclick = () => { zoom = Math.max(0.6, zoom / 1.25); };
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let last = performance.now();
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  idle += dt;
+  if (!still && idle > 2.5) yaw += dt * 0.35;
+  const size = current ? current.userData.size : new THREE.Vector3(6, 2, 1);
+  const fit = Math.max(size.x / camera.aspect, size.y * 1.6) * 1.25 / (2 * Math.tan((camera.fov * Math.PI) / 360));
+  const dist = fit / zoom;
+  const cy = size.y * 0.5 + 0.6;
+  camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, cy + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
+  camera.lookAt(0, cy, 0);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+resize(); show(0); requestAnimationFrame(frame);
+</script>

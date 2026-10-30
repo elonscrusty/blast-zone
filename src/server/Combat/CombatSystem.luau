@@ -13,6 +13,7 @@ local Participants = require(script.Parent.Parent.Core.Participants)
 local Combatants = require("./Combatants")
 local Firing = require("./Firing")
 local Shells = require("./Shells")
+local WeaponDrops = require("./WeaponDrops")
 
 local CombatSystem = {}
 CombatSystem.order = 60
@@ -117,6 +118,7 @@ function CombatSystem.start()
 	Damage:bind(Combatants.applyDamage)
 	Damage.Damaged:connect(onDamaged)
 	Damage.Eliminated:connect(onEliminated)
+	WeaponDrops.start()
 
 	Net.onRequest(
 		"FireRequest",
@@ -150,6 +152,7 @@ function CombatSystem.start()
 	end)
 	MatchContext.MatchStarted:connect(function()
 		Shells.clear()
+		WeaponDrops.clear()
 	end)
 	MatchContext.PhaseChanged:connect(function(phase: string)
 		-- Late shots and unfinished reloads must not change the finished match.
@@ -161,12 +164,14 @@ function CombatSystem.start()
 		end
 		if not MatchPhase.hasParticipants(phase) then
 			Shells.clear()
+			WeaponDrops.clear()
 		end
 	end)
 
 	RunService.Heartbeat:Connect(function(dt: number)
 		Firing.step()
 		Shells.step(dt)
+		WeaponDrops.step()
 	end)
 end
 
