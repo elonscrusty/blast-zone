@@ -107,6 +107,7 @@ Config.Squads = {
 	maxModeIdLength = 8,
 	stateRepeatSeconds = 1, -- the running vote count reaches everyone at most this often
 	colorCount = 8, -- team colours the client cycles through (look only)
+}
 
 -- Piece G24 (video 3 gap 24). Game modes. Players vote for a mode in the lobby like they vote for a map; the server
 -- counts, checks the voter's account level, and applies the winner's tuning right before the fight (Spawning),

@@ -228,6 +228,7 @@ local Defs: { Def } = {
 		"V11",
 		"SquadState",
 		"{ matchId, size, team?, mates: { { id, name, alive } } } (size 1 = solo, nothing to show)"
+	),
 
 	-- ===== G24 game modes =====
 	ask(
