@@ -717,6 +717,15 @@ Config.Daily = {
 	rewards = { easy = 20, medium = 35, hard = 50 },
 }
 
+-- Video 3 gap 18: the Scrap Shop. Looks only (slide trails and shot tracers), paid in Scrap, never Robux, never
+-- power. A few looks are always on sale and a few change each day (same for everyone, new at Config.Daily's reset).
+-- The list is in shared/Shop/ShopDefs. Prices are placeholders: carter tunes them after he plays.
+Config.Shop = {
+	prices = { common = 60, rare = 150, epic = 300 } :: { [string]: number },
+	-- One daily slot per entry: it takes a look of that rarity from the day's pool, never the same look twice.
+	dailySlots = { "common", "common", "rare", "epic" } :: { string },
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,
