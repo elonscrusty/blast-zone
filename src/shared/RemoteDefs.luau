@@ -207,9 +207,9 @@ local Defs: { Def } = {
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
 	),
 
-	-- ===== 44 big moments =====
+	-- ===== 46 big moments =====
 	tell(
-		"44",
+		"46",
 		"Moment",
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),

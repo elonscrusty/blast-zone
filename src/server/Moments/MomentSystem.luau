@@ -1,5 +1,5 @@
 --!strict
--- Piece 44 on the server: the zone moments ("circle closing", "sudden death") and the run level that
+-- piece 46 on the server: the zone moments ("circle closing", "sudden death") and the run level that
 -- every client shows on a name plate. Streak call-outs come from Combat/StreakSystem. Clients ask for nothing.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

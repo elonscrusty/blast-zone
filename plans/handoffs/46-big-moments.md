@@ -1,4 +1,4 @@
-# 44 Big moments (video 3 gaps 4, 5, 6: name plates, call-out banners, level-up burst)
+# 46 Big moments (video 3 gaps 4, 5, 6: name plates, call-out banners, level-up burst)
 - Done: every fighter has an always-on plate (name, level badge, health bar; dead or far away = hidden). Your own fighter gets a ring under the feet instead of a plate. Big banners for double kill, triple kill, killing spree, circle closing, sudden death. A burst (sparks, floor ring, rising arrow with the level) when a fighter's level goes up.
 - Server decides: `Combatants.mirror` puts `PlateName` and `Level` on each model; `MomentSystem` keeps `Level` fresh and sends `Moment` for the zone; `StreakSystem` sends `Moment` for streaks (replaces the old plain Notice). Streaks go to the player who earned them; a spree (5) goes to everyone. Clients ask for nothing.
 - Pure logic (Lune tests in `tests/moments.test.luau`): `shared/Moments/MomentRules` (words, order of importance, payload check), `BannerQueue` (one at a time, stronger takes the screen, stale news dropped), `PlateRules` (what a plate shows, level-up detection, ring height).

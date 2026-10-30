@@ -1,5 +1,5 @@
 --!strict
--- Big call-out banners (piece 44): DOUBLE KILL, KILLING SPREE, CIRCLE CLOSING, SUDDEN DEATH.
+-- Big call-out banners (piece 46): DOUBLE KILL, KILLING SPREE, CIRCLE CLOSING, SUDDEN DEATH.
 -- The server sends a `Moment`; MomentRules says what it says; BannerQueue keeps it to one at a time.
 -- This file only draws. The look is Ui/MomentStyles (colour roles from Ui/Tokens). Takes no taps.
 

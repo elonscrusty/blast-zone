@@ -1,5 +1,5 @@
 --!strict
--- Name plates over every fighter (piece 44). Pure: no Roblox. The server keeps Health, MaxHealth,
+-- Name plates over every fighter (piece 46). Pure: no Roblox. The server keeps Health, MaxHealth,
 -- Alive, Level and PlateName on each fighter's model; this turns those into what a plate shows.
 
 export type Attributes = {

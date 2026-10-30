@@ -1,5 +1,5 @@
 --!strict
--- Sends the big-moment call-outs (piece 44). Only the server decides a moment happened; the payload is
+-- Sends the big-moment call-outs (piece 46). Only the server decides a moment happened; the payload is
 -- checked with the same rules the client uses before it leaves, so a bug here cannot send junk.
 -- Streaks go to the player who earned them, and to everyone when the tier says so.
 

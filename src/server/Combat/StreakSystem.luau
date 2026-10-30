@@ -1,6 +1,6 @@
 --!strict
 -- Piece 36: small rewards for knockout streaks. Listens to eliminations, asks StreakRules what the
--- kill earned, then heals and/or boosts speed on the server. The call-out goes out as a Moment (piece 44);
+-- kill earned, then heals and/or boosts speed on the server. The call-out goes out as a Moment (piece 46);
 -- the big banner is drawn by Moments/MomentBannerSystem. Clients never ask for any of this.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

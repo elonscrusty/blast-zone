@@ -1,5 +1,5 @@
 --!strict
--- The look of the big moments (piece 44): name plates, the ring under your feet, the banner and the
+-- The look of the big moments (piece 46): name plates, the ring under your feet, the banner and the
 -- level-up burst. Three tries (A, B, C) so carter can pick; the ones not picked stay as skins.
 -- Colours are ROLES from Ui/Tokens, never hex, so a new skin from Claude Design restyles them too.
 -- Pure data so Lune can test it. Config.Moments.style says which one is drawn.

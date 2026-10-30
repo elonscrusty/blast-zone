@@ -1,5 +1,5 @@
 --!strict
--- Big-moment banners (piece 44). Pure: no Roblox, no clock. The server sends a small `Moment` payload
+-- Big-moment banners (piece 46). Pure: no Roblox, no clock. The server sends a small `Moment` payload
 -- when something worth shouting about happens; this file checks it and says what the banner says.
 -- The words and the order of importance live here. How a banner LOOKS is Ui/MomentStyles (Claude Design).
 

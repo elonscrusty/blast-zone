@@ -1,5 +1,5 @@
 --!strict
--- Piece 44: big moments. Banner words and order, the one-at-a-time queue, name plate view, level-up
+-- piece 46: big moments. Banner words and order, the one-at-a-time queue, name plate view, level-up
 -- detection, and that every look (A, B, C) only asks for colour roles that exist.
 local fs = require("@lune/fs")
 local Harness = require("./harness")

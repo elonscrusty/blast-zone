@@ -571,7 +571,7 @@ Config.Streaks = {
 	},
 }
 
--- Big moments (piece 44): banner call-outs, name plates over every fighter, level-up burst.
+-- Big moments (piece 46): banner call-outs, name plates over every fighter, level-up burst.
 -- Logic only; the looks come from Ui/MomentStyles (one of three, until Claude Design sends its own).
 Config.Moments = {
 	enabled = true,

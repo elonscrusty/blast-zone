@@ -99,7 +99,7 @@ function Combatants.mirror(id: string)
 	m:SetAttribute("MaxHealth", Config.Health.max)
 	m:SetAttribute("Alive", Participants:isAlive(id))
 	m:SetAttribute("WeaponId", c.primary) -- every client draws this gun in the fighter's hands
-	-- Name plates (piece 44): the name and run level every client shows over the head.
+	-- Name plates (piece 46): the name and run level every client shows over the head.
 	local p = Participants:get(id)
 	m:SetAttribute("PlateName", if p ~= nil then p.displayName else nil)
 	local xp = RunXp:get(id)

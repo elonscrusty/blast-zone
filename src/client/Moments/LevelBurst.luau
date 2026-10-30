@@ -1,5 +1,5 @@
 --!strict
--- The level-up celebration in the world (piece 44): sparks, a ring that opens on the floor and an arrow
+-- The level-up celebration in the world (piece 46): sparks, a ring that opens on the floor and an arrow
 -- that rises over the fighter's head. Cosmetic only; the server already decided the level.
 -- Capped by Config.Plates.burst.maxAtOnce, and smaller when "reduce flashes" is on.
 

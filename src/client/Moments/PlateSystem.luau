@@ -1,5 +1,5 @@
 --!strict
--- Name plates (piece 44): a name, a level badge and a health bar over every other fighter, always on
+-- Name plates (piece 46): a name, a level badge and a health bar over every other fighter, always on
 -- (while they are alive and close), and a ring under your own feet. Reads only the attributes the server
 -- keeps on each fighter's model (PlateName, Level, Health, MaxHealth, Alive). Also plays the level-up
 -- burst when a model's Level goes up. The look is Ui/MomentStyles; PlateRules decides what shows.

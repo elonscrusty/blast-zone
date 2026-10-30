@@ -2,7 +2,7 @@
 -- A small health bar over every fighter's head, read from the Health / MaxHealth attributes the server
 -- keeps on the character. Your own bar belongs to the HUD, so it is skipped. An enemy bar shows for a
 -- few seconds after their health changes, so the arena is not full of bars.
--- With Config.Plates.enabled (piece 44) the always-on name plate in Moments/PlateSystem replaces that
+-- With Config.Plates.enabled (piece 46) the always-on name plate in Moments/PlateSystem replaces that
 -- bar; this file then only keeps the id -> model list and tells the plates when a fighter appears.
 
 local Players = game:GetService("Players")
