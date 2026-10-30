@@ -130,6 +130,8 @@ export type UpgradeOption = {
 	icon: string,
 	stacks: number, -- how many the player already has
 	maxStacks: number,
+	change: string?, -- the real numbers this pick changes, e.g. "Reload 1.2s → 0.96s" (piece 08)
+	kind: string?, -- "weapon" or "move": picks the card accent (piece 08)
 }
 
 export type UpgradeOffer = {
