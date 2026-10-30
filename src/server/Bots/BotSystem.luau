@@ -348,7 +348,7 @@ end
 
 local function autoFillTick()
 	local result = BotRoster.updateFill(tuning, fill, os.clock(), isWaiting(), humanCount())
-	if result.action == "countdown" then
+	if result.action == "countdown" and result.alone then
 		showBanner(result.secondsLeft)
 	else
 		showBanner(nil)

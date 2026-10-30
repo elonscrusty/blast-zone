@@ -18,6 +18,7 @@ export type Tuning = {
 	aloneBelow: number, -- fewer people than this counts as "alone"
 	autoFillDelay: number, -- seconds waiting alone before bots join
 	fillTo: number, -- bots top the match up to this many participants
+	topUpDelay: number, -- seconds a part-full lobby waits before bots top it up
 	maxParticipants: number,
 	tapGap: number, -- seconds between "Add bots now" taps
 	-- thinking
@@ -94,6 +95,7 @@ function BotTuning.from(config: ConfigLike): Tuning
 
 		aloneBelow = config.Match.minToStart,
 		autoFillDelay = 10,
+		topUpDelay = 8,
 		fillTo = math.min(config.Match.targetParticipants, config.Match.maxParticipants),
 		maxParticipants = config.Match.maxParticipants,
 		tapGap = 2,
