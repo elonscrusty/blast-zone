@@ -93,3 +93,23 @@ Harness.test("formatTime", function()
 	Harness.eq(ResultsText.formatTime(125.4), "2:05")
 	Harness.eq(ResultsText.formatTime(-4), "0:00")
 end)
+
+Harness.test("defeat line: who got you, or what, and your place; ignores other players", function()
+	local byPlayer = {
+		victimId = "p1",
+		killerId = "b2",
+		killerName = "[BOT] Volt",
+		cause = "bullet",
+		placement = 3,
+	}
+	Harness.eq(ResultsText.defeatLine(byPlayer, "p1"), "by [BOT] Volt · 3rd place")
+	Harness.eq(ResultsText.defeatLine(byPlayer, "p9"), nil)
+	Harness.eq(
+		ResultsText.defeatLine({ victimId = "p1", cause = "zone", placement = 2 }, "p1"),
+		"by the closing zone · 2nd place"
+	)
+	Harness.eq(
+		ResultsText.defeatLine({ victimId = "p1", cause = "weird", placement = 5 }, "p1"),
+		"by the arena · 5th place"
+	)
+end)

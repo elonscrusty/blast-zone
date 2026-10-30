@@ -164,6 +164,14 @@ function MatchController.new(deps: Deps): Controller
 		end
 		note = newNote
 		publish()
+		-- Short banners for the phases people should notice (Zone warnings are the HUD's, not ours).
+		if new == phases.Countdown then
+			world.announce("banner", "LAST ONE STANDING")
+		elseif new == phases.Active then
+			world.announce("banner", "GO!")
+		elseif new == phases.FinalPressure then
+			world.announce("banner", "FINAL PRESSURE")
+		end
 		return true
 	end
 

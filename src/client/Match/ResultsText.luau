@@ -97,4 +97,23 @@ function ResultsText.describe(payload: any): Words
 	return words
 end
 
+local CAUSES: { [string]: string } = {
+	zone = "the closing zone",
+	blast = "a blast",
+	bullet = "a shot",
+}
+
+-- The line under ELIMINATED, from an Eliminated payload about the local player.
+function ResultsText.defeatLine(payload: any, localId: string): string?
+	if payload.victimId ~= localId then
+		return nil
+	end
+	local place = ResultsText.ordinal(payload.placement)
+	if payload.killerId and payload.killerName then
+		return `by {payload.killerName} · {place} place`
+	end
+	local cause = CAUSES[payload.cause] or "the arena"
+	return `by {cause} · {place} place`
+end
+
 return ResultsText
