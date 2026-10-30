@@ -2,7 +2,7 @@
 -- Shows the player's own lifetime stats (piece 24). Only shows: the server counts and saves.
 --   * Lobby card (top left, Street Sticker look): WINS / ELIMS / GAMES. Visible in Waiting and Countdown.
 --   * The YOU row on the 3D top-wins board (this client's copy only).
---   * Hides the board for this client during a fight and spins the podium trophies.
+--   * Hides the board (and its lights) for this client during a fight; spins trophies if the look has any (A).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -140,6 +140,8 @@ local function showBoard(visible: boolean)
 		if inst:IsA("BasePart") then
 			inst.LocalTransparencyModifier = if visible then 0 else 1
 		elseif inst:IsA("SurfaceGui") then
+			inst.Enabled = visible
+		elseif inst:IsA("Light") then
 			inst.Enabled = visible
 		end
 	end
