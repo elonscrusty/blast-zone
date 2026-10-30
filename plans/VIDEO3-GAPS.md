@@ -38,7 +38,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | 8 | **Expandable big map** | Tap the minimap to open a full-screen map. | Small round map only. | S |
 | 9 | **Bigger fights** | 25 fighters, about 4 minutes. | Built for about 8 (bots fill). Needs map size, spawn, perf and bot checks. | L |
 | 10 | **Heavier weapon effects** (props now burst; the big blast look still follows Power Picks) | Purple tracer for the big weapon, huge blast flash, rocks and sparks when something is hit. | Shots, hit sparks, shake exist. No big-blast look yet. | S-M (follows Power Picks) |
-| 11 | **Squads (duo/trio)** | Title says team mode; party chat invites "anyone up for a duo?". | Solo only. carter's brief is solo, so this is optional. | L |
+| 11 | **Squads (duo/trio)** | Title says team mode; party chat invites "anyone up for a duo?". | **Done (V11)**: Solo/Duo/Trio vote, squads seated, no friendly fire, squad wins. See handoff V11. | L |
 
 ## Gaps: heroes and gear
 
