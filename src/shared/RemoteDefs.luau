@@ -261,6 +261,14 @@ local Defs: { Def } = {
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
 	),
 
+	-- ===== airdrop (video 3 gap #3) =====
+	ask("AD", "AirdropRequest", {}, 1, 2), -- a client that joined late asks for the drops that are running
+	tell(
+		"AD",
+		"AirdropState",
+		"AirdropState (event: 'incoming'|'opened'|'clear', dropId, matchId, pos, startedAt, landsAt, opensAt, serverNow, look)"
+	),
+
 	-- ===== 46 big moments =====
 	tell(
 		"46",

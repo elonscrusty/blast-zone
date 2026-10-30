@@ -333,4 +333,19 @@ export type WeatherState = {
 	serverNow: number,
 }
 
+-- Airdrop: one falling crate and its beam. Times are server time (Workspace:GetServerTimeNow()).
+-- "incoming" = it is on its way (or landed and shut), "opened" = the loot is on the street,
+-- "clear" = every drop is gone (match over); a "clear" has no other fields but serverNow.
+export type AirdropState = {
+	event: string,
+	dropId: string?,
+	matchId: MatchId?,
+	pos: Vector3?,
+	startedAt: number?,
+	landsAt: number?,
+	opensAt: number?,
+	serverNow: number,
+	look: string?,
+}
+
 return {}
