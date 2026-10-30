@@ -14,6 +14,7 @@ local FriendInvite = require(Shared.FriendInvite)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local player = Players.LocalPlayer
 local FONT = Enum.Font.FredokaOne
@@ -57,7 +58,7 @@ function InviteButtonSystem.start()
 	gui.Name = "InviteFriends"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 39 -- under the Settings panel (40), so an open panel covers it
+	gui.DisplayOrder = UiLayers.MatchFlow -- lobby layer, so an open panel (Modal) covers it
 	gui.Enabled = false
 
 	-- Bottom middle, under PLAY and SETTINGS: easy for a thumb, clear of the joystick and fire button.

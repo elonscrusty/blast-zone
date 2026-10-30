@@ -2,7 +2,7 @@
 -- After a match: one strip under the Big Banner results that shows the coins just earned, the progress bar to the
 -- next unlock, and one button (UNLOCK when you can afford the next tier, otherwise TRACK). Also a TRACK button in
 -- the lobby. The server pays once per match (ClaimResults); this screen only shows the answer (ProgressState).
--- Sits in the free band under the results column (y 77-96%), above the results screen (DisplayOrder 55 > 50).
+-- Sits in the free band under the results column (y 77-96%), above the results screen (UiLayers.MatchFlowExtra > MatchFlow).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +16,7 @@ local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local TrackPanel = require(script.Parent.TrackPanel)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local Ui = require(script.Parent.ProgressUi)
 
 local ClaimUiSystem = {}
@@ -28,7 +29,7 @@ function ClaimUiSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "CoinClaim"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 55
+	gui.DisplayOrder = UiLayers.MatchFlowExtra
 	gui.IgnoreGuiInset = true
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 

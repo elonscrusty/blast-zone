@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local IntroSteps = require(script.Parent.IntroSteps)
 
 local IntroView = {}
@@ -196,7 +197,7 @@ local function build()
 	g.ResetOnSpawn = false
 	g.IgnoreGuiInset = true
 	g.ScreenInsets = Enum.ScreenInsets.None
-	g.DisplayOrder = 55 -- above the match screens, so PLAY cannot be pressed under it
+	g.DisplayOrder = UiLayers.Onboarding -- above the match screens, so PLAY cannot be pressed under it
 	g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	g.Enabled = false
 

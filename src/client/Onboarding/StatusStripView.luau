@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local DataNotice = require(script.Parent.DataNotice)
 
 local StatusStripView = {}
@@ -23,7 +24,7 @@ local function build()
 	g.ResetOnSpawn = false
 	g.IgnoreGuiInset = true
 	g.ScreenInsets = Enum.ScreenInsets.None
-	g.DisplayOrder = 52 -- above the lobby buttons so the message is seen, below the intro
+	g.DisplayOrder = UiLayers.Toast -- above the lobby buttons and panels so the message is seen
 	g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	g.Enabled = false
 
