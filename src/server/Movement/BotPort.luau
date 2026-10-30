@@ -2,11 +2,6 @@
 -- The door bots use (piece 09 looks for Server/Movement/BotPort). A bot slides with exactly the
 -- same checks, distance, cooldown and stats as a player.
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
-
 local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MovementSetup = require("./MovementSetup")
 local SlideService = require("./SlideService")
@@ -30,7 +25,5 @@ function BotPort.registerBotBody(id: string, model: Model)
 		MovementSetup.apply(humanoid, EffectiveStats:get(id).moveSpeed)
 	end
 end
-
-assert(Config.Movement.walkSpeed > 0)
 
 return BotPort
