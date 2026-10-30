@@ -195,6 +195,27 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Video 3 gap 18: the Scrap Shop. Coins and what is owned/worn come from ProgressState; this is only what is on sale.
+export type ShopOfferView = {
+	id: string,
+	slot: string, -- "trail" | "tracer"
+	name: string,
+	color: string, -- hex
+	rarity: string, -- "common" | "rare" | "epic"
+	price: number,
+	always: boolean, -- true = on sale every day
+}
+
+export type ShopState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	day: number,
+	secondsLeft: number, -- until the shop changes
+	offers: { ShopOfferView },
+	isNew: boolean, -- the player has not opened today's shop yet
+	bought: string?, -- set once, right after a buy worked (the item id)
+	denied: string?, -- why the last buy was refused
+}
+
 -- Video 3 gap #16: a player's own power rating (server to client only). Parts are in PowerRules.PART_IDS order.
 export type PowerPayload = {
 	power: number,
@@ -220,6 +241,41 @@ export type DailyState = {
 	secondsLeft: number, -- until the next day starts
 	challenges: { DailyChallengeView },
 	justPaid: string?, -- set once, right after a challenge paid out
+}
+
+-- Video 3 gap 20: the season pass for one player (server to client only).
+export type SeasonRewardView = {
+	kind: string, -- "scrap" | "item"
+	amount: number?, -- scrap
+	itemId: string?, -- item
+	name: string?, -- item name
+}
+
+export type SeasonTierView = {
+	tier: number,
+	xpNeeded: number, -- season XP total this tier opens at
+	free: SeasonRewardView,
+	paid: SeasonRewardView,
+	freeState: string, -- "locked" | "ready" | "claimed"
+	paidState: string, -- "locked" | "needPass" | "ready" | "claimed"
+}
+
+export type SeasonClaimView = { tier: number, row: string, reward: SeasonRewardView }
+
+export type SeasonState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	season: number,
+	secondsLeft: number, -- until the season turns
+	xp: number,
+	tier: number, -- tiers reached
+	maxTier: number,
+	intoTier: number, -- XP toward the next tier
+	forNext: number?, -- XP the next tier needs (nil at the top)
+	hasPass: boolean, -- the paid row is open
+	forSale: boolean, -- the paid row can be bought (false until carter gives the product number)
+	tiers: { SeasonTierView },
+	justClaimed: { SeasonClaimView }?, -- set once, right after claims were paid
+	denied: string?, -- why the last claim was refused
 }
 
 -- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
