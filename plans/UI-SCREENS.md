@@ -54,6 +54,7 @@ results add-ons 55, full panels 100, first-time intro 110, toasts 120.
 | 27 | **Invite button** | lobby and while watching | normal, pressed (opens Roblox's own invite box) | INVITE | (Roblox SocialService) | MatchFlow slot | Social/InviteButtonSystem (#22) |
 | 28 | **Zone screen tint** | screen edges when outside the zone | off, outside (red edges + arrow) | arrow to safety | ZoneState | ZoneTint | Zone/ZoneHud (main) |
 | 29 | **Toasts** | top centre, no taps | short message 2 s | "Saved", notices | Notice | Toast | (new, uses Components) |
+| 30 | **Bench** (parts, merge, plans) | full panel from the lobby slot `bench` (BENCH button, green dot when new parts dropped) | loading, empty (`Play a match to get parts`), parts list with MERGE 3 (only when you have 3), plans list with needs `Rough Bolt 1/2` and BUILD (bright when ready) or BUILT, refused message, test mode | each pile `Tuned Plate x4`, each plan name + body slot, `PLANS 2/6`, drop odds `Each part: Bolt 33% / Plate 33% / Coil 33%` | BenchRequest, BenchMerge, BenchBuild, BenchState | Modal | Bench/BenchUiSystem (V14) |
 
 Not on screen (no look needed): audio (#13), anti-cheat reset lock (#23), performance (#14).
 

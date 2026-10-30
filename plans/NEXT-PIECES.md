@@ -61,3 +61,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 45 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |
 | 46 | Heroes (video 3 gaps #12 + stat cards of #13): 5 original heroes, own health + own two guns, free HERO loadout slot, server-decided, gun stat cards (logic only; looks from Claude Design) | 9, 20 | PR up | heroes PR |
 | V16 | Power rating (video 3 gap #16): one show-off number from level, looks owned, wins, eliminations, matches; each part capped; server-made, sent to its owner only; logic only, no screen | 20 | PR up | power rating PR |
+| V14 | Bench (video 3 gap #14): parts drop after a match, 3 of a part merge into 1 of the next tier (4 tiers), plans (blueprints) build gear looks from parts; server decides, saved with the profile; BENCH panel logic only | 20 | PR up | bench PR |
