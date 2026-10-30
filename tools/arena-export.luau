@@ -14,6 +14,9 @@ local specs = {
 	require("../src/server/Arena/LayoutA"),
 	require("../src/server/Arena/LayoutB"),
 	require("../src/server/Arena/LayoutC"),
+	require("../src/server/Arena/LayoutD"),
+	require("../src/server/Arena/LayoutE"),
+	require("../src/server/Arena/LayoutF"),
 }
 
 local result = {}

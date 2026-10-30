@@ -162,6 +162,13 @@ function Combatants.all(): { Combatant }
 	return out
 end
 
+-- Runs `fn` on every record without building a list (Firing.step does this every frame).
+function Combatants.forEach(fn: (Combatant) -> ())
+	for _, c in byId do
+		fn(c)
+	end
+end
+
 -- The damage door's backend: health math only. The door checks match, phase and double eliminations.
 function Combatants.applyDamage(req: any): any
 	local c = Combatants.ensure(req.targetId)

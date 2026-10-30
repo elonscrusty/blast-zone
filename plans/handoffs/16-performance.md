@@ -1,0 +1,11 @@
+# 16 Performance and stability
+- Audited every system for leaked records, per-frame work, per-frame broadcasts and unbounded instances. Most things were already capped (shells 12, orbs 60, fx 40, damage numbers 12) and broadcasts are event-driven, not per frame.
+- Leak fixed: `ParticipantRegistry:clear()` now fires `Removed` for each person. Before, health, XP, slide and weapon records of finished matches stayed in memory. `Core/RunXp` now forgets on `Removed` (new `RunXp:forget`).
+- Leak fixed: `Net` warn-throttle table grew for every player forever; now cleared on leave. Client `PickupFxSystem` kept dead containers (ids include the match number, so it grew every match); now pruned.
+- Remotes: `Remotes.get` caches the RemoteEvent. Every shot, hit and orb used to walk the tree twice.
+- Server per frame: `Shells.step` reads bodies and positions once per frame (not once per shell); `ShotCaster` reuses one RaycastParams; `Firing.step` no longer builds a list or reads stats for fighters who are not reloading; `Registry:aliveCount` does not build a list.
+- Bots: step at 30 Hz, one orb scan shared by all bots, `collectNearby` scans once. `PickupSystem.clear` sends no message per orb at match end.
+- Client: `HealthBars` watched every part ever added to Workspace; now only fighter models at the top level.
+- Tests: `tests/stability.test.luau` (12 tests): 40 matches in a row with every book empty after reset, late shot, reset with effects live, last two together, leave in countdown / spawn / last human, repeated reward. Changing `Registry.clear` back makes 6 of them fail.
+- Manual: `plans/PERF-CHECKLIST.md` (60 FPS PC, 30 FPS phone, 8 fighters, dense fire, many orbs, 5 matches).
+- Not changed: `ShotFx` is one broadcast per pellet (pellets = 1 today). If an upgrade adds many pellets, batch them. Nothing run in Studio.

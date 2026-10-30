@@ -15,6 +15,8 @@ local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
 local ResultsText = require(script.Parent.ResultsText)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local ResultsClientSystem = {}
 ResultsClientSystem.order = 210
@@ -199,7 +201,7 @@ function ResultsClientSystem.start()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "MatchFlow"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 50
+	gui.DisplayOrder = UiLayers.MatchFlow
 	gui.IgnoreGuiInset = true
 	gui.Parent = player:WaitForChild("PlayerGui")
 
@@ -211,15 +213,20 @@ function ResultsClientSystem.start()
 	lobby.Visible = false
 	lobby.Parent = gui
 
+	-- Every lobby button sits in a LobbyMenu slot, so later buttons (TRACK, looks...) never collide.
+	LobbyMenu.attach(lobby)
+	local function fill(slot: Frame, name: string)
+		slot.AnchorPoint = Vector2.zero
+		slot.Position = UDim2.fromScale(0, 0)
+		slot.Size = UDim2.fromScale(1, 1)
+		slot.Parent = LobbyMenu.slot(name)
+	end
+
 	local playSlot, playButton = sticker(lobby, "Play", "PLAY", true)
-	playSlot.AnchorPoint = Vector2.new(0.5, 0.5)
-	playSlot.Position = UDim2.fromScale(0.5, 0.6)
-	playSlot.Size = UDim2.fromScale(0.3, 0.17)
+	fill(playSlot, "play")
 
 	local settingsSlot, settingsButton = sticker(lobby, "Settings", "SETTINGS", false)
-	settingsSlot.AnchorPoint = Vector2.new(0.5, 0.5)
-	settingsSlot.Position = UDim2.fromScale(0.5, 0.74)
-	settingsSlot.Size = UDim2.fromScale(0.2, 0.11)
+	fill(settingsSlot, "settings")
 	settingsButton.Activated:Connect(function()
 		local folder = script.Parent.Parent:FindFirstChild("Settings")
 		local module = if folder then folder:FindFirstChild("SettingsPanel") else nil
@@ -232,9 +239,8 @@ function ResultsClientSystem.start()
 	end)
 
 	local status = text(lobby, "Status", "", 26)
-	status.AnchorPoint = Vector2.new(0.5, 0.5)
-	status.Position = UDim2.fromScale(0.5, 0.47)
-	status.Size = UDim2.fromScale(0.7, 0.07)
+	status.Size = UDim2.fromScale(1, 1)
+	status.Parent = LobbyMenu.slot("status")
 	outline(status, 0.6)
 
 	local countdown = text(gui, "Countdown", "", 120)
@@ -256,8 +262,8 @@ function ResultsClientSystem.start()
 	local feed = Instance.new("Frame")
 	feed.Name = "KillFeed"
 	feed.AnchorPoint = Vector2.new(0.5, 0)
-	feed.Position = UDim2.fromScale(0.5, 0.22)
-	feed.Size = UDim2.fromScale(0.5, 0.15)
+	feed.Position = UDim2.fromScale(0.5, 0.215)
+	feed.Size = UDim2.fromScale(0.5, 0.11) -- ends above the player at screen centre (y 33%)
 	feed.BackgroundTransparency = 1
 	feed.Parent = gui
 	local feedLayout = Instance.new("UIListLayout")
@@ -528,6 +534,17 @@ function ResultsClientSystem.start()
 		setStatus(nil)
 		refresh()
 	end)
+
+	-- Piece 26: a friend who joined you gets queued by the server, so PLAY reads READY for them too.
+	local function friendQueued()
+		if player:GetAttribute("QueuedByFriend") == true and not queued then
+			queued = true
+			setStatus(nil)
+			refresh()
+		end
+	end
+	player:GetAttributeChangedSignal("QueuedByFriend"):Connect(friendQueued)
+	friendQueued()
 
 	replay.Activated:Connect(function()
 		if queued then

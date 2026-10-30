@@ -9,10 +9,16 @@ export type Tuning = {
 	sightRange: number,
 	reactionTime: number,
 	aimErrorDegrees: number,
+	-- calm start (BotWarmup): values at the very start of the fight
+	warmupSeconds: number,
+	warmupSightRange: number,
+	warmupReactionTime: number,
+	warmupAimErrorDegrees: number,
 	-- auto-fill
 	aloneBelow: number, -- fewer people than this counts as "alone"
 	autoFillDelay: number, -- seconds waiting alone before bots join
 	fillTo: number, -- bots top the match up to this many participants
+	topUpDelay: number, -- seconds a part-full lobby waits before bots top it up
 	maxParticipants: number,
 	tapGap: number, -- seconds between "Add bots now" taps
 	-- thinking
@@ -32,6 +38,31 @@ export type Tuning = {
 	stuckCheck: number,
 	stuckDistance: number,
 	sidestepTime: number,
+	-- difficulty tier (piece 35); forTier() fills these in for one bot
+	tierName: string,
+	coverSkill: number, -- 0..1 chance it ducks behind cover when it must reload or is hurt
+	seekGuns: boolean,
+	zoneExtra: number, -- extra studs it keeps from the zone wall
+	tiers: { [string]: Tier },
+	tierCycle: { string },
+	-- cover and guns
+	coverProbe: number, -- first look-around distance for a spot the enemy cannot see
+	coverHold: number, -- most seconds it stays behind one cover spot
+	coverRetry: number, -- seconds before it looks for cover again after giving up
+	coverReached: number,
+	zoneLookahead: number, -- extra margin while the zone is closing
+	zoneSlideDistance: number, -- slides toward the zone when this far outside it
+	gunSeekRange: number, -- walks to a found gun this close
+	gunGrabRange: number, -- asks for the swap this close (less than the prompt distance)
+}
+
+export type Tier = {
+	sightScale: number,
+	reactionScale: number,
+	aimErrorScale: number,
+	coverSkill: number,
+	seekGuns: boolean,
+	zoneExtra: number,
 }
 
 local BotTuning = {}
@@ -54,6 +85,14 @@ export type ConfigLike = {
 		reactionSeconds: number,
 		aimErrorDegrees: number,
 		hiddenStatAdvantage: boolean,
+		warmup: {
+			seconds: number,
+			sightRange: number,
+			reactionSeconds: number,
+			aimErrorDegrees: number,
+		}?,
+		tiers: { [string]: Tier }?,
+		tierCycle: { string }?,
 	},
 	Match: {
 		minToStart: number,
@@ -67,15 +106,34 @@ function BotTuning.from(config: ConfigLike): Tuning
 		config.Bots.hiddenStatAdvantage == false,
 		"Config.Bots.hiddenStatAdvantage must stay false: bots use player rules"
 	)
+	local warmup = config.Bots.warmup
+	local normalTier: Tier = { -- used when the config has no tiers (older tests)
+		sightScale = 1,
+		reactionScale = 1,
+		aimErrorScale = 1,
+		coverSkill = 0.7,
+		seekGuns = true,
+		zoneExtra = 4,
+	}
+	local tiers: { [string]: Tier } = config.Bots.tiers or { normal = normalTier }
+	local normal = tiers.normal or normalTier
+	local cycle = config.Bots.tierCycle or { "normal" }
 	return {
 		labelPrefix = config.Bots.labelPrefix,
 		names = config.Bots.names,
 		sightRange = config.Bots.sightRange,
 		reactionTime = config.Bots.reactionSeconds,
 		aimErrorDegrees = config.Bots.aimErrorDegrees,
+		warmupSeconds = if warmup then warmup.seconds else 0,
+		warmupSightRange = if warmup then warmup.sightRange else config.Bots.sightRange,
+		warmupReactionTime = if warmup then warmup.reactionSeconds else config.Bots.reactionSeconds,
+		warmupAimErrorDegrees = if warmup
+			then warmup.aimErrorDegrees
+			else config.Bots.aimErrorDegrees,
 
 		aloneBelow = config.Match.minToStart,
 		autoFillDelay = 10,
+		topUpDelay = 8,
 		fillTo = math.min(config.Match.targetParticipants, config.Match.maxParticipants),
 		maxParticipants = config.Match.maxParticipants,
 		tapGap = 2,
@@ -96,7 +154,52 @@ function BotTuning.from(config: ConfigLike): Tuning
 		stuckCheck = 1,
 		stuckDistance = 3,
 		sidestepTime = 0.6,
+
+		tierName = "normal",
+		coverSkill = normal.coverSkill,
+		seekGuns = normal.seekGuns,
+		zoneExtra = normal.zoneExtra,
+		tiers = tiers,
+		tierCycle = cycle,
+		coverProbe = 7,
+		coverHold = 3,
+		coverRetry = 2,
+		coverReached = 1.5,
+		zoneLookahead = 8,
+		zoneSlideDistance = 12,
+		gunSeekRange = 45,
+		gunGrabRange = 5, -- the swap prompt works from 7 studs
 	}
+end
+
+-- Which tier bot `id` plays ("b3" is the third bot). Same bot number, same tier, every match.
+function BotTuning.tierOf(tuning: Tuning, id: string): string
+	local n = tonumber(string.match(id, "%d+")) or 1
+	local cycle = tuning.tierCycle
+	local name = cycle[(n - 1) % #cycle + 1]
+	if tuning.tiers[name] then
+		return name
+	end
+	return "normal"
+end
+
+-- A copy of `tuning` for one tier. Only the full-strength sight, reaction and aim move; the calm
+-- start numbers stay put, so every tier starts a match equally gentle (carter's spawn rule).
+function BotTuning.forTier(tuning: Tuning, tierName: string): Tuning
+	local tier = tuning.tiers[tierName]
+	if not tier then
+		return tuning
+	end
+	local out = table.clone(tuning)
+	out.tierName = tierName
+	out.sightRange = math.max(tuning.sightRange * tier.sightScale, tuning.warmupSightRange)
+	out.reactionTime = math.min(tuning.reactionTime * tier.reactionScale, tuning.warmupReactionTime)
+	out.aimErrorDegrees =
+		math.min(tuning.aimErrorDegrees * tier.aimErrorScale, tuning.warmupAimErrorDegrees)
+	out.coverSkill = tier.coverSkill
+	out.seekGuns = tier.seekGuns
+	out.zoneExtra = tier.zoneExtra
+	return out
 end
 
 return BotTuning

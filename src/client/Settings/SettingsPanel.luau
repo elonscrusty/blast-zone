@@ -6,6 +6,8 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local Controls = require(script.Parent.Parent.Controls.Controls)
 local Layout = require(script.Parent.Parent.Hud.Layout)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
@@ -14,8 +16,8 @@ local SettingsModel = require(script.Parent.SettingsModel)
 
 local SettingsPanel = {}
 
-local PANEL: Layout.Rect = { x = 120, y = 34, w = 540, h = 292 }
-local ROW_H = 44
+local PANEL: Layout.Rect = { x = 100, y = 14, w = 580, h = 332 }
+local ROW_H = 46
 
 local gui: ScreenGui
 local dimButton: TextButton
@@ -30,11 +32,20 @@ local function setOpen(open: boolean)
 	dimButton.Visible = open
 	if open then
 		Controls.reset()
+		ModalGate.opened("settings", function()
+			setOpen(false)
+		end)
+	else
+		ModalGate.closed("settings")
 	end
 end
 
 function SettingsPanel.toggle()
 	setOpen(not isOpen)
+end
+
+function SettingsPanel.isOpen(): boolean
+	return isOpen
 end
 
 local function makeSlider(parent: Frame, def: SettingsModel.Def)
@@ -53,6 +64,22 @@ local function makeSlider(parent: Frame, def: SettingsModel.Def)
 	stroke.Color = UiKit.color(look.outline)
 	stroke.Parent = track
 	UiKit.styleStroke(stroke, root, 0.6)
+
+	-- Invisible stand-in so a gamepad can land on the slider (UiFocusSystem adjusts it with the
+	-- left stick or the shoulders). It lets touches pass through, so finger dragging is unchanged.
+	local pad = Instance.new("TextButton")
+	pad.Name = "SliderHit"
+	pad.Text = ""
+	pad.Active = false
+	pad.Selectable = true
+	pad.AutoButtonColor = false
+	pad.BackgroundTransparency = 1
+	pad.BorderSizePixel = 0
+	pad.AnchorPoint = Vector2.new(0.5, 0.5)
+	pad.Position = UDim2.fromScale(0.5, 0.5)
+	pad.Size = UDim2.fromScale(1.06, 2)
+	pad:SetAttribute("SliderKey", def.key)
+	pad.Parent = track
 
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
@@ -177,7 +204,7 @@ local function build()
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.ScreenInsets = Enum.ScreenInsets.None
-	gui.DisplayOrder = 40
+	gui.DisplayOrder = UiLayers.Modal -- over the lobby buttons (MatchFlow) so they cannot show through
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	-- Dim layer behind the panel; tapping it closes the settings.
@@ -250,7 +277,7 @@ local function build()
 		frame.Name = def.key
 		frame.BackgroundTransparency = 1
 		frame.Size = UDim2.fromScale(0.44, ROW_H / PANEL.h)
-		frame.Position = UDim2.fromScale(0.04 + col * 0.48, 0.2 + row * (ROW_H + 8) / PANEL.h)
+		frame.Position = UDim2.fromScale(0.04 + col * 0.48, 0.17 + row * (ROW_H + 6) / PANEL.h)
 		frame.Parent = panel
 		UiKit.label(frame, "Label", {
 			text = def.label,

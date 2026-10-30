@@ -29,6 +29,7 @@ function RunXp.new(cfg: XpConfig): any
 		_state = {} :: { [string]: State },
 		Changed = Signal.new(), -- (participantId, State)
 		LevelUp = Signal.new(), -- (participantId, newLevel, pendingOffers)
+		Awarded = Signal.new(), -- (participantId, reason): after an award counted (daily challenges listen)
 	}, RunXp)
 end
 
@@ -54,6 +55,11 @@ end
 
 function RunXp.resetAll(self: any)
 	self._state = {}
+end
+
+-- A participant left the match for good: their ledger entry goes with them.
+function RunXp.forget(self: any, id: string)
+	self._state[id] = nil
 end
 
 function RunXp.get(self: any, id: string): State?
@@ -88,6 +94,7 @@ function RunXp.award(self: any, id: string, reason: string): State?
 		self.LevelUp:fire(id, st.level, st.pendingOffers)
 	end
 	self.Changed:fire(id, st)
+	self.Awarded:fire(id, reason)
 	return st
 end
 

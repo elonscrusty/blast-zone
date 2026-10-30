@@ -97,16 +97,18 @@ local function step()
 	end
 	lastRoot = root
 
+	local spectating = type(player:GetAttribute("SpectateTargetId")) == "string"
+	local pitch, baseDistance = CameraRules.viewFor(cfg, Config.Spectate, spectating)
 	local view = camera.ViewportSize
 	local aspect = if view.Y > 0 then view.X / view.Y else 1.78
 	local distance = CameraRules.distanceForAspect(
-		cfg.distance,
+		baseDistance,
 		aspect,
 		cfg.narrowAspect,
 		cfg.narrowAspectFloor,
 		cfg.maxWiden
 	)
-	local dx, dy, dz = CameraRules.offset(cfg.pitchDegrees, distance, cfg.yawDegrees)
+	local dx, dy, dz = CameraRules.offset(pitch, distance, cfg.yawDegrees)
 	local at = focus :: Vector3
 	camera.CFrame = CFrame.lookAt(at + Vector3.new(dx, dy, dz), at)
 	camera.Focus = CFrame.new(at) -- roof fading reads the focus to know which building we are in
