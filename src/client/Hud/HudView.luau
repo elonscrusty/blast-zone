@@ -10,6 +10,7 @@ local HudModel = require("./HudModel")
 local Layout = require("./Layout")
 local MinimapMath = require("./MinimapMath")
 local UiKit = require("./UiKit")
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local HudView = {}
 HudView.__index = HudView
@@ -109,7 +110,7 @@ function HudView.new(opts: Options): HudView
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Hud"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 10
+	gui.DisplayOrder = UiLayers.Hud
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Enabled = false
