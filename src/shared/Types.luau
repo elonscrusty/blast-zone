@@ -228,6 +228,14 @@ export type RankedPayload = {
 	last: RankedLast?,
 }
 
+-- Video 3 gap #16: a player's own power rating (server to client only). Parts are in PowerRules.PART_IDS order.
+export type PowerPayload = {
+	power: number,
+	band: number,
+	toNext: number?,
+	parts: { { id: string, count: number, points: number, capped: boolean } },
+}
+
 -- Piece 25: today's daily challenges for one player (server to client only).
 export type DailyChallengeView = {
 	id: string,

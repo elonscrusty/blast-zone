@@ -134,6 +134,11 @@ local Defs: { Def } = {
 	ask("07", "PickupRequest", { { name = "pickupId", kind = "id" } }, 10, 10),
 	tell("07", "ContainerHit", "{ containerId, health, max }"),
 	tell("07", "ContainerBroken", "{ containerId, pos }"),
+	tell(
+		"43",
+		"PropBroken",
+		"{ id, kind, x, y, z, sx, sy, sz, color } (a street prop burst; y is the middle)"
+	),
 	tell("07", "PickupSpawned", "{ pickupId, kind, pos }"),
 	tell("07", "PickupRemoved", "{ pickupId, collectedBy?, pos }"),
 	tell("07", "XpState", "XpState"),
@@ -227,6 +232,10 @@ local Defs: { Def } = {
 	ask("G23", "RankedRequest", {}, 1, 2), -- a client that just started asks for its standing
 	ask("G23", "RankedToggle", { { name = "on", kind = "boolean" } }, 2, 3), -- the ranked switch
 	tell("G23", "RankedUpdate", "RankedPayload"),
+
+	-- ===== V16 power rating (video 3 gap #16) =====
+	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating
+	tell("V16", "PowerUpdate", "PowerPayload"),
 }
 
 local Index: { [string]: Def } = {}
