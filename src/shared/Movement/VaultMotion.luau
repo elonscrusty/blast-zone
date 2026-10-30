@@ -46,7 +46,7 @@ function VaultMotion.run(
 	velocity.Name = "VaultVelocity"
 	velocity.Attachment0 = attachment
 	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
-	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector3
+	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	velocity.VectorVelocity = Vector3.zero
 	velocity.MaxForce = MAX_FORCE
 	velocity.Parent = root
