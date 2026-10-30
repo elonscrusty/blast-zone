@@ -23,9 +23,10 @@ local focus: Vector3? = nil
 local lastRoot: BasePart? = nil
 local lastFrame = os.clock()
 
+-- Only bodies still in the world: a respawn leaves the old character (and a stale CameraSubject) behind.
 local function rootOfModel(model: Instance?): BasePart?
 	local root = if model then model:FindFirstChild("HumanoidRootPart") else nil
-	if root and root:IsA("BasePart") then
+	if root and root:IsA("BasePart") and root:IsDescendantOf(workspace) then
 		return root
 	end
 	return nil
@@ -62,7 +63,7 @@ local function subjectRoot(camera: Camera): BasePart?
 		if root then
 			return root
 		end
-	elseif subject and subject:IsA("BasePart") then
+	elseif subject and subject:IsA("BasePart") and subject:IsDescendantOf(workspace) then
 		return subject
 	end
 	return rootOfModel(player.Character)
@@ -108,6 +109,7 @@ local function step()
 	local dx, dy, dz = CameraRules.offset(cfg.pitchDegrees, distance, cfg.yawDegrees)
 	local at = focus :: Vector3
 	camera.CFrame = CFrame.lookAt(at + Vector3.new(dx, dy, dz), at)
+	camera.Focus = CFrame.new(at) -- roof fading reads the focus to know which building we are in
 end
 
 function CameraSystem.start()
