@@ -5,10 +5,12 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
+local GearBook = require(script.Parent.Parent.Core.GearBook)
 local HeroBook = require(script.Parent.Parent.Core.HeroBook)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local RunXp = require(script.Parent.Parent.Core.RunXp)
+local Squads = require(script.Parent.Parent.Core.Squads)
 local HealthBook = require("./HealthBook")
 local WeaponState = require("./WeaponState")
 local Ballistics = require("./Ballistics")
@@ -132,7 +134,7 @@ function Combatants.ensure(id: string): Combatant?
 	if c ~= nil and c.matchId == p.matchId then
 		return c
 	end
-	-- The hero is read once, when the match starts, so nothing changes mid-fight.
+	-- The hero and the gear are read once, when the match starts, so nothing changes mid-fight.
 	local hero = HeroBook:of(id)
 	local primary = Heroes.primaryGun(hero)
 	local sheet = EffectiveStats:get(id)
@@ -152,7 +154,7 @@ function Combatants.ensure(id: string): Combatant?
 		fresh.weapons:lock()
 	end
 	byId[id] = fresh
-	book:add(id, Heroes.maxHealth(Config, hero))
+	book:add(id, Heroes.maxHealth(Config, hero) + GearBook:healthBonus(id))
 	Combatants.mirror(id)
 	Combatants.sendHealth(id)
 	return fresh
@@ -235,10 +237,15 @@ function Combatants.health(id: string): number?
 end
 
 -- Every living participant with a body, as flat circles. `exceptId` leaves one out (the shooter).
-function Combatants.targets(exceptId: string?, padding: number): { Ballistics.Target }
+-- `friendOf` leaves out that fighter's teammates, so a squad's shots fly through each other.
+function Combatants.targets(
+	exceptId: string?,
+	padding: number,
+	friendOf: string?
+): { Ballistics.Target }
 	local out = {}
 	for _, p in Participants:aliveList() do
-		if p.id ~= exceptId then
+		if p.id ~= exceptId and not (friendOf ~= nil and Squads:sameTeam(friendOf, p.id)) then
 			local root = Combatants.root(p.id)
 			if root ~= nil then
 				table.insert(out, {

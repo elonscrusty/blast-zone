@@ -7,14 +7,15 @@
 --   * the OUTFIT slot is piece N11's three fighters: this sets the player's CharacterLook attribute (and
 --     restyles a body already standing), and follows N11's own look buttons so the two never disagree
 --   * tells other pieces what to read:
---       Player attributes  HeroId, OutfitId, GunSkin, SlideVariant   (gun code may read GunSkin)
---       EffectiveStats modifiers  apply the Slide sidegrade and the hero to the player's stat sheet
+--       Player attributes  HeroId, OutfitId, GearHead, GearBody, GearFeet, GunSkin, SlideVariant   (gun code may read GunSkin)
+--       EffectiveStats modifiers  apply the Slide sidegrade, the hero and the gear to the player's stat sheet
 -- Picks can only change while you are out of the match (not on the roster).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Gear = require(Shared.Gear)
 local Heroes = require(Shared.Heroes)
 local Ids = require(Shared.Ids)
 local Loadout = require(Shared.Loadout)
@@ -22,6 +23,7 @@ local LoadoutStore = require(Shared.LoadoutStore)
 
 local Core = script.Parent.Parent.Core
 local EffectiveStats = require(Core.EffectiveStats)
+local GearBook = require(Core.GearBook)
 local HeroBook = require(Core.HeroBook)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
@@ -58,6 +60,9 @@ local function publishAttributes(player: Player)
 	local selection = store:get(player.UserId)
 	player:SetAttribute(Config.Heroes.attribute, selection.hero)
 	player:SetAttribute("OutfitId", selection.outfit)
+	player:SetAttribute(Config.Gear.attributes.head, selection.head)
+	player:SetAttribute(Config.Gear.attributes.body, selection.body)
+	player:SetAttribute(Config.Gear.attributes.feet, selection.feet)
 	player:SetAttribute("GunSkin", selection.gun)
 	player:SetAttribute("SlideVariant", selection.slide)
 end
@@ -137,6 +142,15 @@ function LobbySystem.start()
 	end)
 	EffectiveStats:addModifier(function(participantId: string, sheet: any)
 		Heroes.applyToSheet(Config, sheet, HeroBook:of(participantId))
+	end)
+
+	-- Gear (piece 48): what each player wears; bots wear nothing. Speed, reload, range and Slide tune the sheet
+	-- here; the health bonus is read by combat when the match starts (Combatants.ensure).
+	GearBook:setPicker(function(userId: number): any
+		return store:get(userId)
+	end)
+	EffectiveStats:addModifier(function(participantId: string, sheet: any)
+		Gear.applyToSheet(Config, sheet, GearBook:of(participantId))
 	end)
 
 	store.Changed:connect(function(userId: number)
