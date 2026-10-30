@@ -35,3 +35,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 24 | Lifetime stats (wins, eliminations, matches), lobby stats card, global top-wins board (Trophy Wall, OrderedDataStore) | - | PR up | #26 |
 | 30 | Store page: 3 icon + thumbnail ideas (3D), name ideas, description, upload steps | - | PR up | store PR |
 | 25 | Daily challenges: 3 a day (easy/medium/hard), server counts, pay Scrap once, reset at midnight UTC, plain DAILY panel (look comes from the UI system) | - | PR up | daily PR |
+| 29 | Emotes in the lobby (12, all free: carter said "all of them") + pick-your-own winner pose on the results screen | - | PR up | own PR |

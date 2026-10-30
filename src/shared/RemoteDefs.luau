@@ -149,6 +149,9 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== 29 emotes =====
+	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====

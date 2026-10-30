@@ -438,6 +438,21 @@ Config.Effects = {
 	scorchSeconds = 2.6, -- how long a blast leaves its dark mark on the ground
 }
 
+-- Piece 29: emotes in the lobby and the winner pose on the results banner (drawn from code, see Character/Emotes).
+Config.Emotes = {
+	-- carter picked "all of them": every emote is free and each player picks a winner pose.
+	trackUnlocks = false, -- true: emotes open on the coin track instead (see EmoteRules)
+	starterSet = "A", -- listed first ("A" Street, "B" Hype, "C" Chill); with track unlocks its first two are free
+	defaultWinPose = "A", -- A Gun to the Sky, B Fist Pump, C Arms Crossed (bots always use this one)
+	winPoseAttribute = "WinPose", -- set by the server on the Player: the winner pose they picked
+	attribute = "Emote", -- set by the server on a character: the emote id it is playing
+	startedAttribute = "EmoteAt", -- server time the emote started (clients draw it from there)
+	maxSeconds = 8, -- an emote stops by itself after this
+	cooldown = 0.6, -- seconds between two emote starts
+	stopMoveSpeed = 2, -- studs/s: walking off ends your own emote
+	bannerWinner = true, -- show the winner's body doing the winner pose on the results screen
+}
+
 Config.Net = {
 	clientWaitSeconds = 10,
 }
