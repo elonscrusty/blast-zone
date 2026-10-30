@@ -43,3 +43,12 @@ Harness.test("map rotation: config names real maps, starts on carter's map C", f
 	local r = MapRotation.new(rotation, known, Config.Arena.layout)
 	Harness.eq(#r.dropped, 0)
 end)
+
+Harness.test("map rotation: a vote winner jumps in and rotation continues from there", function()
+	local r = MapRotation.new({ "C", "D", "E" }, known, "C")
+	Harness.truthy(r:select("E"))
+	Harness.eq(r:current(), "E")
+	Harness.eq(r:advance(), "C")
+	Harness.truthy(not r:select("F"), "a map outside the list is refused")
+	Harness.eq(r:current(), "C")
+end)

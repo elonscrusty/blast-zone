@@ -13,6 +13,7 @@ export type MapRotation = {
 	current: (self: MapRotation) -> string,
 	advance: (self: MapRotation) -> string,
 	peekNext: (self: MapRotation) -> string,
+	select: (self: MapRotation, id: string) -> boolean,
 }
 
 -- `list` is the wanted order, `known` says which ids exist, `fallback` is used when nothing in
@@ -46,6 +47,16 @@ end
 function MapRotation.advance(self: MapRotation): string
 	self.index = self.index % #self.order + 1
 	return self.order[self.index]
+end
+
+-- Jumps to a map in the list (a vote winner). Rotation carries on from there. Unknown ids do nothing.
+function MapRotation.select(self: MapRotation, id: string): boolean
+	local i = table.find(self.order, id)
+	if not i then
+		return false
+	end
+	self.index = i
+	return true
 end
 
 return MapRotation
