@@ -10,7 +10,7 @@ local BotTuning = require("./BotTuning")
 type Tuning = BotTuning.Tuning
 
 export type Vec2 = { x: number, z: number }
-export type Body = { id: string, pos: Vec2 }
+export type Body = { id: string, pos: Vec2, shielded: boolean? } -- shielded: spawn shield, not worth shooting
 export type Pickup = { id: string, pos: Vec2 }
 export type Zone = { center: Vec2, radius: number }
 export type Self = {
@@ -116,7 +116,11 @@ local function findTarget(view: View, state: State): Body?
 	local sticky: Body? = nil
 	for _, other in view.others do
 		local d = dist(view.me.pos, other.pos)
-		if d <= view.tuning.sightRange and view.canSee(view.me.pos, other.pos) then
+		if
+			not other.shielded
+			and d <= view.tuning.sightRange
+			and view.canSee(view.me.pos, other.pos)
+		then
 			if other.id == state.targetId then
 				sticky = other
 			end

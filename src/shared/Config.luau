@@ -310,6 +310,21 @@ Config.Bots = {
 	aimErrorDegrees = 6,
 	maxPathfindsPerSecond = 4,
 	hiddenStatAdvantage = false, -- must stay false: bots use player rules
+	-- Calm start (piece 21): when Active begins bots see less, react slower and miss more, then
+	-- slide to the full numbers above over `seconds`.
+	warmup = {
+		seconds = 30,
+		sightRange = 30,
+		reactionSeconds = 0.9,
+		aimErrorDegrees = 14,
+	},
+}
+
+-- Spawn shield (piece 21): everyone alive gets a short shield when the fight starts.
+-- Firing your own gun ends it at once, so nobody can attack from behind it.
+Config.SpawnShield = {
+	seconds = 3,
+	dropOnFire = true,
 }
 
 Config.Rewards = {
