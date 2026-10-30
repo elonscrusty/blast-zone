@@ -844,6 +844,15 @@ Config.Stats = {
 	},
 }
 
+-- Video 3 gap #16: the power rating. One show-off number from things earned by playing. Nothing in combat, loot
+-- or matchmaking reads it, and no part of it can be bought with Robux. See shared/Power/PowerRules.
+Config.Power = {
+	perLevel = 10, -- points for each account level above 1
+	perUnit = { looks = 15, wins = 5, eliminations = 1, matches = 1 }, -- points for each one counted
+	caps = { looks = 10, wins = 100, eliminations = 300, matches = 200 }, -- the most of each that counts
+	bands = { 0, 100, 250, 450, 700, 1000, 1400 }, -- a band starts at each of these points (1 = first)
+}
+
 -- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
 -- collision, shots, spawns or the zone.
 Config.Art = {
