@@ -6,6 +6,7 @@
 --   LoadoutView.summary(state)         -> { { slot, label, name } }     what you are wearing now
 --   LoadoutView.step(index, delta, n)  -> index                         wraps around, for arrow buttons
 local Config = require("./Config")
+local Gear = require("./Gear")
 local GunCards = require("./GunCards")
 local Loadout = require("./Loadout")
 
@@ -17,7 +18,7 @@ export type Card = {
 	locked: boolean,
 	status: string, -- "Wearing" | "Tap to wear" | "Reward 3" (what to show under the name)
 	unlockAt: number?,
-	detail: { string }?, -- hero cards only: health and both guns as short lines (GunCards has the full bars)
+	detail: { string }?, -- hero cards: health and both guns as short lines (GunCards has the full bars); gear cards: the trade as short lines
 }
 
 export type State = {
@@ -77,7 +78,10 @@ function LoadoutView.cards(state: State, slot: string): { Card }
 				elseif equipped then "Wearing"
 				else "Tap to wear",
 			unlockAt = item.unlockAt,
-			detail = if slot == "hero" then GunCards.heroLines(Config, item.id) else nil,
+			detail = if slot == "hero"
+				then GunCards.heroLines(Config, item.id)
+				elseif Gear.isSlot(slot) then Gear.lines(Config, slot, item.id)
+				else nil,
 		})
 	end
 	return out

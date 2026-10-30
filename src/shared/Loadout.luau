@@ -1,7 +1,7 @@
 --!strict
 -- The loadout catalogue and its rules. Pure data and checks, no Roblox services, so Lune can test it.
--- Four slots: hero (piece 46: own health + own two guns, all free), outfit (the three fighters), gun skin,
--- slide sidegrade. Outfits and gun skins are looks only. Trails and tracers belong to piece 18 (the Rewards
+-- Seven slots: hero (piece 46: own health + own two guns, all free), outfit (the three fighters), head / body /
+-- feet gear (piece 48: small trades, see shared/Gear), gun skin, slide sidegrade. Outfits and gun skins are looks only. Trails and tracers belong to piece 18 (the Rewards
 -- board); the loadout screen only links to them.
 -- A sidegrade trades one thing for another (Slide goes farther but waits longer), so nothing is simply
 -- stronger and the match stays fair (brief section 20: no permanent power).
@@ -10,9 +10,10 @@
 -- An item is free when `unlockAt` is nil, open once the level reaches `unlockAt`, or when owned outright.
 -- The unlockAt numbers are placeholders for carter to tune; they must stay at 6 or less.
 
+local Gear = require("./Gear")
 local Heroes = require("./Heroes")
 
-export type Slot = "hero" | "outfit" | "gun" | "slide"
+export type Slot = "hero" | "outfit" | "head" | "body" | "feet" | "gun" | "slide"
 
 export type Look = {
 	gunBody: number?,
@@ -29,19 +30,31 @@ export type Item = {
 	-- slide sidegrades only: studs added to Slide distance, seconds added to its wait
 	slideDistance: number?,
 	slideCooldown: number?,
+	gear: Gear.Piece?, -- head / body / feet only: the piece (perks, placeholder shape and colour)
 }
 
-export type Selection = { hero: string, outfit: string, gun: string, slide: string }
+export type Selection = {
+	hero: string,
+	outfit: string,
+	head: string,
+	body: string,
+	feet: string,
+	gun: string,
+	slide: string,
+}
 
 export type Unlocks = { level: number, owned: { [string]: boolean }? }
 
 local Loadout = {}
 
-Loadout.slots = { "hero", "outfit", "gun", "slide" } :: { Slot }
+Loadout.slots = { "hero", "outfit", "head", "body", "feet", "gun", "slide" } :: { Slot }
 
 Loadout.slotNames = {
 	hero = "HERO",
 	outfit = "OUTFIT",
+	head = Gear.slotNames.head,
+	body = Gear.slotNames.body,
+	feet = Gear.slotNames.feet,
 	gun = "GUN",
 	slide = "SLIDE",
 } :: { [string]: string }
@@ -55,6 +68,22 @@ for _, hero in Heroes.list do
 		desc = hero.blurb,
 		look = {},
 	})
+end
+
+-- Gear (piece 48): head, body and feet come straight from shared/Gear. Small trades, never plain power.
+local function gearItems(slot: Gear.Slot): { Item }
+	local out: { Item } = {}
+	for _, piece in Gear.pieces[slot] do
+		table.insert(out, {
+			id = piece.id,
+			name = piece.name,
+			desc = piece.desc,
+			unlockAt = piece.unlockAt,
+			look = {},
+			gear = piece,
+		})
+	end
+	return out
 end
 
 Loadout.items = {
@@ -86,6 +115,9 @@ Loadout.items = {
 			look = {},
 		},
 	},
+	head = gearItems("head"),
+	body = gearItems("body"),
+	feet = gearItems("feet"),
 	gun = {
 		{
 			id = "sleek",
@@ -146,6 +178,9 @@ Loadout.items = {
 Loadout.defaults = {
 	hero = Heroes.default,
 	outfit = "runner",
+	head = Gear.defaults.head,
+	body = Gear.defaults.body,
+	feet = Gear.defaults.feet,
 	gun = "sleek",
 	slide = "std",
 } :: Selection
@@ -202,6 +237,9 @@ function Loadout.sanitize(raw: any, unlocks: Unlocks): Selection
 	local out: Selection = {
 		hero = Loadout.defaults.hero,
 		outfit = Loadout.defaults.outfit,
+		head = Loadout.defaults.head,
+		body = Loadout.defaults.body,
+		feet = Loadout.defaults.feet,
 		gun = Loadout.defaults.gun,
 		slide = Loadout.defaults.slide,
 	}
