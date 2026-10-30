@@ -1,6 +1,7 @@
 --!strict
--- The elevated, angled camera. It follows the player from a fixed heading (it never turns during
--- play), glides with a very short delay, and pulls back a little on narrow screens so a phone held
+-- The elevated, angled camera. It follows the player, glides with a very short delay, turns when
+-- the player drags (right mouse button, free side of the touch screen, L2 + right stick; the
+-- heading lives in CameraHeading and starts at Config.Camera.yawDegrees), and pulls back a little on narrow screens so a phone held
 -- upright still shows threats at the sides. Spectating: piece 05 sets the LocalPlayer attribute
 -- SpectateTargetId (and points Camera.CameraSubject there); this camera follows either.
 
@@ -12,6 +13,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local CameraRules = require(Shared.Movement.CameraRules)
+local Controls = require(script.Parent.Parent.Controls.Controls)
+local CameraHeading = require("./CameraHeading")
 
 local CameraSystem = {}
 CameraSystem.order = 50
@@ -82,6 +85,7 @@ local function step()
 		camera.CameraType = Enum.CameraType.Scriptable
 	end
 	camera.FieldOfView = Config.Camera.fieldOfView
+	CameraHeading.turnRight(Controls.takeLook(dt))
 
 	local root = subjectRoot(camera)
 	if root == nil then
@@ -108,7 +112,7 @@ local function step()
 		cfg.narrowAspectFloor,
 		cfg.maxWiden
 	)
-	local dx, dy, dz = CameraRules.offset(pitch, distance, cfg.yawDegrees)
+	local dx, dy, dz = CameraRules.offset(pitch, distance, CameraHeading.get())
 	local at = focus :: Vector3
 	camera.CFrame = CFrame.lookAt(at + Vector3.new(dx, dy, dz), at)
 	camera.Focus = CFrame.new(at) -- roof fading reads the focus to know which building we are in

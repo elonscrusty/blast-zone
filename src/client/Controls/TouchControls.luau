@@ -1,9 +1,10 @@
 --!strict
 -- On-screen controls for phones, in look B: move stick (left), aim-and-fire stick (right),
--- Slide, Reload, Heal, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
+-- Slide, Run, Reload, Heal, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
 -- Sticks measure how far the finger moved from where it first touched, so they work the same on
 -- every phone and notch. With "Floating sticks" on (carter's pick) the stick appears under the
 -- thumb anywhere in its zone and goes back to a faint ring at rest; off, it stays in its corner.
+-- A drag on the free side of the screen (not the aim stick, not a button) turns the camera.
 -- Pick chips appear by the aim thumb while an upgrade offer is up, so the move thumb never lifts.
 -- Shown only on touch devices while controls are on.
 
@@ -18,6 +19,7 @@ local Ids = require(ReplicatedStorage:WaitForChild("Shared").Ids)
 local Net = require(script.Parent.Parent.Core.Net)
 local Controls = require(script.Parent.Controls)
 local LootClient = require(script.Parent.Parent.Loot.LootClient)
+local MoveState = require(script.Parent.Parent.Movement.MoveState)
 local ChipModel = require("./ChipModel")
 local InputMath = require("./InputMath")
 
@@ -29,6 +31,8 @@ local pieces: { [string]: GuiObject } = {}
 local slideDial: Frame
 local slideText: TextLabel
 local healCount: TextLabel
+local sprintVeil: Frame
+local slideCount: TextLabel
 local visible = false
 local wasSlideReady = true
 
@@ -207,6 +211,40 @@ local function makeStick(
 	end)
 end
 
+-- Turning the camera: a finger dragged sideways on the free side of the screen. It needs no ring
+-- or button, so there is nothing to find with a thumb.
+local function makeLook(zone: Frame)
+	local tracked: InputObject? = nil
+	local lastX = 0
+
+	zone.InputBegan:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.Touch and tracked == nil then
+			Controls.noteDevice("touch")
+			tracked = input
+			lastX = input.Position.X
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input: InputObject)
+		if tracked ~= nil and input == tracked then
+			Controls.addLook(input.Position.X - lastX)
+			lastX = input.Position.X
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if tracked ~= nil and input == tracked then
+			tracked = nil
+		end
+	end)
+	Controls.Cleared:connect(function()
+		tracked = nil
+	end)
+	zone:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not zone.Visible then
+			tracked = nil
+		end
+	end)
+end
+
 local function makeButton(name: string, text: string, fillHex: string, action: string): TextButton
 	local look = UiKit.look()
 	local panel, shadow = UiKit.sticker(root, root, name .. "Frame", fillHex, 0.5)
@@ -255,6 +293,7 @@ local function build()
 	root.Active = false
 	root.Parent = gui
 
+	makeLook(makeZone("lookZone")) -- first, so the sticks and buttons sit on top of it
 	local moveZone = makeZone("moveZone")
 	local fireZone = makeZone("fireZone")
 	makeStick("moveStick", moveZone, nil, look.panel, function(x, y, _active)
@@ -281,6 +320,28 @@ local function build()
 		maxTextSize = 24,
 	})
 	healCount.ZIndex = 4
+
+	-- Sprint toggle (piece 45): the veil drops as breath runs out. Placeholder look.
+	makeButton("sprint", "RUN", look.panel, "sprint")
+	do
+		local sprint = pieces.sprint
+		local breathClip = Instance.new("CanvasGroup")
+		breathClip.Name = "Clip"
+		breathClip.BackgroundTransparency = 1
+		breathClip.Size = UDim2.fromScale(1, 1)
+		breathClip.Active = false
+		breathClip.ZIndex = 3
+		breathClip.Parent = sprint
+		UiKit.circle(breathClip)
+		sprintVeil = Instance.new("Frame")
+		sprintVeil.Name = "Veil"
+		sprintVeil.Size = UDim2.fromScale(1, 0)
+		sprintVeil.BackgroundColor3 = UiKit.color(look.outline)
+		sprintVeil.BackgroundTransparency = 0.35
+		sprintVeil.BorderSizePixel = 0
+		sprintVeil.Active = false
+		sprintVeil.Parent = breathClip
+	end
 
 	-- Slide cooldown: a navy veil that drains upward, and the seconds left.
 	local slide = pieces.slide
@@ -311,6 +372,16 @@ local function build()
 		maxTextSize = 26,
 	})
 	slideText.ZIndex = 4
+	-- How many slides are ready (piece 45); only shown when there is more than one charge.
+	slideCount = UiKit.label(slide, "Charges", {
+		text = "",
+		size = UDim2.fromScale(0.4, 0.3),
+		position = UDim2.fromScale(0.5, 0.82),
+		anchor = Vector2.new(0.5, 0.5),
+		color = look.ink,
+		maxTextSize = 20,
+	})
+	slideCount.ZIndex = 4
 
 	-- Tap target over the weapon panel (the picture is drawn by the HUD).
 	local swap = Instance.new("TextButton")
@@ -414,6 +485,14 @@ function TouchControls.update(
 		UiKit.pop(pieces.heal, 1.18)
 	end
 	pieces.heal.BackgroundTransparency = if packs > 0 then 0 else 0.5
+	local feet = MoveState.get()
+	sprintVeil.Size =
+		UDim2.fromScale(1, if feet.wantsSprint or feet.locked then 1 - feet.stamina else 0)
+	pieces.sprint.BackgroundTransparency = if feet.wantsSprint and feet.running then 0 else 0.35
+	local chargeText = if feet.slideMax > 1 then tostring(feet.slideCharges) else ""
+	if slideCount.Text ~= chargeText then
+		slideCount.Text = chargeText
+	end
 	if slideReady and not wasSlideReady then
 		UiKit.pop(pieces.slide, 1.18) -- ready again
 	end
