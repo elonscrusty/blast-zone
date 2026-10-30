@@ -33,7 +33,7 @@ function ClaimUiSystem.start()
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 	-- ===== lobby TRACK button (under PLAY and SETTINGS) =====
-	local trackSlot, trackButton = Ui.button(gui, gui, "Track", "TRACK", false)
+	local trackSlot, trackButton = Ui.button(gui, gui, "Track", "REWARDS", false)
 	trackSlot.AnchorPoint = Vector2.new(0.5, 0.5)
 	trackSlot.Position = UDim2.fromScale(0.5, 0.88)
 	trackSlot.Size = UDim2.fromScale(0.2, 0.11)
@@ -88,7 +88,7 @@ function ClaimUiSystem.start()
 	hint.Position = UDim2.fromScale(0.19, 0.68)
 	hint.Size = UDim2.fromScale(0.45, 0.24)
 
-	local actionSlot, actionButton = Ui.button(gui, strip, "Action", "TRACK", false)
+	local actionSlot, actionButton = Ui.button(gui, strip, "Action", "REWARDS", false)
 	actionSlot.AnchorPoint = Vector2.new(1, 0.5)
 	actionSlot.Position = UDim2.fromScale(0.98, 0.5)
 	actionSlot.Size = UDim2.fromScale(0.31, 0.62)
@@ -144,7 +144,7 @@ function ClaimUiSystem.start()
 		action = words.action
 		hint.Text = words.hint
 		barFill.Size = UDim2.fromScale(words.fill, 1)
-		actionButton.Text = if words.action == "unlock" then "UNLOCK" else "TRACK"
+		actionButton.Text = if words.action == "unlock" then "UNLOCK" else "REWARDS"
 		actionButton.BackgroundColor3 =
 			Ui.hex(if words.action == "unlock" then Ui.look.accent else Ui.look.panel)
 		local line = ProgressText.denied(state.denied, coinName) or words.note

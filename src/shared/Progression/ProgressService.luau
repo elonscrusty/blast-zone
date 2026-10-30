@@ -29,6 +29,7 @@ export type Deps = {
 	receiptKey: (matchId: number) -> string,
 	send: (player: any, state: Types.ProgressState) -> (),
 	applyLook: (player: any, trailId: string, tracerId: string) -> (),
+	changed: ((player: any) -> ())?, -- told after every state push (coins, unlock, equip, load)
 }
 
 export type Service = {
@@ -92,6 +93,9 @@ function ProgressService.new(deps: Deps): Service
 
 	local function push(player: any, gained: { matchId: number, amount: number }?, denied: string?)
 		deps.send(player, stateOf(store, player, gained, denied))
+		if deps.changed ~= nil then
+			deps.changed(player)
+		end
 	end
 
 	function service.push(player: any)

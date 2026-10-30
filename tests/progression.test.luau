@@ -297,7 +297,7 @@ Harness.test(
 
 Harness.test("strip: a finished track and an unloaded profile are said plainly", function()
 	local done = ProgressText.strip(state({ coins = 5 }), "Volts", nil)
-	Harness.eq(done.hint, "Track complete!")
+	Harness.eq(done.hint, "All rewards unlocked!")
 	Harness.eq(done.action, "track")
 	Harness.truthy(
 		ProgressText.strip(state({ status = "failed" }), "Volts", TrackDefs.tiers[1]).note ~= nil
@@ -329,3 +329,34 @@ Harness.test("every refusal reason has words", function()
 	end
 	Harness.eq(ProgressText.denied(nil, "Volts"), nil)
 end)
+
+Harness.test(
+	"level: counts the tiers bought, and the service tells listeners about every change",
+	function()
+		local p = fresh()
+		Harness.eq(ProgressRules.level(p), 0)
+		p.coins = 99999
+		ProgressRules.unlock(p, TrackDefs.tiers[1].id)
+		ProgressRules.unlock(p, TrackDefs.tiers[2].id)
+		Harness.eq(ProgressRules.level(p), 2)
+
+		local told = 0
+		local r = rig()
+		local service = ProgressService.new({
+			store = r.store,
+			maxGrant = MAX,
+			receiptKey = function(matchId: number): string
+				return "k" .. tostring(matchId)
+			end,
+			send = function(_player: any, _state: Types.ProgressState) end,
+			applyLook = function(_player: any, _trail: string, _tracer: string) end,
+			changed = function(_player: any)
+				told += 1
+			end,
+		})
+		service.onReward(ME, 120, 1)
+		service.onReward(ME, 120, 1) -- duplicate: silent
+		service.unlock(ME, TrackDefs.tiers[1].id)
+		Harness.eq(told, 2)
+	end
+)

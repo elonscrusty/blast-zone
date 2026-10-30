@@ -15,6 +15,7 @@ local Ids = require(Shared.Ids)
 local MemoryStore = require(Shared.Progression.MemoryStore)
 local ProgressRules = require(Shared.Progression.ProgressRules)
 local ProgressService = require(Shared.Progression.ProgressService)
+local Signal = require(Shared.Signal)
 
 local Server = script.Parent.Parent
 local Net = require(Server.Core.Net)
@@ -22,7 +23,16 @@ local Net = require(Server.Core.Net)
 local ProgressionSystem = {}
 ProgressionSystem.order = 60
 
+-- For other server pieces (the lobby/loadout screen). Read-only except equip, which checks ownership.
+--   ProgressionSystem.getCoins(player)     -> number? (nil until the profile is loaded)
+--   ProgressionSystem.getLevel(player)     -> number  (rewards bought, 0 to 6; 0 if not loaded)
+--   ProgressionSystem.isOwned(player, id)  -> boolean (ids in shared/Progression/TrackDefs)
+--   ProgressionSystem.equip(player, id)    -> boolean
+--   ProgressionSystem.Changed              Signal(player), after every change
+ProgressionSystem.Changed = Signal.new()
+
 local service: ProgressService.Service
+local theStore: ProgressService.Store? = nil
 local memory: ProgressService.Store? = nil
 
 -- The real profile (piece 17), if it is in this build.
@@ -95,6 +105,25 @@ local function playerOf(participantId: string): Player?
 	return Players:GetPlayerByUserId(userId)
 end
 
+function ProgressionSystem.getCoins(player: Player): number?
+	local p = if theStore then theStore.read(player) else nil
+	return if p then p.coins else nil
+end
+
+function ProgressionSystem.getLevel(player: Player): number
+	local p = if theStore then theStore.read(player) else nil
+	return if p then ProgressRules.level(p) else 0
+end
+
+function ProgressionSystem.isOwned(player: Player, itemId: string): boolean
+	local p = if theStore then theStore.read(player) else nil
+	return p ~= nil and ProgressRules.owns(p, itemId)
+end
+
+function ProgressionSystem.equip(player: Player, itemId: string): boolean
+	return service ~= nil and service.equip(player, itemId)
+end
+
 function ProgressionSystem.start()
 	local Profiles = findProfiles()
 	local store: ProgressService.Store
@@ -107,6 +136,7 @@ function ProgressionSystem.start()
 		store = mem
 	end
 
+	theStore = store
 	local attributes = Config.Progression.attributes
 	service = ProgressService.new({
 		store = store,
@@ -119,6 +149,9 @@ function ProgressionSystem.start()
 		end,
 		send = function(player: any, state)
 			Net.fire("ProgressState", player, state)
+		end,
+		changed = function(player: any)
+			ProgressionSystem.Changed:fire(player)
 		end,
 		applyLook = function(player: any, trailId: string, tracerId: string)
 			(player :: Player):SetAttribute(attributes.trail, trailId);

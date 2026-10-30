@@ -80,6 +80,17 @@ function ProgressRules.nextTier(p: Progression): TrackDefs.Item?
 	return nil
 end
 
+-- How many tiers have been bought (0 to #tiers). Other screens use this as the "reward level".
+function ProgressRules.level(p: Progression): number
+	local n = 0
+	for _, tier in TrackDefs.tiers do
+		if p.unlocked[tier.id] then
+			n += 1
+		end
+	end
+	return n
+end
+
 -- Adds coins from a finished match. `maxGrant` is a sanity cap so a bug upstream cannot mint a fortune.
 function ProgressRules.addCoins(p: Progression, amount: number, maxGrant: number): Result
 	if not isCount(amount) then
