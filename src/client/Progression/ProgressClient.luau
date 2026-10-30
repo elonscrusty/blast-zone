@@ -33,6 +33,9 @@ function ProgressClient.asProgression(): ProgressRules.Progression?
 	for _, id in s.unlocked do
 		p.unlocked[id] = true
 	end
+	for _, id in s.gifts do
+		p.unlocked[id] = true -- level gifts and season pass looks
+	end
 	for slot, id in s.equipped do
 		p.equipped[slot] = id
 	end
