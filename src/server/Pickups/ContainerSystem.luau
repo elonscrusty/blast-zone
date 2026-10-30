@@ -64,11 +64,9 @@ local function tierFor(spot: BasePart): string
 	if typeof(forced) == "string" and Config.Containers.tiers[forced] ~= nil then
 		return forced
 	end
-	return ContainerRules.pickTier(
-		Config.Containers.tierOrder,
-		Config.Containers.tiers,
-		math.random()
-	)
+	return ContainerRules.pickTier(Config.Containers.tierOrder, function(id: string): number
+		return Config.Containers.tiers[id].weight
+	end, math.random())
 end
 
 local function build(spot: BasePart, matchId: number, number: number): Record

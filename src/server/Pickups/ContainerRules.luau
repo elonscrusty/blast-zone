@@ -18,16 +18,16 @@ function ContainerRules.applyDamage(health: number, amount: number): (number, bo
 	return left, left <= 0
 end
 
--- Picks a tier by weight. `roll` is a random number from 0 up to (not including) 1; it is passed in
+-- Picks a tier by weight (`weightOf` answers for a tier id). `roll` is a random number from 0 up to (not including) 1; it is passed in
 -- so tests can aim it. A bad roll, or weights that add up to nothing, gives the first tier.
 function ContainerRules.pickTier(
 	order: { string },
-	tiers: { [string]: { weight: number } },
+	weightOf: (string) -> number,
 	roll: number
 ): string
 	local total = 0
 	for _, id in order do
-		total += math.max(0, tiers[id].weight)
+		total += math.max(0, weightOf(id))
 	end
 	if total <= 0 or roll ~= roll then
 		return order[1]
@@ -35,7 +35,7 @@ function ContainerRules.pickTier(
 	local target = math.clamp(roll, 0, 0.999999) * total
 	local run = 0
 	for _, id in order do
-		run += math.max(0, tiers[id].weight)
+		run += math.max(0, weightOf(id))
 		if target < run then
 			return id
 		end

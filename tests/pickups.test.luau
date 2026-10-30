@@ -8,6 +8,10 @@ local PickupRules = require("../src/server/Pickups/PickupRules")
 local tiers = Config.Containers.tiers
 local order = Config.Containers.tierOrder
 
+local function weight(id: string): number
+	return tiers[id].weight
+end
+
 Harness.test(
 	"every tier has a color, health, orbs and a weight, and better tiers give more",
 	function()
@@ -33,20 +37,29 @@ Harness.test(
 
 Harness.test("tier roll follows the weights", function()
 	-- 50 / 35 / 15: the cut points are 0.50 and 0.85.
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0), "common")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0.499), "common")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0.5), "rare")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0.849), "rare")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0.85), "epic")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0.9999999), "epic")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 5), "epic", "roll above 1 is clamped")
-	Harness.eq(ContainerRules.pickTier(order, tiers, 0 / 0), "common", "bad roll is the first tier")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0), "common")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0.499), "common")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0.5), "rare")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0.849), "rare")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0.85), "epic")
+	Harness.eq(ContainerRules.pickTier(order, weight, 0.9999999), "epic")
+	Harness.eq(ContainerRules.pickTier(order, weight, 5), "epic", "roll above 1 is clamped")
+	Harness.eq(
+		ContainerRules.pickTier(order, weight, 0 / 0),
+		"common",
+		"bad roll is the first tier"
+	)
 end)
 
 Harness.test("a tier with no weight is never rolled", function()
-	local only = { a = { weight = 0 }, b = { weight = 3 } }
+	local only: { [string]: number } = { a = 0, b = 3 }
 	for _, roll in { 0, 0.3, 0.99 } do
-		Harness.eq(ContainerRules.pickTier({ "a", "b" }, only, roll), "b")
+		Harness.eq(
+			ContainerRules.pickTier({ "a", "b" }, function(id: string): number
+				return only[id]
+			end, roll),
+			"b"
+		)
 	end
 end)
 
@@ -160,7 +173,7 @@ Harness.test("two claims on one orb: only the first wins", function()
 end)
 
 Harness.test("an average match of crates and kills gives about three upgrade offers", function()
-	local xp = RunXp.new(Config.Xp)
+	local xp = RunXp.new(Config.Xp :: any)
 	xp:reset("p1")
 	local totalWeight = 0
 	for _, id in order do
