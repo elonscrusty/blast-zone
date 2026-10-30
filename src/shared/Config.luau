@@ -488,14 +488,8 @@ Config.Streaks = {
 	windowSeconds = 12,
 	tiers = {
 		{ at = 2, heal = 15, speedMultiplier = 1, speedSeconds = 0, text = "DOUBLE! +15 HP" },
-		{ at = 3, heal = 0, speedMultiplier = 1.2, speedSeconds = 4, text = "TRIPLE! SPEED UP" },
-		{
-			at = 5,
-			heal = 30,
-			speedMultiplier = 1.25,
-			speedSeconds = 5,
-			text = "RAMPAGE! HEAL + SPEED",
-		},
+		{ at = 3, heal = 20, speedMultiplier = 1, speedSeconds = 0, text = "TRIPLE! +20 HP" },
+		{ at = 5, heal = 30, speedMultiplier = 1, speedSeconds = 0, text = "RAMPAGE! +30 HP" },
 	},
 }
 
