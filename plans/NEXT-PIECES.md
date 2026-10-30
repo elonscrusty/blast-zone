@@ -23,3 +23,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 12 | Audio: sounds + music (silent until ids are added, see plans/AUDIO-IDS.md) | 22 | PR up | this PR |
 | 16 | Performance and stability: leaks, per-frame work, edge-case tests, speed checklist | 16, 23, 26 | PR up | this PR |
 | 17 | Saving player progress (DataStore profiles, session lock, once-only grants) | 19 | PR up | this PR |
+| 20 | First-time intro, save error messages, release checklist | 7, 25 | PR up | piece 20 PR |
