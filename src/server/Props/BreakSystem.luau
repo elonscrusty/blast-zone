@@ -1,5 +1,5 @@
 --!strict
--- Street props that burst (piece 43, carter picked "A Chunk Burst"). Cars, dumpsters, planters,
+-- Street props that burst (piece 47, carter picked "A Chunk Burst"). Cars, dumpsters, planters,
 -- benches and barriers are solids of the arena. Shots and blasts hurt them (the server owns the
 -- health); when one breaks:
 --   * its solid stops being solid: nobody collides with it and shots fly through (no tags, no query),

@@ -1,5 +1,5 @@
 --!strict
--- Where a flying chunk is at time t (piece 43). Pure maths so Lune can test it. A chunk is thrown
+-- Where a flying chunk is at time t (piece 47). Pure maths so Lune can test it. A chunk is thrown
 -- from (x, y, z) with a speed, falls under gravity, tumbles, lands on the floor and then shrinks away.
 
 local ChunkFlight = {}

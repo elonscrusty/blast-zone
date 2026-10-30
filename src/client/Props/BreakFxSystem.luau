@@ -1,5 +1,5 @@
 --!strict
--- What you see when a street prop bursts (piece 43, "Chunk Burst"): chunky blocks in the prop's own
+-- What you see when a street prop bursts (piece 47, "Chunk Burst"): chunky blocks in the prop's own
 -- colours fly out, tumble, land and shrink away. The server already took the prop off the street
 -- and left the scorch and rubble; this is only the flying part. Cosmetic: nothing decides anything.
 -- Cheap: a few small parts per burst, one RenderStepped for all, and a cap on live chunks.

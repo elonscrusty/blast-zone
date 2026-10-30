@@ -789,7 +789,7 @@ function StreetArt.build(plan: ArtKit.Plan, map: ArtMap.Map, handled: { [string]
 	local boxIndex = 0
 	for _, s in map.solids do
 		local kind = StreetArt.classify(s.id)
-		-- the parts of a solid that can burst (piece 43) remember it, so the server can take them away
+		-- the parts of a solid that can burst (piece 47) remember it, so the server can take them away
 		if
 			s.kind ~= "mass"
 			and (kind == "car" or kind == "barrier" or kind == "dumpster" or kind == "planter")

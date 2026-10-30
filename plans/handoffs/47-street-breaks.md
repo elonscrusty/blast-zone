@@ -1,4 +1,4 @@
-# 43 Street that breaks (gap list #1 and #10; carter picked A "Chunk Burst")
+# 47 Street that breaks (gap list #1 and #10; carter picked A "Chunk Burst")
 - Done: cars, dumpsters, planters, benches and barriers have health. Bullets and mortar blasts hurt them; at zero the prop bursts. The solid stops being solid (walk and shoot through), its art parts leave the street, a scorch mark and 6 small blocks stay, and every client throws chunky blocks in the prop's own colours.
 - Server decides: `src/server/Props/BreakSystem.luau` (health, combat-phase check, source alive, restore). Pure rules: `src/shared/Breakables/BreakRules.luau`. Hooks: `Firing.luau` (bullets, next to `ContainerLink`) and `Shells.luau` (blast loop, line check ignores the prop itself).
 - Art link: `ArtKit.Spec.owner` / `Plan.owner` (set in StreetArt and ParkArt around each breakable); ArtBuilder writes it as attribute `ArtOwner`. Masses (buildings) never break, even `block-*`.

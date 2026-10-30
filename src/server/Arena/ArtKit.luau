@@ -33,7 +33,7 @@ export type Spec = {
 	reflectance: number,
 	shadow: boolean,
 	fadeWith: string?, -- the occluder part whose see-through fade this part copies
-	owner: string?, -- the solid this part dresses; when that solid breaks (piece 43) its parts go
+	owner: string?, -- the solid this part dresses; when that solid breaks (piece 47) its parts go
 	neon: Neon?,
 	light: Light?,
 	sign: Sign?,

@@ -1,5 +1,5 @@
 --!strict
--- Piece 43: street props that burst. Rules only (health, blasts, rubble, chunk flight), plus the
+-- Piece 47: street props that burst. Rules only (health, blasts, rubble, chunk flight), plus the
 -- checks that keep the art and the server in step: every prop the server may break has art that
 -- names it, and its gray box is the kind the art redraws.
 local Harness = require("./harness")

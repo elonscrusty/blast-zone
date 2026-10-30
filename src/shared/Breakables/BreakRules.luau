@@ -1,5 +1,5 @@
 --!strict
--- Street props that burst (piece 43), with no game objects in it so Lune can test it.
+-- Street props that burst (piece 47), with no game objects in it so Lune can test it.
 -- One book per arena: it knows each prop's health and which ones are already broken.
 -- The server asks it "does this hit break the prop?"; it never touches a part itself.
 
