@@ -12,6 +12,7 @@ local CoinLooks = require(Shared.Progression.CoinLooks)
 local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
@@ -28,7 +29,7 @@ function ClaimUiSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "CoinClaim"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 55
+	gui.DisplayOrder = UiLayers.get("MatchFlowExtra")
 	gui.IgnoreGuiInset = true
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 

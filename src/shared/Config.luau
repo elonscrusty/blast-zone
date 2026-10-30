@@ -333,7 +333,6 @@ Config.Progression = {
 Config.Daily = {
 	resetHourUtc = 0, -- the new day starts at this hour (UTC)
 	rewards = { easy = 20, medium = 35, hard = 50 },
-	look = "A", -- challenge board look: "A" Sticker Stack, "B" Ticket Row, "C" Big Board (DailyLooks)
 }
 
 Config.Settings = {

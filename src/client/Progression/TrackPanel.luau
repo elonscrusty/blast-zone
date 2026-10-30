@@ -13,6 +13,7 @@ local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local Ui = require(script.Parent.ProgressUi)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local TrackPanel = {}
 
@@ -162,7 +163,7 @@ local function build()
 	local g = Instance.new("ScreenGui")
 	g.Name = "TrackPanel"
 	g.ResetOnSpawn = false
-	g.DisplayOrder = 60
+	g.DisplayOrder = UiLayers.get("Modal")
 	g.IgnoreGuiInset = true
 	g.Enabled = false
 	g.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")

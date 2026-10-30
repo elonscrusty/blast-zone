@@ -346,13 +346,3 @@ Harness.test("daily coins: ProgressService.grant pays once per key and respects 
 		"over cap refused"
 	)
 end)
-
-Harness.test("daily looks: the picked look exists, and every look has a color per tier", function()
-	local DailyLooks = require("../src/shared/Daily/DailyLooks")
-	Harness.truthy(DailyLooks.looks[Config.Daily.look] ~= nil, "Config.Daily.look")
-	for key, look in DailyLooks.looks do
-		for _, tier in DailyDefs.tiers do
-			Harness.truthy(look.tierColors[tier] ~= nil, key .. " " .. tier)
-		end
-	end
-end)

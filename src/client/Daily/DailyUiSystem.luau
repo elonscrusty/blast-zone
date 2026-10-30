@@ -1,204 +1,186 @@
 --!strict
--- The daily challenge board (piece 25). The server counts and pays; this screen only shows DailyState and asks
--- (DailyRequest). Look from Config.Daily.look (DailyLooks): A Sticker Stack / B Ticket Row open from a DAILY
--- button in the lobby; C Big Board is always open on the left of the lobby. A top strip says when one paid.
+-- The daily challenge board (piece 25). PLACEHOLDER LOOK: plain frames only. The real look comes from the UI
+-- system (Claude Design thread); keep the data flow, swap the drawing. The server counts and pays; this screen
+-- only shows DailyState and asks (DailyRequest).
+--   * DAILY button in the lobby slot "daily" (LobbyMenu), opens a full panel (UiLayers.Modal + ModalGate).
+--   * A short strip (UiLayers.Toast) says when a challenge paid: "DAILY DONE! +35 Scrap".
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
-local DailyLooks = require(Shared.Daily.DailyLooks)
 local DailyText = require(Shared.Daily.DailyText)
 local MatchPhase = require(Shared.MatchPhase)
 local Types = require(Shared.Types)
 local Net = require(script.Parent.Parent.Core.Net)
-local Ui = require(script.Parent.Parent.Progression.ProgressUi)
-local DailyIcon = require(script.Parent.DailyIcon)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
+local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local DailyUiSystem = {}
 DailyUiSystem.order = 225
 
-type Card = {
-	frame: Frame,
-	iconHolder: Frame,
-	icon: ViewportFrame?,
-	kind: string,
-	line: TextLabel,
-	count: TextLabel,
-	fill: Frame,
-	reward: TextLabel,
-}
+local MODAL = "daily"
+local WHITE = Color3.new(1, 1, 1)
+local DARK = Color3.fromRGB(30, 42, 74)
+local GREEN = Color3.fromRGB(124, 227, 139)
+local BAR = Color3.fromRGB(63, 169, 255)
+
+type Card = { frame: Frame, line: TextLabel, count: TextLabel, fill: Frame, reward: TextLabel }
+
+local function label(parent: Instance, name: string, maxSize: number): TextLabel
+	local l = Instance.new("TextLabel")
+	l.Name = name
+	l.BackgroundTransparency = 1
+	l.TextColor3 = WHITE
+	l.Font = Enum.Font.GothamBold
+	l.TextScaled = true
+	l.Text = ""
+	local cap = Instance.new("UITextSizeConstraint")
+	cap.MaxTextSize = maxSize
+	cap.Parent = l
+	l.Parent = parent
+	return l
+end
+
+local function screen(name: string, layer: string): ScreenGui
+	local gui = Instance.new("ScreenGui")
+	gui.Name = name
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = UiLayers.get(layer)
+	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	return gui
+end
 
 function DailyUiSystem.start()
-	local look = DailyLooks.get(Config.Daily.look)
 	local coinName = Config.Rewards.currencyName
-	local board = look.layout == "board"
-	local dark = board
 
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "Daily"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 56
-	gui.IgnoreGuiInset = true
-	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-
-	local ink = Ui.hex(if dark then "#FFFFFF" else Ui.look.ink)
-
-	-- ===== lobby DAILY button (A and B only) =====
-	local openSlot, openButton = Ui.button(gui, gui, "DailyOpen", "DAILY", false)
-	openSlot.AnchorPoint = Vector2.new(0.5, 0.5)
-	openSlot.Position = UDim2.fromScale(0.26, 0.88)
-	openSlot.Size = UDim2.fromScale(0.2, 0.11)
-	openSlot.Visible = false
+	-- ===== lobby button =====
+	local openButton = Instance.new("TextButton")
+	openButton.Name = "Daily"
+	openButton.Size = UDim2.fromScale(1, 1)
+	openButton.Text = "DAILY"
+	openButton.Font = Enum.Font.GothamBold
+	openButton.TextScaled = true
+	openButton.TextColor3 = WHITE
+	openButton.BackgroundColor3 = DARK
+	openButton.Parent = LobbyMenu.slot("daily")
 	local dot = Instance.new("Frame")
 	dot.Name = "NewDot"
 	dot.AnchorPoint = Vector2.new(0.5, 0.5)
-	dot.Position = UDim2.fromScale(0.96, 0.08)
-	dot.Size = UDim2.fromScale(0.16, 0.16)
+	dot.Position = UDim2.fromScale(1, 0)
+	dot.Size = UDim2.fromScale(0.3, 0.3)
 	dot.SizeConstraint = Enum.SizeConstraint.RelativeYY
-	dot.BackgroundColor3 = Ui.hex(Ui.look.accent)
+	dot.BackgroundColor3 = GREEN
 	dot.Visible = false
-	dot.ZIndex = 5
-	dot.Parent = openSlot
-	Ui.round(dot, 0.5)
-	Ui.outline(gui, dot, 0.6)
+	dot.Parent = openButton
 
-	-- ===== the panel =====
+	-- ===== panel =====
+	local gui = screen("Daily", "Modal")
+	local dim = Instance.new("TextButton") -- tap outside to close
+	dim.Name = "Dim"
+	dim.Text = ""
+	dim.AutoButtonColor = false
+	dim.Size = UDim2.fromScale(1, 1)
+	dim.BackgroundColor3 = Color3.new(0, 0, 0)
+	dim.BackgroundTransparency = 0.5
+	dim.Visible = false
+	dim.Parent = gui
+
 	local panel = Instance.new("Frame")
 	panel.Name = "Board"
-	panel.BackgroundColor3 = Ui.hex(if dark then look.cardColor else Ui.look.panel)
+	panel.AnchorPoint = Vector2.new(0.5, 0.5)
+	panel.Position = UDim2.fromScale(0.5, 0.5)
+	panel.Size = UDim2.fromScale(0.6, 0.75)
+	panel.BackgroundColor3 = DARK
 	panel.Visible = false
 	panel.Parent = gui
-	if board then
-		panel.AnchorPoint = Vector2.new(0, 0.5)
-		panel.Position = UDim2.fromScale(0.02, 0.55)
-		panel.Size = UDim2.fromScale(0.27, 0.6)
-		panel.BackgroundTransparency = 0.08
-	elseif look.layout == "row" then
-		panel.AnchorPoint = Vector2.new(0.5, 0.5)
-		panel.Position = UDim2.fromScale(0.5, 0.5)
-		panel.Size = UDim2.fromScale(0.78, 0.62)
-	else
-		panel.AnchorPoint = Vector2.new(0.5, 0.5)
-		panel.Position = UDim2.fromScale(0.5, 0.5)
-		panel.Size = UDim2.fromScale(0.6, 0.7)
-	end
-	Ui.round(panel, 0.06)
-	Ui.outline(gui, panel, 1)
 
-	local title = Ui.label(panel, "Title", "DAILY", 44)
-	title.TextColor3 = ink
+	local title = label(panel, "Title", 40)
+	title.Text = "DAILY"
 	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Position = UDim2.fromScale(0.05, 0.03)
-	title.Size = UDim2.fromScale(0.45, 0.12)
+	title.Position = UDim2.fromScale(0.04, 0.02)
+	title.Size = UDim2.fromScale(0.4, 0.12)
 
-	local timer = Ui.label(panel, "Timer", "", 24)
-	timer.TextColor3 = Ui.hex(if dark then "#B8C4E0" else Ui.look.dim)
-	timer.TextXAlignment = if board then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right
-	timer.Position = if board then UDim2.fromScale(0.05, 0.14) else UDim2.fromScale(0.45, 0.05)
-	timer.Size = if board then UDim2.fromScale(0.9, 0.06) else UDim2.fromScale(0.36, 0.08)
+	local timer = label(panel, "Timer", 22)
+	timer.TextXAlignment = Enum.TextXAlignment.Right
+	timer.Position = UDim2.fromScale(0.4, 0.04)
+	timer.Size = UDim2.fromScale(0.38, 0.08)
 
-	local closeSlot, closeButton = Ui.button(gui, panel, "Close", "X", false)
-	closeSlot.AnchorPoint = Vector2.new(1, 0)
-	closeSlot.Position = UDim2.fromScale(0.97, 0.03)
-	closeSlot.Size = UDim2.fromScale(0.12, 0.12)
-	closeSlot.SizeConstraint = Enum.SizeConstraint.RelativeYY
-	closeSlot.Visible = not board
+	local close = Instance.new("TextButton")
+	close.Name = "Close"
+	close.Text = "X"
+	close.Font = Enum.Font.GothamBold
+	close.TextScaled = true
+	close.TextColor3 = WHITE
+	close.BackgroundColor3 = Color3.fromRGB(255, 77, 94)
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.fromScale(0.98, 0.02)
+	close.Size = UDim2.fromScale(0.14, 0.14)
+	close.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	close.Parent = panel
+	local minSize = Instance.new("UISizeConstraint")
+	minSize.MinSize = Vector2.new(Config.Settings.minTouchTarget, Config.Settings.minTouchTarget)
+	minSize.Parent = close
 
-	local status = Ui.label(panel, "Status", "", 22)
-	status.TextColor3 = Ui.hex(Ui.look.danger)
+	local status = label(panel, "Status", 20)
+	status.TextColor3 = Color3.fromRGB(255, 200, 80)
 	status.AnchorPoint = Vector2.new(0.5, 1)
 	status.Position = UDim2.fromScale(0.5, 0.99)
 	status.Size = UDim2.fromScale(0.9, 0.06)
 
-	-- ===== cards =====
 	local cards: { Card } = {}
-	local top = if board then 0.22 else 0.18
-	local bottom = 0.92
 	for i = 1, 3 do
 		local f = Instance.new("Frame")
 		f.Name = "Card" .. i
-		f.BackgroundColor3 = Ui.hex(if dark then "#2B3A67" else look.cardColor)
-		if look.layout == "row" then
-			local w = 0.9 / 3
-			f.Position = UDim2.fromScale(0.05 + (i - 1) * w, top)
-			f.Size = UDim2.fromScale(w - 0.02, bottom - top)
-		else
-			local h = (bottom - top) / 3
-			f.Position = UDim2.fromScale(0.05, top + (i - 1) * h)
-			f.Size = UDim2.fromScale(0.9, h - 0.02)
-		end
+		f.BackgroundColor3 = Color3.fromRGB(43, 58, 103)
+		f.Position = UDim2.fromScale(0.04, 0.18 + (i - 1) * 0.25)
+		f.Size = UDim2.fromScale(0.92, 0.22)
 		f.Parent = panel
-		Ui.round(f, 0.12)
-		Ui.outline(gui, f, 0.7)
 
-		local tall = look.layout == "row"
-		local iconHolder = Instance.new("Frame")
-		iconHolder.Name = "IconHolder"
-		iconHolder.BackgroundTransparency = 1
-		iconHolder.Position = if tall
-			then UDim2.fromScale(0.2, 0.04)
-			else UDim2.fromScale(0.02, 0.08)
-		iconHolder.Size = if tall then UDim2.fromScale(0.6, 0.36) else UDim2.fromScale(0.2, 0.84)
-		iconHolder.Parent = f
-		local aspect = Instance.new("UIAspectRatioConstraint")
-		aspect.Parent = iconHolder
+		local line = label(f, "Line", 28)
+		line.TextXAlignment = Enum.TextXAlignment.Left
+		line.Position = UDim2.fromScale(0.04, 0.08)
+		line.Size = UDim2.fromScale(0.66, 0.42)
 
-		local line = Ui.label(f, "Line", "", 30)
-		line.TextColor3 = ink
-		line.TextXAlignment = if tall then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
-		line.Position = if tall then UDim2.fromScale(0.06, 0.42) else UDim2.fromScale(0.25, 0.08)
-		line.Size = if tall then UDim2.fromScale(0.88, 0.2) else UDim2.fromScale(0.5, 0.4)
-		line.TextWrapped = true
-
-		local barBack = Instance.new("Frame")
-		barBack.Name = "Bar"
-		barBack.BackgroundColor3 = Ui.hex(Ui.look.outline)
-		barBack.Position = if tall then UDim2.fromScale(0.1, 0.66) else UDim2.fromScale(0.25, 0.56)
-		barBack.Size = if tall then UDim2.fromScale(0.8, 0.07) else UDim2.fromScale(0.5, 0.16)
-		barBack.Parent = f
-		Ui.round(barBack, 0.5)
+		local back = Instance.new("Frame")
+		back.Name = "Bar"
+		back.BackgroundColor3 = Color3.fromRGB(14, 21, 48)
+		back.Position = UDim2.fromScale(0.04, 0.6)
+		back.Size = UDim2.fromScale(0.5, 0.14)
+		back.Parent = f
 		local fill = Instance.new("Frame")
 		fill.Name = "Fill"
 		fill.BorderSizePixel = 0
+		fill.BackgroundColor3 = BAR
 		fill.Size = UDim2.fromScale(0, 1)
-		fill.Parent = barBack
-		Ui.round(fill, 0.5)
+		fill.Parent = back
 
-		local count = Ui.label(f, "Count", "", 22)
-		count.TextColor3 = ink
-		count.TextXAlignment = if tall then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left
-		count.Position = if tall then UDim2.fromScale(0.1, 0.74) else UDim2.fromScale(0.25, 0.74)
-		count.Size = if tall then UDim2.fromScale(0.8, 0.08) else UDim2.fromScale(0.5, 0.2)
+		local count = label(f, "Count", 20)
+		count.TextXAlignment = Enum.TextXAlignment.Left
+		count.Position = UDim2.fromScale(0.56, 0.52)
+		count.Size = UDim2.fromScale(0.14, 0.3)
 
-		local reward = Ui.label(f, "Reward", "", 30)
-		reward.TextColor3 = Ui.hex(if dark then Ui.look.accent else "#C98400")
-		reward.Position = if tall then UDim2.fromScale(0.05, 0.84) else UDim2.fromScale(0.77, 0.2)
-		reward.Size = if tall then UDim2.fromScale(0.9, 0.12) else UDim2.fromScale(0.21, 0.6)
+		local reward = label(f, "Reward", 28)
+		reward.TextColor3 = Color3.fromRGB(255, 201, 60)
+		reward.Position = UDim2.fromScale(0.72, 0.15)
+		reward.Size = UDim2.fromScale(0.26, 0.7)
 
-		table.insert(cards, {
-			frame = f,
-			iconHolder = iconHolder,
-			icon = nil,
-			kind = "",
-			line = line,
-			count = count,
-			fill = fill,
-			reward = reward,
-		})
+		table.insert(cards, { frame = f, line = line, count = count, fill = fill, reward = reward })
 	end
 
-	-- ===== "done!" strip at the top (any time) =====
-	local toast = Ui.label(gui, "DailyToast", "", 36)
+	-- ===== "done" strip =====
+	local toastGui = screen("DailyToast", "Toast")
+	local toast = label(toastGui, "Strip", 32)
 	toast.AnchorPoint = Vector2.new(0.5, 0)
 	toast.Position = UDim2.fromScale(0.5, 0.02)
 	toast.Size = UDim2.fromScale(0.5, 0.08)
 	toast.BackgroundTransparency = 0
-	toast.BackgroundColor3 = Ui.hex(look.doneColor)
+	toast.BackgroundColor3 = GREEN
+	toast.TextColor3 = DARK
 	toast.Visible = false
-	Ui.round(toast, 0.3)
-	Ui.outline(gui, toast, 0.8)
 
 	-- ===== state =====
 	local phase = MatchPhase.Waiting
@@ -222,7 +204,7 @@ function DailyUiSystem.start()
 		end)
 	end
 
-	local function drawCards()
+	local function draw()
 		local current = state
 		if current == nil then
 			return
@@ -231,26 +213,13 @@ function DailyUiSystem.start()
 			local c = current.challenges[i]
 			card.frame.Visible = c ~= nil
 			if c ~= nil then
-				if card.kind ~= c.kind then
-					card.kind = c.kind
-					if card.icon then
-						card.icon:Destroy()
-					end
-					local icon = DailyIcon.create(card.iconHolder, c.kind)
-					icon.Size = UDim2.fromScale(1, 1)
-					card.icon = icon
-				end
 				card.line.Text = DailyText.line(c.kind, c.goal)
 				card.count.Text = DailyText.progress(c.progress, c.goal)
 				card.fill.Size =
 					UDim2.fromScale(math.clamp(c.progress / math.max(1, c.goal), 0, 1), 1)
-				card.fill.BackgroundColor3 = Ui.hex(
-					if c.paid then look.doneColor else look.tierColors[c.tier] or Ui.look.info
-				)
-				card.reward.Text = if c.paid then "DONE" else `+{c.reward}`
-				card.reward.TextColor3 = Ui.hex(
-					if c.paid then look.doneColor elseif dark then Ui.look.accent else "#C98400"
-				)
+				card.fill.BackgroundColor3 = if c.paid then GREEN else BAR
+				card.reward.Text = if c.paid then "DONE" else `+{c.reward} {coinName}`
+				card.reward.TextColor3 = if c.paid then GREEN else Color3.fromRGB(255, 201, 60)
 			end
 		end
 		local words: { [string]: string } = {
@@ -262,29 +231,33 @@ function DailyUiSystem.start()
 		status.Text = words[current.status] or ""
 	end
 
-	local function refresh()
-		local inLobby = phase == MatchPhase.Waiting
-		openSlot.Visible = inLobby and not board
-		if not inLobby then
-			open = false
+	local function setOpen(value: boolean)
+		if open == value then
+			return
 		end
-		panel.Visible = inLobby and (board or open) and state ~= nil
-		if panel.Visible then
+		open = value
+		if value then
+			ModalGate.opened(MODAL, function()
+				setOpen(false)
+			end)
 			dot.Visible = false
+			Net.send("DailyRequest")
+		else
+			ModalGate.closed(MODAL)
 		end
-		drawCards()
+		panel.Visible = value
+		dim.Visible = value
+		draw()
 	end
 
 	openButton.Activated:Connect(function()
-		open = not open
-		if open then
-			Net.send("DailyRequest")
-		end
-		refresh()
+		setOpen(not open)
 	end)
-	closeButton.Activated:Connect(function()
-		open = false
-		refresh()
+	close.Activated:Connect(function()
+		setOpen(false)
+	end)
+	dim.Activated:Connect(function()
+		setOpen(false)
 	end)
 
 	Net.on("DailyState", function(incoming: Types.DailyState)
@@ -299,11 +272,11 @@ function DailyUiSystem.start()
 					showToast(`DAILY DONE! +{c.reward} {coinName}`)
 				end
 			end
-			if not panel.Visible then
+			if not open then
 				dot.Visible = true
 			end
 		end
-		refresh()
+		draw()
 	end)
 
 	Net.on("MatchState", function(m: any)
@@ -312,7 +285,9 @@ function DailyUiSystem.start()
 		end
 		matchId = m.matchId
 		phase = m.phase
-		refresh()
+		if phase ~= MatchPhase.Waiting then
+			setOpen(false)
+		end
 	end)
 
 	-- The timer, and a fresh board when the day turns (asks once, then waits for the answer).
@@ -331,7 +306,6 @@ function DailyUiSystem.start()
 	end)
 
 	Net.send("DailyRequest")
-	refresh()
 end
 
 return DailyUiSystem
