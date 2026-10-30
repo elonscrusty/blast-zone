@@ -7,4 +7,4 @@
 - Reset: a new match id or Resetting/Waiting stops all effects and forgets levels, reload and zone-warning memory. Music fades (1 s out, 1.5 s in) between lobby, match, last minutes; Finished is quiet.
 - Tests: `tests/audio.test.luau` (23 checks: cue rules, ids, distance maths, limiter, every event, reset). Not tested: real playback, loudness balance, whether chosen ids load (needs Studio/Play).
 - Not run: selene (no API dump here; CI runs it) and a Roblox type check. Own shot sound waits for the server's ShotFx (one round trip); a local early sound would need a hook in piece 03.
-- Left: pick and add ids; music mood note in AUDIO-IDS.md follows carter's pick (neon synth is the default wording); maybe a countdown tick and UI click.
+- Left: pick and add ids; music mood is picked (neon synth, already in the cue wording); maybe a countdown tick and UI click.
