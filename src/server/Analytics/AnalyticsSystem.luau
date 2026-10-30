@@ -90,8 +90,7 @@ function AnalyticsSystem.start()
 		if not victim then
 			return
 		end
-		local killer = if event.killerId == nil
-				or event.killerId == event.victimId
+		local killer = if event.killerId == nil or event.killerId == event.victimId
 			then "none"
 			elseif Ids.isBot(event.killerId) then "bot"
 			else "player"

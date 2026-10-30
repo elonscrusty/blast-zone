@@ -9,10 +9,16 @@ local function make()
 	local now = 0
 	local tracker = AnalyticsTracker.new({
 		custom = function(player, name, value, fields)
-			table.insert(sent, { kind = "custom", player = player, name = name, value = value, fields = fields })
+			table.insert(
+				sent,
+				{ kind = "custom", player = player, name = name, value = value, fields = fields }
+			)
 		end,
 		funnel = function(player, step, stepName)
-			table.insert(sent, { kind = "funnel", player = player, name = stepName, value = step, fields = {} })
+			table.insert(
+				sent,
+				{ kind = "funnel", player = player, name = stepName, value = step, fields = {} }
+			)
 		end,
 	}, { "volt_pistol", "arc_mortar" }, function()
 		return now

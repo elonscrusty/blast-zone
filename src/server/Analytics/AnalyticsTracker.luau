@@ -13,7 +13,8 @@ local AnalyticsTracker = {}
 AnalyticsTracker.__index = AnalyticsTracker
 
 -- Order matters: the number is the funnel step. Other pieces call `funnelStep(player, name)` with one of these.
-AnalyticsTracker.FunnelSteps = { "joined", "pressedPlay", "firstMatchStarted", "firstElimination", "firstMatchEnded" }
+AnalyticsTracker.FunnelSteps =
+	{ "joined", "pressedPlay", "firstMatchStarted", "firstElimination", "firstMatchEnded" }
 
 AnalyticsTracker.Events = {
 	matchStart = "match_start",
@@ -22,7 +23,8 @@ AnalyticsTracker.Events = {
 	gunPick = "gun_pick",
 }
 
-local KNOWN_CAUSES = { bullet = true, explosion = true, zone = true, disconnect = true, other = true }
+local KNOWN_CAUSES =
+	{ bullet = true, explosion = true, zone = true, disconnect = true, other = true }
 
 function AnalyticsTracker.new(sink: Sink, knownGuns: { string }, clock: () -> number): any
 	local guns = {}
@@ -56,26 +58,45 @@ function AnalyticsTracker.matchStarted(self: any, matchId: number, participants:
 	local all = #participants
 	local people = humans(participants)
 	for _, p in people do
-		self._sink.custom(p.player, AnalyticsTracker.Events.matchStart, all, { `bots{all - #people}` })
+		self._sink.custom(
+			p.player,
+			AnalyticsTracker.Events.matchStart,
+			all,
+			{ `bots{all - #people}` }
+		)
 		self:funnelStep(p.player, "firstMatchStarted")
 	end
 end
 
 -- outcome: "win" | "draw" | "abandoned" (from the match results). Survivors of a win get "win", the rest "out".
-function AnalyticsTracker.matchEnded(self: any, matchId: number, participants: { Participant }, outcome: string)
+function AnalyticsTracker.matchEnded(
+	self: any,
+	matchId: number,
+	participants: { Participant },
+	outcome: string
+)
 	if matchId ~= self._matchId then
 		return
 	end
 	local seconds = math.floor(math.max(0, self._clock() - self._matchStartedAt))
 	for _, p in humans(participants) do
-		local result = if outcome == "win" and p.alive then "win" elseif outcome == "win" then "out" else outcome
+		local result = if outcome == "win" and p.alive
+			then "win"
+			elseif outcome == "win" then "out"
+			else outcome
 		self._sink.custom(p.player, AnalyticsTracker.Events.matchEnd, seconds, { result })
 		self:funnelStep(p.player, "firstMatchEnded")
 	end
 end
 
 -- Counts deaths of human players by cause. killer is "player", "bot" or "none".
-function AnalyticsTracker.died(self: any, player: any, cause: string, killer: string, weaponId: string?)
+function AnalyticsTracker.died(
+	self: any,
+	player: any,
+	cause: string,
+	killer: string,
+	weaponId: string?
+)
 	local safeCause = if KNOWN_CAUSES[cause] then cause else "other"
 	local weapon = if weaponId and self._guns[weaponId] then weaponId else "none"
 	self._sink.custom(player, AnalyticsTracker.Events.death, 1, { safeCause, killer, weapon })
