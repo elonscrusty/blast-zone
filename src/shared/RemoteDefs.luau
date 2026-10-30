@@ -127,6 +127,10 @@ local Defs: { Def } = {
 	tell("09", "BotFillState", "{ secondsLeft: number? } (nil hides the banner)"),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====
+
+	-- ===== 24 stats + top-wins board =====
+	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
+	tell("24", "StatsUpdate", "StatsPayload"),
 }
 
 local Index: { [string]: Def } = {}

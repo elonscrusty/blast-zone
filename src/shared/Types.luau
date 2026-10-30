@@ -160,4 +160,12 @@ export type ResultsPayload = {
 	you: { placement: number, eliminations: number, survivedSeconds: number, reward: number }?,
 }
 
+-- Piece 24: a player's own lifetime stats. saved = false while some of them are not written yet.
+export type StatsPayload = {
+	wins: number,
+	eliminations: number,
+	matches: number,
+	saved: boolean,
+}
+
 return {}
