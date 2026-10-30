@@ -21,6 +21,8 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
 | 17 | Saving player progress (DataStore profiles, session lock, once-only grants) | 19 | PR up | this PR |
+| 30 | Store page: 6 icon + thumbnail ideas (3D, C1 Showdown picked), name ideas, description, upload steps | - | PR up | #27 |
 | N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | own PR |
 | 18 | Coins + unlock track (looks only) + combined claim strip on the results screen | 19 | PR up | own PR |
 | 29 | Emotes in the lobby (12, all free: carter said "all of them") + pick-your-own winner pose on the results screen | - | PR up | own PR |
+| 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |

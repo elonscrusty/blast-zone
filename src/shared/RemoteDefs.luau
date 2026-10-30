@@ -38,7 +38,11 @@ local function tell(owner: string, name: string, payload: string): Def
 	return { name = name, direction = "toClient", owner = owner, payload = payload }
 end
 
+-- The fastest gun sets the fire-request limit (the server still checks each gun's own fire rate).
 local fireRate = Config.Weapons.Firearm.fireRate
+for _, gun in Config.Weapons.Guns do
+	fireRate = math.max(fireRate, 1 / gun.fireInterval)
+end
 
 local Defs: { Def } = {
 	-- ===== 01 core =====
@@ -77,7 +81,11 @@ local Defs: { Def } = {
 	),
 	tell("03", "HitConfirm", "{ targetId, amount, killed, pos? }"),
 	tell("03", "DamageTaken", "{ sourceId?, amount, cause, fromDir?, weaponId?, health }"),
-	tell("03", "AmmoState", "{ slot, weaponId, ammo, magazine, reloadEndsAt?, serverNow }"),
+	tell(
+		"03",
+		"AmmoState",
+		"{ slot, weaponId, weaponName, fireInterval, reloadSeconds, muzzleOffset, ammo, magazine, reloadEndsAt?, serverNow }"
+	),
 	tell("03", "HealthState", "{ health, max }"),
 	tell("03", "ExplosionFx", "{ pos, radius, shooterId?, warnEndsAt? }"),
 	tell(

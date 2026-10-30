@@ -111,6 +111,27 @@ function WeaponState.equip(self: State, slot: number, now: number, swapSeconds: 
 	return true
 end
 
+-- A different gun now sits in `slot` (a found gun): full magazine, no reload, its own fire rate.
+-- A short swap delay applies when it is the equipped slot. Refused once locked.
+function WeaponState.replace(
+	self: State,
+	slot: number,
+	magazine: number,
+	now: number,
+	swapSeconds: number
+): boolean
+	if self.locked or self.ammo[slot] == nil then
+		return false
+	end
+	self.ammo[slot] = magazine
+	self.reloadEndsAt[slot] = nil
+	self.nextFireAt[slot] = nil
+	if slot == self.slot then
+		self.swapReadyAt = math.max(self.swapReadyAt, now + swapSeconds)
+	end
+	return true
+end
+
 -- Finishes reloads whose time is up. Returns the slots that just completed.
 function WeaponState.update(self: State, now: number, statsOf: (number) -> Stats): { number }
 	local done = {}
