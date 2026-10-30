@@ -80,7 +80,7 @@ function StatBook.setProvider(self: any, fn: ((string) -> Sheet?)?)
 end
 
 -- Modifiers run after the provider, on a copy, in the order they were added (piece 19: the Slide sidegrade).
--- They may change the plain numbers on the sheet and, since piece 44, the numbers inside its `firearm` /
+-- They may change the plain numbers on the sheet and, since piece 46, the numbers inside its `firearm` /
 -- `explosive` tables: `get` hands them their own copy of both, so the upgrade piece's sheet is never touched.
 function StatBook.addModifier(self: any, fn: (string, Sheet) -> ())
 	table.insert(self._modifiers, fn)

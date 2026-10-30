@@ -11,6 +11,7 @@ local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local SpawnShields = require(script.Parent.Parent.Core.SpawnShields)
 local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
+local SprintService = require(script.Parent.Parent.Movement.SprintService)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
@@ -164,6 +165,7 @@ function Firing.fire(id: string, claimedOrigin: Vector3?, dir: Vector3): (boolea
 		end
 		return false, result.reason
 	end
+	SprintService.noteFire(id) -- a shot breaks the run for a moment
 	-- Shooting ends your own spawn shield: no attacking from behind it.
 	if Config.SpawnShield.dropOnFire then
 		SpawnShields:drop(id)

@@ -63,7 +63,7 @@ export type Options = {
 	seed: number?,
 	layout: string?, -- "A" | "B" | "C" (default: Config.Arena.layout)
 	config: any?, -- a patched copy of Config
-	heroes: { [number]: string }?, -- hero id by user id (piece 44); everyone else plays the default hero
+	heroes: { [number]: string }?, -- hero id by user id (piece 46); everyone else plays the default hero
 }
 
 type Body = { x: number, z: number, vx: number, vz: number }
@@ -154,7 +154,7 @@ function MatchSim.new(options: Options?)
 	})
 	local runXp = RunXp.new(cfg.Xp)
 	local stats = StatBook.new(cfg)
-	-- Piece 44: Lobby/LobbySystem installs this modifier and Core/HeroBook; bots play heroes by number.
+	-- Piece 46: Lobby/LobbySystem installs this modifier and Core/HeroBook; bots play heroes by number.
 	local function heroOf(id: string): string
 		return HeroRoster.heroOf(cfg, id, function(userId: number): string?
 			return (opts.heroes or {})[userId]

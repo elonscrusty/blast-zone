@@ -1,6 +1,6 @@
 --!strict
 -- The loadout catalogue and its rules. Pure data and checks, no Roblox services, so Lune can test it.
--- Four slots: hero (piece 44: own health + own two guns, all free), outfit (the three fighters), gun skin,
+-- Four slots: hero (piece 46: own health + own two guns, all free), outfit (the three fighters), gun skin,
 -- slide sidegrade. Outfits and gun skins are looks only. Trails and tracers belong to piece 18 (the Rewards
 -- board); the loadout screen only links to them.
 -- A sidegrade trades one thing for another (Slide goes farther but waits longer), so nothing is simply

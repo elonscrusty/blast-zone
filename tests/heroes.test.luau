@@ -1,5 +1,5 @@
 --!strict
--- Piece 44: heroes. Roster rules, balance guard, stat sheet tuning, stat cards, the loadout slot,
+-- Piece 46: heroes. Roster rules, balance guard, stat sheet tuning, stat cards, the loadout slot,
 -- who plays which hero, and per-hero health.
 local Harness = require("./harness")
 local Config = require("../src/shared/Config")

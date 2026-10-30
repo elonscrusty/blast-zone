@@ -2,7 +2,7 @@
 -- Piece 19: the lobby plaza and the loadout. Starts itself (any `*System` module does).
 --   * builds Workspace.Lobby (LobbyBuilder) before players spawn, so piece 05 finds the LobbySpawn part
 --   * keeps each player's loadout (hero, outfit, gun skin, Slide sidegrade): the server checks every pick
---   * the HERO slot (piece 44): the server tells combat which hero each player plays (Core/HeroBook) and tunes
+--   * the HERO slot (piece 46): the server tells combat which hero each player plays (Core/HeroBook) and tunes
 --     their stat sheet (speed, the slot 2 launcher); health and the starter gun are read when the match starts
 --   * the OUTFIT slot is piece N11's three fighters: this sets the player's CharacterLook attribute (and
 --     restyles a body already standing), and follows N11's own look buttons so the two never disagree

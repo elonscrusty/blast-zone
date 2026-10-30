@@ -1,4 +1,4 @@
-# 44 Heroes with their own guns (video 3 gap #12, stat cards from #13)
+# 46 Heroes with their own guns (video 3 gap #12, stat cards from #13)
 - Done: 5 original heroes (Ranger, Bulwark, Wisp, Sentinel, Rigger) in `src/shared/Heroes.luau`. Each has its own health, a small speed change, a slot 1 starter gun and a slot 2 blast launcher (the Arc Mortar tuned: Slam Pop, Mini Pop, Far Pop, Big Pop). Every hero is free: no unlock, no Robux, no ids, no prices.
 - Pick: new HERO tab first in the loadout (`Loadout.slots`), saved with the profile like the other picks. The server checks the pick and only lets you change it between matches. Looks (outfits) stay cosmetic and work on any hero.
 - Server decides: `Combatants.ensure` reads the hero once per match (health, starter gun, magazine). Speed and the launcher go through an `EffectiveStats` modifier in `LobbySystem`. Bots play a hero by their number (`HeroRoster`). `HealthBook.add` takes a per-fighter max; bots, heal packs and the HUD read it.

@@ -6,6 +6,8 @@
 --   * Slide: on the "slide" action, start sliding at once (using the same rules the server uses)
 --     and ask the server. The server decides: if it says no the slide is cancelled, and if the
 --     distance differs this slide is stretched or cut to match.
+--   * Hop (piece 45): the same Slide button hops over low cover when a hoppable thing is right in
+--     front (the server plans it too and can say no). Sprint is a toggle the server enforces.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,8 +20,12 @@ local MoveRules = require(Shared.Movement.MoveRules)
 local SlideCast = require(Shared.Movement.SlideCast)
 local SlideMotion = require(Shared.Movement.SlideMotion)
 local SlideRules = require(Shared.Movement.SlideRules)
+local VaultCast = require(Shared.Movement.VaultCast)
+local VaultMotion = require(Shared.Movement.VaultMotion)
 local Net = require(script.Parent.Parent.Core.Net)
+local MoveState = require("./MoveState")
 local SlideTrail = require("./SlideTrail")
+local CameraHeading = require("./CameraHeading")
 
 local MoveSystem = {}
 MoveSystem.order = 110
@@ -37,6 +43,8 @@ type Controls = {
 local controls: Controls? = nil
 local readyAt = 0 -- server time the slide is available again
 local slide: SlideMotion.Handle? = nil
+local hop: VaultMotion.Handle? = nil
+local hopReadyAt = 0 -- os.clock() time the next hop may start (the server keeps the real one)
 local facing: { root: BasePart, align: AlignOrientation }? = nil
 
 local function loadControls()
@@ -55,6 +63,8 @@ local function loadControls()
 	controls.Action:connect(function(name: string)
 		if name == "slide" then
 			MoveSystem.requestSlide()
+		elseif name == "sprint" then
+			MoveSystem.toggleSprint()
 		end
 	end)
 end
@@ -118,11 +128,14 @@ local function step()
 		if slide then
 			slide.cancel()
 		end
+		if hop then
+			hop.cancel()
+		end
 		return
 	end
 
 	local right, forward = readMove(c)
-	local wx, wz = MoveRules.moveToWorld(right, forward, Config.Camera.yawDegrees)
+	local wx, wz = MoveRules.moveToWorld(right, forward, CameraHeading.get())
 	humanoid:Move(Vector3.new(wx, 0, wz), false)
 
 	local aim: Vector3? = nil
@@ -143,24 +156,64 @@ local function cancelSlide()
 	end
 end
 
+local function cancelHop()
+	local running = hop
+	if running then
+		running.cancel()
+	end
+end
+
+-- Hops over cover when something hoppable is right ahead. Returns true when a hop started.
+local function tryHop(
+	character: Model,
+	humanoid: Humanoid,
+	root: BasePart,
+	dx: number,
+	dz: number
+): boolean
+	if (hop and hop.isRunning()) or os.clock() < hopReadyAt then
+		return false
+	end
+	local plan = VaultCast.plan(character, root, humanoid.HipHeight, dx, dz, nil)
+	if plan == nil then
+		return false
+	end
+	hopReadyAt = os.clock() + Config.Vault.cooldownSeconds
+	Net.send("VaultRequest", Vector3.new(dx, 0, dz))
+	hop = VaultMotion.run(character, root, plan.toPos, plan.peak, plan.duration)
+	return true
+end
+
+function MoveSystem.toggleSprint()
+	local _, humanoid = bodyOfPlayer()
+	if humanoid == nil or humanoid.Health <= 0 then
+		return
+	end
+	Net.send("SprintRequest", MoveState.toggleSprint())
+end
+
 function MoveSystem.requestSlide()
 	local c = controls
 	local character, humanoid, root = bodyOfPlayer()
 	if c == nil or character == nil or humanoid == nil or root == nil then
 		return
 	end
-	if humanoid.Health <= 0 or (slide and slide.isRunning()) then
-		return
-	end
-	if workspace:GetServerTimeNow() < readyAt then
+	if humanoid.Health <= 0 or (slide and slide.isRunning()) or (hop and hop.isRunning()) then
 		return
 	end
 
 	local right, forward = readMove(c)
-	local mx, mz = MoveRules.moveToWorld(right, forward, Config.Camera.yawDegrees)
+	local mx, mz = MoveRules.moveToWorld(right, forward, CameraHeading.get())
 	local look = root.CFrame.LookVector
 	local dx, dz = SlideRules.direction(mx, mz, look.X, look.Z)
 	if dx == nil or dz == nil then
+		return
+	end
+
+	if tryHop(character, humanoid, root, dx, dz) then
+		return
+	end
+	if workspace:GetServerTimeNow() < readyAt then
 		return
 	end
 
@@ -179,12 +232,32 @@ end
 function MoveSystem.start()
 	task.spawn(loadControls)
 
-	Net.on("SlideState", function(state: { cooldownEndsAt: number })
-		if type(state) == "table" and type(state.cooldownEndsAt) == "number" then
-			readyAt = state.cooldownEndsAt
+	Net.on(
+		"SlideState",
+		function(state: { cooldownEndsAt: number, charges: number?, maxCharges: number? })
+			if type(state) ~= "table" then
+				return
+			end
+			if type(state.cooldownEndsAt) == "number" then
+				readyAt = state.cooldownEndsAt
+			end
+			if type(state.charges) == "number" and type(state.maxCharges) == "number" then
+				MoveState.setSlide(state.charges, state.maxCharges)
+			end
+		end
+	)
+	Net.on("SlideDenied", cancelSlide)
+	Net.on("VaultDenied", cancelHop)
+	Net.on("SprintState", function(state: { stamina: number, running: boolean, locked: boolean })
+		if
+			type(state) == "table"
+			and type(state.stamina) == "number"
+			and type(state.running) == "boolean"
+			and type(state.locked) == "boolean"
+		then
+			MoveState.setSprint(state.stamina, state.running, state.locked)
 		end
 	end)
-	Net.on("SlideDenied", cancelSlide)
 	Net.on(
 		"SlideFx",
 		function(fx: { participantId: string, fromPos: Vector3, toPos: Vector3, duration: number })
@@ -215,11 +288,16 @@ function MoveSystem.start()
 					humanoid:SetStateEnabled(state, false)
 				end)
 			end
-			humanoid.Died:Connect(cancelSlide)
+			humanoid.Died:Connect(function()
+				cancelSlide()
+				cancelHop()
+			end)
 		end
 	end
 	player.CharacterAdded:Connect(function(character)
 		cancelSlide()
+		cancelHop()
+		MoveState.clearSprint()
 		facing = nil
 		onCharacter(character)
 	end)
