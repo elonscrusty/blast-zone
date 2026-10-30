@@ -25,10 +25,7 @@ export type FireResult = { ok: boolean, reason: string?, startedReload: boolean 
 
 -- `magazines` = starting ammo per slot. `tolerance` = how early (seconds) a shot may arrive.
 function WeaponState.new(magazines: { number }, tolerance: number): State
-	local ammo = {}
-	for slot, mag in magazines do
-		ammo[slot] = mag
-	end
+	local ammo = table.clone(magazines)
 	return setmetatable({
 		slot = 1,
 		ammo = ammo,
