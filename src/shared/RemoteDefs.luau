@@ -199,6 +199,21 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== G24 game modes =====
+	ask(
+		"G24",
+		"ModeVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Modes.maxIdLength } },
+		2,
+		3
+	),
+	ask("G24", "ModeStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"G24",
+		"ModeState",
+		"ModeState (open, modes with counts and locks, yourVote?, nextModeId?, level)"
+	),
+
 	-- ===== 42 loot: heal packs =====
 	ask("42", "UseHealRequest", {}, 3, 3),
 	tell(
