@@ -26,6 +26,8 @@ export type Tuning = {
 	spreadHumanRange: number,
 	-- thinking
 	thinkInterval: number,
+	crowdFrom: number, -- with more bots than this, each one thinks a little less often
+	crowdMaxSlowdown: number, -- thinking gap at a full match is this many times thinkInterval
 	pickupRange: number,
 	memoryTime: number,
 	idealRangeFraction: number,
@@ -104,6 +106,15 @@ export type ConfigLike = {
 	},
 }
 
+-- Seconds between one bot's thinks when `bots` bots are running. A few bots think at the full rate; as the
+-- number grows toward a full match the gap stretches (to crowdMaxSlowdown times) so 24 bots cost the
+-- server about what 15 did. Walking and shooting still run every frame.
+function BotTuning.thinkGap(tuning: Tuning, bots: number, fullMatch: number): number
+	local span = math.max(1, fullMatch - 1 - tuning.crowdFrom)
+	local over = math.clamp((bots - tuning.crowdFrom) / span, 0, 1)
+	return tuning.thinkInterval * (1 + over * (tuning.crowdMaxSlowdown - 1))
+end
+
 function BotTuning.from(config: ConfigLike): Tuning
 	assert(
 		config.Bots.hiddenStatAdvantage == false,
@@ -145,6 +156,8 @@ function BotTuning.from(config: ConfigLike): Tuning
 		spreadHumanRange = 14,
 
 		thinkInterval = 0.1,
+		crowdFrom = 10,
+		crowdMaxSlowdown = 1.6, -- 24 bots think every 0.16 s instead of 0.1 s; the walking stays every frame
 		pickupRange = 40,
 		memoryTime = 2, -- keeps heading to where a target was last seen
 		idealRangeFraction = 0.6, -- fights at this share of the weapon range

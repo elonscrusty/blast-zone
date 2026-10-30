@@ -24,6 +24,7 @@ Written against the integration branch with Phases 1-3 plus pieces 17 (saving) a
 | Game name | "Circuit District" is a placeholder and not checked for availability. Change `Config.Game.Name` and the place name together. |
 | Robux ids and prices | None exist. Nothing in the game sells anything. Never invent one. |
 | Security / API settings | Studio "Enable Studio Access to API Services" and the game's "Allow API access" are settings you change. Steps are in section 5. |
+| Max Players (25 fighters) | The file asks for 25 (`default.project.json`), but check it once. Studio: Home tab > Game Settings > Players > Maximum Players = 25 > Save. Or on the Creator Hub: your experience > Places > the place > Settings > Max Players = 25. Never below 8. Bots fill the rest, so a small server still works. |
 | Final numbers | All tuning lives in `src/shared/Config.luau`. Change a number there, not in code. |
 
 ## 3. Manual multiplayer test scenarios (brief section 26)

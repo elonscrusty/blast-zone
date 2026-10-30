@@ -19,6 +19,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 08 | Upgrade catalogue + offers (server) + upgrade cards (client, Bottom Row) | 14, 20 | PR up | #5 |
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
+| G23 | Ranked ladder (video 3 gap 23): rank points, tiers, warm-up, ranked switch, saved with Profiles; leaving keeps the loss; logic only (screens from Claude Design) | 17, 24 | PR up | ranked PR |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
 | 22 | UI layers: Settings over lobby, one panel at a time, lobby slots, phone-shape spacing | 20 | PR up | piece 22 PR |
 | 17 | Saving player progress (DataStore profiles, session lock, once-only grants) | 19 | PR up | this PR |
@@ -60,7 +61,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 44 | Turn the camera (bug: the view was locked): mouse right-button drag, touch drag on the free right side, gamepad L2 + right stick; walking, minimap follow the turn | 2, 10 | PR up | handoff 44 |
 | 45 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |
 | 46 | Heroes (video 3 gaps #12 + stat cards of #13): 5 original heroes, own health + own two guns, free HERO loadout slot, server-decided, gun stat cards (logic only; looks from Claude Design) | 9, 20 | PR up | heroes PR |
-| G23 | Ranked ladder (video 3 gap 23): rank points, tiers, warm-up, ranked switch, saved with Profiles; leaving keeps the loss; logic only (screens from Claude Design) | 17, 24 | PR up | ranked PR |
+| 47 | 25 fighters (video 3 gap 9): matches fill to 25 with bots; map, circle and match clock stretch with one number (`Config.Arena.scale`); one spawn per fighter and more crate points on every map; 24 bot names; bots think slower when crowded; Max Players 25 | 9, 21 | PR up | handoff 47 |
 | G20 | Season pass (video 3 gap 20): 14-day seasons, 20 tiers, free row + paid row, season XP from every match, TAKE / TAKE ALL (looks and Scrap only; the paid row is not for sale yet; logic only, look from Claude Design) | 18, 34 | PR up | season pass PR |
 | 48 | Gear slots (video 3 gap #15): head, body, feet; 3 pieces each (one free), small trades not power, server-decided, saved in the loadout; logic only, looks from Claude Design | 19, 46 | PR up | gear slots PR |
 | G24 | Game modes (video 3 gap 24): lobby vote for a mode (Classic, Quick Blast, Loot Rush; Last Stand ready but off), padlock by account level, server applies the winner's tuning at Spawning and puts it back after (logic only; looks from Claude Design) | - | PR up | game modes PR |

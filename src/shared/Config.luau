@@ -6,6 +6,69 @@
 local FIRE_RATE = 5 -- shots per second
 local EXPLOSIVE_INTERVAL = 1.6 -- seconds between mortar shots
 
+-- Crowd size (piece 47). A match is filled with bots up to CROWD fighters. ARENA_SCALE stretches the
+-- arena (1 = the first 220-stud street, 1.3 = about 286 studs) and, with it, the safe circle and the
+-- match clock, because a longer street takes longer to cross. Change these two numbers, nothing else.
+local CROWD = 25
+local ARENA_SCALE = 1.3
+
+local function scaled(n: number): number
+	return math.floor(n * ARENA_SCALE + 0.5)
+end
+
+-- The safe circle for a map stretched by `scale`: radii follow the map, times follow the walk.
+-- At scale 1 these are the numbers the first 8-fighter matches used.
+local function zoneFor(scale: number)
+	local function r(n: number): number
+		return math.floor(n * scale + 0.5)
+	end
+	return {
+		centerX = 0,
+		centerZ = 0,
+		centerMode = "fixed",
+		initialRadius = r(156), -- the whole square, corners included
+		tickSeconds = 0.5,
+		edgeTolerance = 0.5, -- exactly on the edge counts as inside
+		stages = {
+			{
+				warnAt = r(35),
+				closeAt = r(45),
+				closeSeconds = r(20),
+				targetRadius = r(105),
+				damagePerSecond = 2,
+			},
+			{
+				warnAt = r(75),
+				closeAt = r(85),
+				closeSeconds = r(20),
+				targetRadius = r(68),
+				damagePerSecond = 4,
+			},
+			{
+				warnAt = r(115),
+				closeAt = r(125),
+				closeSeconds = r(15),
+				targetRadius = r(38),
+				damagePerSecond = 7,
+			},
+			{
+				warnAt = r(150),
+				closeAt = r(158),
+				closeSeconds = r(12),
+				targetRadius = r(14),
+				damagePerSecond = 12,
+			},
+		},
+		-- Sudden death is a rule, not a banner: the circle keeps closing and hurts much more.
+		suddenDeath = {
+			startsAt = r(170),
+			closeSeconds = r(15),
+			targetRadius = r(4),
+			damagePerSecond = 25,
+		},
+	}
+end
+
 -- What a game mode may change (piece G24, see Config.Modes). Every field is optional; a missing one means "as usual".
 export type ModeTuning = {
 	zoneTimeScale: number?, -- multiplies every zone time (warn, close, sudden death); below 1 = a faster circle
@@ -54,8 +117,8 @@ Config.Features = {
 
 -- Match lifecycle (piece 05). Times in seconds.
 Config.Match = {
-	targetParticipants = 6,
-	maxParticipants = 8,
+	targetParticipants = CROWD, -- bots top a part-full lobby up to this many fighters
+	maxParticipants = CROWD,
 	minToStart = 2,
 	fillWaitSeconds = 12, -- grace after minToStart is met, so friends can join
 	countdownSeconds = 5,
@@ -63,15 +126,15 @@ Config.Match = {
 	finishedHoldSeconds = 3,
 	resultsSeconds = 20,
 	resettingSeconds = 2,
-	targetMatchSeconds = 180,
+	targetMatchSeconds = scaled(180),
 	-- Two final eliminations closer together than this are a draw (both rank 1).
 	simultaneousEliminationWindow = 0.1,
 	-- Piece 05 extras
 	settleSeconds = 0.3, -- after the last rival falls, a shot already in flight can still land
 	resultsMinSeconds = 1, -- Results phase lasts at least this long, even if everyone taps Play again at once
 	finalPressureAliveCount = 2, -- Final pressure starts when this few are left...
-	finalPressureAtSeconds = 150, -- ...or this long after Active begins (the zone's last warning does it too)
-	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw
+	finalPressureAtSeconds = scaled(150), -- ...or this long after Active begins (the zone's last warning does it too)
+	maxActiveSeconds = scaled(210), -- safety net: a match still going then ends as a draw
 }
 
 -- Piece 33. Players vote on the next map in the lobby between matches. The server counts.
@@ -448,13 +511,14 @@ Config.Vault = {
 }
 
 Config.Arena = {
-	size = 220, -- studs, square, centered on centerX/centerZ
+	scale = ARENA_SCALE, -- piece 47: how far the layouts are stretched (1 = the 220-stud originals)
+	size = 220 * ARENA_SCALE, -- studs, square, centered on centerX/centerZ
 	centerX = 0,
 	centerZ = 0,
-	minSpawns = 8,
-	spawnMinSeparation = 40,
+	minSpawns = CROWD, -- layouts are topped up to one spawn point per fighter
+	spawnMinSeparation = 36, -- above the calm-start sight range, so nobody spawns in view
+	containerSpots = 36, -- crate points per map (topped up from the layout's own); about 1.4 per fighter
 	spawnClearRadius = 4,
-	containerSpots = 12,
 	parkEntrancesMin = 2,
 	-- Piece 04. Which graybox layout is built (A, B or C, see src/server/Arena/Layout*.luau).
 	layout = "C", -- carter picked C (Arcade Row); A and B stay as extra maps
@@ -534,7 +598,7 @@ Config.Pickups = {
 	collectRadius = 5, -- server check
 	magnetRadius = 9, -- cosmetic pull on the client; never decides ownership
 	healAmount = 25, -- when Features.healPickup is on
-	maxActive = 60,
+	maxActive = 80, -- piece 47: 25 fighters break more crates than 8 did
 	reserveSeconds = 1.5, -- the player who broke the container gets first claim on its orbs for this long
 	claimSlack = 1.5, -- extra studs the server forgives for lag when it checks a claim
 	scatterRadius = 3.5, -- orbs land on a ring this wide around the container
@@ -564,26 +628,39 @@ Config.Upgrades = {
 
 -- Safe area (piece 06). All times are seconds after Active begins.
 -- Each stage: warn, then close to targetRadius over closeSeconds, then hold.
-Config.Zone = {
-	centerX = 0,
-	centerZ = 0,
-	centerMode = "fixed",
-	initialRadius = 156, -- the whole 220 square, corners included
-	tickSeconds = 0.5,
-	edgeTolerance = 0.5, -- exactly on the edge counts as inside
-	stages = {
-		{ warnAt = 35, closeAt = 45, closeSeconds = 20, targetRadius = 105, damagePerSecond = 2 },
-		{ warnAt = 75, closeAt = 85, closeSeconds = 20, targetRadius = 68, damagePerSecond = 4 },
-		{ warnAt = 115, closeAt = 125, closeSeconds = 15, targetRadius = 38, damagePerSecond = 7 },
-		{ warnAt = 150, closeAt = 158, closeSeconds = 12, targetRadius = 14, damagePerSecond = 12 },
-	},
-	-- Sudden death is a rule, not a banner: the circle keeps closing and hurts much more.
-	suddenDeath = { startsAt = 170, closeSeconds = 15, targetRadius = 4, damagePerSecond = 25 },
-}
+-- Built by zoneFor() above so it follows ARENA_SCALE. Config.zoneAt(1) is the first 220-stud version.
+Config.Zone = zoneFor(ARENA_SCALE)
+Config.zoneAt = zoneFor
 
 Config.Bots = {
 	labelPrefix = "[BOT] ",
-	names = { "Volt", "Static", "Ohm", "Relay", "Diode", "Fuse", "Coil", "Spark" },
+	-- 24 different names: a full 25-fighter match has 24 bots and none may share a name.
+	names = {
+		"Volt",
+		"Static",
+		"Ohm",
+		"Relay",
+		"Diode",
+		"Fuse",
+		"Coil",
+		"Spark",
+		"Amp",
+		"Watt",
+		"Joule",
+		"Farad",
+		"Tesla",
+		"Gauss",
+		"Henry",
+		"Ion",
+		"Pulse",
+		"Arc",
+		"Flux",
+		"Surge",
+		"Node",
+		"Wire",
+		"Cell",
+		"Chip",
+	},
 	devDefaultCount = 3,
 	fillToMinimum = true,
 	sightRange = 60,
