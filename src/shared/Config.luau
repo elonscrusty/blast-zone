@@ -317,6 +317,27 @@ Config.Heroes = {
 	botsUseHeroes = true, -- bots get a hero by their number (the same one every match)
 }
 
+-- Piece 48: gear slots (video 3 gap #15). Head, body and feet each hold one piece. Every piece is a small
+-- trade (a little of one thing for a little of another), so no outfit is simply stronger. All free to earn on
+-- the Rewards board; nothing is ever sold. The numbers per piece live in `src/shared/Gear.luau`.
+Config.Gear = {
+	-- How big the trades are. 0 = gear changes nothing, 1 = as written, 1.5 = bigger trades.
+	spread = 1,
+	-- Whatever the three pieces say, the total in each dial stays inside these (in the dial's own unit, after
+	-- `spread`). A positive number is a gain for the player.
+	limits = {
+		health = { -20, 25 }, -- hit points on top of the hero's
+		speed = { -8, 6 }, -- percent of run speed
+		reload = { -12, 10 }, -- percent faster reload (negative = slower)
+		range = { -10, 10 }, -- percent gun range
+		slideWait = { -2, 1.5 }, -- seconds sooner the Slide is ready (negative = later)
+		slideReach = { -4, 5 }, -- studs farther Slide
+	},
+	slideCooldownFloor = 1, -- Slide never waits less than this, whatever the gear says
+	slideDistanceFloor = 4, -- and never goes shorter than this
+	attributes = { head = "GearHead", body = "GearBody", feet = "GearFeet" }, -- on the player, for the look layer
+}
+
 -- Piece 43: the big level-up powers. Their on/off stats live in the upgrade catalogue; these are the
 -- numbers the shot code uses once a power is on. Placeholders until carter plays.
 Config.Powers = {

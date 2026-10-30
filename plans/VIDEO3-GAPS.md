@@ -47,7 +47,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | 12 | **Heroes with real differences** | A roster strip of 5+ heroes. Each has health and its own two guns. | 3 looks, all the same stats (looks only). **Piece 46 builds the logic** (5 heroes, health, 2 guns each, stat cards); looks wait for Claude Design. | L |
 | 13 | **Gun upgrade cards** | Each gun shows damage, range, fire rate and a small progress bar to upgrade it. | Guns are fixed. | M |
 | 14 | **Blueprints / merge screen** | Collect parts, merge into better gear. | Missing. | L |
-| 15 | **Gear slots** (head, body, feet...) | Equipment grid. | Missing. | M |
+| 15 | **Gear slots** (head, body, feet...) | Equipment grid. | Piece 48 builds the logic (3 slots, small trades, free to earn). Looks wait for Claude Design. | M |
 | 16 | **Power rating** | One number for how strong your gear is. | Missing. | S |
 
 (Careful with 13-16: keep them looks and soft perks, never Robux power. Same rule as levels, #34.)
