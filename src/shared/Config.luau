@@ -330,18 +330,17 @@ Config.Settings = {
 	minTouchTarget = 48, -- points
 }
 
-Config.Perf = {
-	maxDamageNumbers = 12,
-	maxLiveEffects = 40,
-	maxDebrisParts = 0, -- containers burst as particles, not physical parts
-}
-
 -- Piece 20: first-time intro and "your data did not load" messages (client side only).
 Config.Onboarding = {
 	introFlag = "introSeen", -- must be listed in Config.Profile.flags (piece 17)
 	slowLoadSeconds = 12, -- loading longer than this shows "Still loading your save..."
 	retryCooldownSeconds = 5, -- the TRY AGAIN button waits this long between taps
-	noticeFadeSeconds = 0.25,
+}
+
+Config.Perf = {
+	maxDamageNumbers = 12,
+	maxLiveEffects = 40,
+	maxDebrisParts = 0, -- containers burst as particles, not physical parts
 }
 
 Config.Net = {

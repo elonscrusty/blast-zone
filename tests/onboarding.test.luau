@@ -78,6 +78,8 @@ Harness.test("new player in a ready save sees the intro once, in the lobby only"
 	local m = OnboardingModel.new(true, 0)
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), false) -- still loading
 	OnboardingModel.applyStatus(m, { state = "ready", flags = {} }, 1)
+	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), false) -- phase not known yet
+	OnboardingModel.setPhase(m, "Waiting")
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), true)
 	OnboardingModel.setPhase(m, "Countdown")
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), false)
@@ -89,12 +91,14 @@ end)
 
 Harness.test("returning player (flag set) never sees the intro", function()
 	local m = OnboardingModel.new(true, 0)
+	OnboardingModel.setPhase(m, "Waiting")
 	OnboardingModel.applyStatus(m, { state = "ready", flags = { introSeen = true } }, 1)
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), false)
 end)
 
 Harness.test("failed load: intro still shows once, and nothing is asked of the server", function()
 	local m = OnboardingModel.new(true, 0)
+	OnboardingModel.setPhase(m, "Waiting")
 	OnboardingModel.applyStatus(m, { state = "failed", flags = { introSeen = true } }, 3)
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), true) -- flags from a failed load are not trusted
 	Harness.eq(OnboardingModel.finishIntro(m), false)
@@ -103,6 +107,7 @@ end)
 
 Harness.test("save arrives while the intro is open: a late flag does not close it", function()
 	local m = OnboardingModel.new(true, 0)
+	OnboardingModel.setPhase(m, "Waiting")
 	OnboardingModel.applyStatus(m, { state = "ready", flags = {} }, 1)
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), true)
 	-- a repeat status with the same content must not hide or re-show it
@@ -112,6 +117,7 @@ end)
 
 Harness.test("no save system: intro once per join, no notice, no write", function()
 	local m = OnboardingModel.new(false, 0)
+	OnboardingModel.setPhase(m, "Waiting")
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), true)
 	Harness.eq(OnboardingModel.notice(m, cfg, 100), nil)
 	Harness.eq(OnboardingModel.finishIntro(m), false)

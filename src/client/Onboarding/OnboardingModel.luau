@@ -36,7 +36,7 @@ function OnboardingModel.new(hasSaveSystem: boolean, now: number): Model
 		introDone = false,
 		loadingSince = if hasSaveSystem then now else nil,
 		nextRetryAt = 0,
-		phase = "Waiting",
+		phase = "unknown", -- until the first MatchState arrives
 	}
 end
 
