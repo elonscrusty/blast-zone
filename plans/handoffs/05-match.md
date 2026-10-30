@@ -1,0 +1,11 @@
+# 05 Match flow, spawns, results, spectate, reset
+- Done: server state machine `src/server/Match/MatchController.luau` (pure, Lune-tested) and `MatchSystem.luau` (starts itself). Drives MatchContext phases, enrolls/clears Participants, sets `Players.CharacterAutoLoads = false`.
+- Flow: Play > Countdown > Spawning (nobody hurt) > Active > FinalPressure (alive <= 2, 150 s, or `ZoneSystem.FinalPressure`) > Finished > Results > Resetting > Waiting. Numbers: `Config.Match`.
+- Rules (in `Config.Policies`): last alive wins; two eliminations within 0.1 s = draw, both 1st; leaving while alive = out, no credit, no reward; if the only survivor leaves, "abandoned" (no winner). Self-kill = no killer.
+- Bots (piece 09): call `MatchSystem.requestBots(n)` in Waiting/Countdown. I enroll them at Spawning; `MatchSystem.SpawnAssigned` (participant, point, lookAt) fires for everyone so 09 can place rigs.
+- Players are placed by `LoadCharacter` + PivotTo on `ArenaSpawn` parts (ring fallback if too few). Waiting players stand on parts tagged `LobbySpawn` (optional, piece 04).
+- Spectating: server picks the target (`SpectateTarget`), only for out/non-playing players; client `SpectateClientSystem` sets camera subject, sets LocalPlayer attribute `SpectateTargetId`, has < > buttons and Q/E. Piece 02 camera should honor that attribute.
+- Client `ResultsClientSystem`: PLAY + SETTINGS (SettingsPanel.toggle) buttons, countdown, GO!/FINAL PRESSURE banners, kill feed, ELIMINATED banner, and the results screen = Big Banner (carter's pick C). Uses Hud/Theme if present; clear of the card band. Results are sent when the match ends; ClaimResults pays once; unclaimed pay at reset. Credits go to player attribute `Credits` (not saved yet).
+- Remotes used: PlayRequest, ReplayRequest, ReturnToLobbyRequest, ClaimResults, SpectateCycle, MatchState, Eliminated, Announce, SpectateTarget, Results. Small additions to Types/RemoteDefs/Config.Match (extra fields only).
+- Tests: `tests/match_rules.test.luau`, `match_controller.test.luau` (whole matches with the real damage door, roster and context), `match_results_text.test.luau`. Nothing run in Studio.
+- Left: lobby menu beyond PLAY; countdown/banners may overlap the HUD (piece 10); camera follow for bots needs 09's rigs in Workspace with `ParticipantId`.

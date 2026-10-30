@@ -19,5 +19,8 @@ require("./hud_layout.test")
 require("./hud_model.test")
 require("./settings_model.test")
 require("./movement.test")
+require("./match_controller.test")
+require("./match_results_text.test")
+require("./match_rules.test")
 
 Harness.summary()

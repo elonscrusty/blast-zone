@@ -108,6 +108,7 @@ export type PublicMatchState = {
 	aliveCount: number,
 	totalCount: number,
 	serverNow: number,
+	note: string?, -- short code for the HUD: press_play, waiting_players, match_starting, aborted_too_few, get_ready, fight, final_pressure, match_over, results, resetting
 }
 
 export type ZoneState = {
@@ -152,7 +153,10 @@ export type ResultsRow = {
 export type ResultsPayload = {
 	matchId: MatchId,
 	rows: { ResultsRow },
-	draw: boolean,
+	draw: boolean, -- true unless exactly one winner
+	outcome: string?, -- "win" | "draw" | "abandoned" (abandoned: the best finisher left, so nobody is crowned)
+	winnerId: ParticipantId?,
+	endsAt: number?, -- server time the results screen closes
 	you: { placement: number, eliminations: number, survivedSeconds: number, reward: number }?,
 }
 

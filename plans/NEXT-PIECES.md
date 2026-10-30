@@ -13,7 +13,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 02 | Movement, elevated camera, Slide | 8, 10 | PR up | see PR |
 | 03 | Aiming, firearm, health, elimination (explosive weapon later) | 9, 11 | PR up | this PR |
 | 04 | Graybox arena + interior/roof visibility | 12, 8 | PR up | this PR |
-| 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | not started | |
+| 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | PR up | this PR |
 | 06 | Safe zone + sudden death | 15 | PR up | this PR |
 | 07 | Supply containers (3 loot tiers), XP orbs, run XP wiring | 13, 14 | PR up | see PR list |
 | 08 | Upgrade catalogue + offers (server) + upgrade cards (client, Bottom Row) | 14, 20 | PR up | this PR |
