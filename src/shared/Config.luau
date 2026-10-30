@@ -316,11 +316,19 @@ Config.Bots = {
 }
 
 Config.Rewards = {
-	currencyName = "Credits", -- in-game only; persistence is Phase 5
+	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
 	perElimination = 5,
 	placementBonus = { 30, 15, 8 }, -- 1st, 2nd, 3rd
-	persist = false,
+	persist = true, -- piece 18 saves the coins through the profile (piece 17)
+}
+
+-- Piece 18: coins and the unlock track. Looks only, no combat power.
+Config.Progression = {
+	look = "B", -- coin look: "A" Volts, "B" Scrap, "C" Tokens (CoinLooks). carter chose Scrap.
+	maxMatchGrant = 200, -- sanity cap for one match's coins; real rewards are far smaller
+	-- Player attributes the server sets so every client can draw a player's chosen look.
+	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
 }
 
 Config.Settings = {
@@ -337,6 +345,34 @@ Config.Perf = {
 	maxDamageNumbers = 12,
 	maxLiveEffects = 40,
 	maxDebrisParts = 0, -- containers burst as particles, not physical parts
+}
+
+-- Piece 11. Character poses are drawn from code (no animation assets), so these are the only knobs.
+Config.Character = {
+	defaultLook = "Runner", -- Runner, Courier or Spark (carter's pick is the default, the others are skins)
+	lookAttribute = "CharacterLook", -- set on a player or a character to wear another look
+	moveSpeedMin = 2, -- studs/s above which a fighter counts as moving
+	runForwardMin = 0.55, -- forward share of the movement (0..1) needed to look like running, else strafing
+	aimHold = 0.45, -- seconds after a shot that the fighter keeps the gun up
+	hitFlinchSeconds = 0.35,
+	slideSeconds = 0.75, -- how long the slide pose is held (the move itself is Config.Slide)
+	smoothing = 20, -- how fast the body follows the pose (higher = snappier)
+	winnerCheerSeconds = 12,
+}
+
+-- Piece 29: emotes in the lobby and the winner pose on the results banner (drawn from code, see Character/Emotes).
+Config.Emotes = {
+	-- carter picked "all of them": every emote is free and each player picks a winner pose.
+	trackUnlocks = false, -- true: emotes open on the coin track instead (see EmoteRules)
+	starterSet = "A", -- listed first ("A" Street, "B" Hype, "C" Chill); with track unlocks its first two are free
+	defaultWinPose = "A", -- A Gun to the Sky, B Fist Pump, C Arms Crossed (bots always use this one)
+	winPoseAttribute = "WinPose", -- set by the server on the Player: the winner pose they picked
+	attribute = "Emote", -- set by the server on a character: the emote id it is playing
+	startedAttribute = "EmoteAt", -- server time the emote started (clients draw it from there)
+	maxSeconds = 8, -- an emote stops by itself after this
+	cooldown = 0.6, -- seconds between two emote starts
+	stopMoveSpeed = 2, -- studs/s: walking off ends your own emote
+	bannerWinner = true, -- show the winner's body doing the winner pose on the results screen
 }
 
 Config.Net = {
