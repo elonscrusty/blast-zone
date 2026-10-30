@@ -599,6 +599,13 @@ Config.Moments = {
 	maxNameLength = 16, -- names on banners are cut to this many letters
 }
 
+-- Big map (video 3 gap 8): tap the minimap to see the whole arena and the circle. Logic only; the
+-- look comes from the UI system. It never pauses the game.
+Config.BigMap = {
+	enabled = true,
+	autoCloseSeconds = 0, -- 0 = stays open until you tap again; 4 = a quick peek that closes itself
+}
+
 Config.Plates = {
 	enabled = true,
 	maxDistance = 90, -- studs; further fighters show no plate

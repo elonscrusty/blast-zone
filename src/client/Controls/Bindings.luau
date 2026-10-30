@@ -32,6 +32,8 @@ Bindings.actions = {
 		touch = "sprint",
 		label = "Sprint",
 	},
+	-- Big map (piece 47): open or close the whole-arena map. Y is the emote button in the lobby only.
+	map = { keyboard = { "M" }, gamepad = { "ButtonY" }, touch = "minimap", label = "Big map" },
 	-- Upgrade picks. The card interface (piece 08) listens for these and also has tap targets.
 	upgrade1 = {
 		keyboard = { "One" },
@@ -55,7 +57,7 @@ Bindings.actions = {
 
 -- Stable order for UI lists and tests.
 Bindings.actionOrder =
-	{ "slide", "reload", "swap", "heal", "sprint", "upgrade1", "upgrade2", "upgrade3" }
+	{ "slide", "reload", "swap", "heal", "sprint", "map", "upgrade1", "upgrade2", "upgrade3" }
 
 Bindings.held = {
 	moveKeys = {
