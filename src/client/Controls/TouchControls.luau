@@ -113,10 +113,16 @@ local function makeStick(
 
 	zone.InputBegan:Connect(function(input: InputObject)
 		if input.UserInputType == Enum.UserInputType.Touch and tracked == nil then
+			Controls.noteDevice("touch") -- first: a device change clears sticks, so it comes before we hold this one
 			tracked = input
 			startX, startY = input.Position.X, input.Position.Y
-			Controls.noteDevice("touch")
 			move(input)
+		end
+	end)
+	-- Focus lost, a menu opened, a gamepad took over: let go even though the finger is still down.
+	Controls.Cleared:connect(function()
+		if tracked ~= nil then
+			release()
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input: InputObject)

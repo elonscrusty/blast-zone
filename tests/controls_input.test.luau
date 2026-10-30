@@ -225,3 +225,128 @@ Harness.test("the brief's keys are bound: space slides, R reloads, 1-3 pick upgr
 	Harness.eq(Bindings.actionFor("ButtonL1"), "swap")
 	Harness.eq(Bindings.actionFor("Banana"), nil)
 end)
+
+-- ===== menus, unplugging, focus (piece 15) =====
+
+Harness.test(
+	"a menu on top ignores movement, fire and action keys, and drops what was held",
+	function()
+		local s = InputState.new()
+		InputState.keyDown(s, "D")
+		InputState.setMouseDown(s, true)
+		Harness.eq(InputState.setModal(s, true), true)
+		Harness.eq(InputState.setModal(s, true), false)
+		local x = InputState.move(s)
+		Harness.eq(x, 0)
+		Harness.eq(InputState.firing(s), false)
+		Harness.eq(InputState.keyDown(s, "Space"), nil) -- A / Space must not slide while a menu is open
+		InputState.setTouchMove(s, 1, 0)
+		InputState.setPadTrigger(s, 1)
+		InputState.setModal(s, false) -- D is still physically down, it must not wake up
+		local mx = InputState.move(s)
+		Harness.eq(mx, 0)
+		Harness.eq(InputState.keyDown(s, "Space"), "slide")
+	end
+)
+
+Harness.test(
+	"unplugging the gamepad drops its input and hands back to touch or keyboard",
+	function()
+		local s = InputState.new()
+		InputState.noteDevice(s, "gamepad")
+		InputState.setPadMove(s, 0, 1)
+		InputState.setPadTrigger(s, 1)
+		Harness.eq(InputState.padDisconnected(s, true), "touch")
+		local _, y = InputState.move(s)
+		Harness.eq(y, 0)
+		Harness.eq(InputState.firing(s), false)
+		local k = InputState.new()
+		InputState.noteDevice(k, "gamepad")
+		Harness.eq(InputState.padDisconnected(k, false), "keyboard")
+		-- a pad unplugged while the player was on the keyboard changes nothing but the pad input
+		local other = InputState.new()
+		Harness.eq(InputState.padDisconnected(other, true), "keyboard")
+	end
+)
+
+Harness.test("menu buttons never clash with combat actions", function()
+	for name, code in Bindings.menu do
+		local sharedShoulder = string.sub(name, 1, 8) == "spectate"
+			or string.sub(name, 1, 6) == "slider"
+		if not sharedShoulder then
+			Harness.eq(Bindings.actionFor(code), nil, `{name} ({code}) is also a combat action`)
+		end
+	end
+	-- the shoulders do double duty only while controls are off or a menu is open
+	Harness.eq(Bindings.actionFor(Bindings.menu.spectatePrev), "swap")
+	Harness.eq(Bindings.actionFor(Bindings.menu.sliderMore), "swap")
+	Harness.eq(Bindings.actionFor("DPadLeft"), "upgrade1") -- the D-pad stays with the cards
+end)
+
+local FocusMap = require("../src/client/Controls/FocusMap")
+
+local function item(id: string, x: number, y: number, priority: number?): FocusMap.Item
+	return { id = id, x = x, y = y, w = 100, h = 40, priority = priority }
+end
+
+Harness.test(
+	"focus starts on the top-priority button, else top-left, the same every time",
+	function()
+		local items = { item("settings", 300, 400), item("play", 300, 300), item("bots", 100, 100) }
+		Harness.eq(FocusMap.first(items), "bots")
+		items[2] = item("play", 300, 300, 10)
+		Harness.eq(FocusMap.first(items), "play")
+		Harness.eq(FocusMap.first({}), nil)
+		local row = { item("b", 200, 100), item("a", 50, 104) } -- one row, a little off
+		Harness.eq(FocusMap.first(row), "a")
+	end
+)
+
+Harness.test("a direction moves only toward a button that lies that way", function()
+	local cards = { item("c1", 100, 300), item("c2", 250, 300), item("c3", 400, 300) }
+	Harness.eq(FocusMap.neighbor(cards, "c1", "right"), "c2")
+	Harness.eq(FocusMap.neighbor(cards, "c2", "right"), "c3")
+	Harness.eq(FocusMap.neighbor(cards, "c3", "left"), "c2")
+	Harness.eq(FocusMap.neighbor(cards, "c3", "right"), nil) -- edge: nothing to wrap to
+	Harness.eq(FocusMap.neighbor(cards, "c2", "up"), nil)
+	Harness.eq(FocusMap.neighbor(cards, "zzz", "up"), nil)
+end)
+
+Harness.test("a button straight across beats one that is far to the side", function()
+	local items = { item("from", 300, 300), item("near", 300, 200), item("farSide", 700, 190) }
+	Harness.eq(FocusMap.neighbor(items, "from", "up"), "near")
+end)
+
+Harness.test("links keep the cursor on the button when nothing lies that way", function()
+	local links = FocusMap.links({ item("a", 0, 0), item("b", 200, 0) })
+	Harness.eq(links.a.right, "b")
+	Harness.eq(links.a.left, "a")
+	Harness.eq(links.a.up, "a")
+	Harness.eq(links.b.left, "a")
+end)
+
+Harness.test("a menu on top owns focus; otherwise every button is on offer", function()
+	local scopes: { FocusMap.Scope } = {
+		{ name = "MatchFlow", modal = false, items = { item("play", 0, 0) } },
+		{ name = "BotBanner", modal = false, items = { item("bots", 0, 100) } },
+	}
+	Harness.eq(#FocusMap.active(scopes), 2)
+	Harness.eq(FocusMap.hasModal(scopes), false)
+	table.insert(scopes, { name = "Settings", modal = true, items = { item("done", 0, 0) } })
+	Harness.eq(#FocusMap.active(scopes), 1)
+	Harness.eq(FocusMap.active(scopes)[1].id, "done")
+	Harness.eq(FocusMap.hasModal(scopes), true)
+	scopes[3].items = {} -- a closed menu with no visible buttons does not block the rest
+	Harness.eq(FocusMap.hasModal(scopes), false)
+	Harness.eq(#FocusMap.active(scopes), 2)
+end)
+
+Harness.test("focus stays put while its button exists and restarts when it vanishes", function()
+	local items = { item("play", 0, 0, 10), item("settings", 0, 100) }
+	Harness.eq(FocusMap.settle(items, "settings"), "settings")
+	Harness.eq(FocusMap.settle(items, "gone"), "play")
+	Harness.eq(FocusMap.settle(items, nil), "play")
+	Harness.eq(FocusMap.settle({}, "play"), nil)
+	local zero = { { id = "z", x = 0, y = 0, w = 0, h = 0 } :: FocusMap.Item }
+	Harness.eq(FocusMap.first(zero), nil) -- hidden or empty buttons cannot take focus
+end)

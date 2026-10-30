@@ -37,6 +37,10 @@ function SettingsPanel.toggle()
 	setOpen(not isOpen)
 end
 
+function SettingsPanel.isOpen(): boolean
+	return isOpen
+end
+
 local function makeSlider(parent: Frame, def: SettingsModel.Def)
 	local look = UiKit.look()
 	local track = Instance.new("Frame")
@@ -53,6 +57,22 @@ local function makeSlider(parent: Frame, def: SettingsModel.Def)
 	stroke.Color = UiKit.color(look.outline)
 	stroke.Parent = track
 	UiKit.styleStroke(stroke, root, 0.6)
+
+	-- Invisible stand-in so a gamepad can land on the slider (UiFocusSystem adjusts it with the
+	-- left stick or the shoulders). It lets touches pass through, so finger dragging is unchanged.
+	local pad = Instance.new("TextButton")
+	pad.Name = "SliderHit"
+	pad.Text = ""
+	pad.Active = false
+	pad.Selectable = true
+	pad.AutoButtonColor = false
+	pad.BackgroundTransparency = 1
+	pad.BorderSizePixel = 0
+	pad.AnchorPoint = Vector2.new(0.5, 0.5)
+	pad.Position = UDim2.fromScale(0.5, 0.5)
+	pad.Size = UDim2.fromScale(1.06, 2)
+	pad:SetAttribute("SliderKey", def.key)
+	pad.Parent = track
 
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
