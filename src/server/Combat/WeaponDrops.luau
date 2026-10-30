@@ -19,7 +19,14 @@ local WeaponCatalog = require("./WeaponCatalog")
 
 local drops = Config.Weapons.Drops
 
-type Drop = { id: number, gunId: string, matchId: number, part: BasePart, expiresAt: number }
+type Drop = {
+	id: number,
+	gunId: string,
+	matchId: number,
+	part: BasePart,
+	expiresAt: number,
+	persistent: boolean, -- a floor gun (piece 42): never expires, never counts against maxActive
+}
 
 local WeaponDrops = {}
 
@@ -50,12 +57,31 @@ end
 local onTrigger: (drop: Drop, player: Player) -> ()
 
 -- Puts gun `gunId` on the floor at `floor` (a point on the ground). Returns the drop, or nil.
-function WeaponDrops.spawn(gunId: string, floor: Vector3, matchId: number): Drop?
+-- `persistent` (floor loot from LootSystem) stays until a fighter takes it or the match ends.
+function WeaponDrops.spawn(
+	gunId: string,
+	floor: Vector3,
+	matchId: number,
+	persistent: boolean?
+): Drop?
 	if Config.Weapons.Guns[gunId] == nil or not MatchContext:isCurrent(matchId) then
 		return nil
 	end
-	while #live >= drops.maxActive do
-		remove(live[1])
+	local keep = persistent == true
+	if not keep then
+		-- `live` is oldest first. Only temporary drops count against the cap and get pushed out.
+		while true do
+			local temporary: { Drop } = {}
+			for _, d in live do
+				if not d.persistent then
+					table.insert(temporary, d)
+				end
+			end
+			if #temporary < drops.maxActive then
+				break
+			end
+			remove(temporary[1])
+		end
 	end
 	nextId += 1
 	local part = Instance.new("Part")
@@ -83,7 +109,8 @@ function WeaponDrops.spawn(gunId: string, floor: Vector3, matchId: number): Drop
 		gunId = gunId,
 		matchId = matchId,
 		part = part,
-		expiresAt = os.clock() + drops.lifetimeSeconds,
+		expiresAt = if keep then math.huge else os.clock() + drops.lifetimeSeconds,
+		persistent = keep,
 	}
 	table.insert(live, drop)
 	prompt.Triggered:Connect(function(player: Player)

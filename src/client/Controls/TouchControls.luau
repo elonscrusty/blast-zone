@@ -1,6 +1,6 @@
 --!strict
 -- On-screen controls for phones, in look B: move stick (left), aim-and-fire stick (right),
--- Slide, Reload, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
+-- Slide, Reload, Heal, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
 -- Sticks measure how far the finger moved from where it first touched, so they work the same on
 -- every phone and notch. With "Floating sticks" on (carter's pick) the stick appears under the
 -- thumb anywhere in its zone and goes back to a faint ring at rest; off, it stays in its corner.
@@ -17,6 +17,7 @@ local Settings = require(script.Parent.Parent.Settings.Settings)
 local Ids = require(ReplicatedStorage:WaitForChild("Shared").Ids)
 local Net = require(script.Parent.Parent.Core.Net)
 local Controls = require(script.Parent.Controls)
+local LootClient = require(script.Parent.Parent.Loot.LootClient)
 local ChipModel = require("./ChipModel")
 local InputMath = require("./InputMath")
 
@@ -27,6 +28,7 @@ local root: Frame
 local pieces: { [string]: GuiObject } = {}
 local slideDial: Frame
 local slideText: TextLabel
+local healCount: TextLabel
 local visible = false
 local wasSlideReady = true
 
@@ -264,6 +266,21 @@ local function build()
 
 	makeButton("slide", "SLIDE", look.accent, "slide")
 	makeButton("reload", "RELOAD", look.panel, "reload")
+	-- Heal pack button (piece 42): the count sits under the word. Placeholder look.
+	makeButton("heal", "HEAL", look.good, "heal")
+	local healLabel = pieces.heal:FindFirstChild("Label")
+	if healLabel and healLabel:IsA("TextLabel") then
+		healLabel.Position = UDim2.fromScale(0.5, 0.36)
+	end
+	healCount = UiKit.label(pieces.heal, "Count", {
+		text = "0",
+		size = UDim2.fromScale(0.6, 0.38),
+		position = UDim2.fromScale(0.5, 0.7),
+		anchor = Vector2.new(0.5, 0.5),
+		color = look.ink,
+		maxTextSize = 24,
+	})
+	healCount.ZIndex = 4
 
 	-- Slide cooldown: a navy veil that drains upward, and the seconds left.
 	local slide = pieces.slide
@@ -390,6 +407,13 @@ function TouchControls.update(
 	if not want then
 		return
 	end
+	local packs = LootClient.get().healPacks
+	local countText = tostring(packs)
+	if healCount.Text ~= countText then
+		healCount.Text = countText
+		UiKit.pop(pieces.heal, 1.18)
+	end
+	pieces.heal.BackgroundTransparency = if packs > 0 then 0 else 0.5
 	if slideReady and not wasSlideReady then
 		UiKit.pop(pieces.slide, 1.18) -- ready again
 	end

@@ -1,6 +1,6 @@
 --!strict
 -- Hooks the real devices into Controls: keyboard and mouse, gamepad, touch (via TouchControls),
--- and sends ReloadRequest / SwitchWeaponRequest. Starts itself (any "...System" module does).
+-- and sends ReloadRequest / SwitchWeaponRequest / UseHealRequest. Starts itself (any "...System" module does).
 -- Slide direction needs the camera, so piece 02 listens to Controls.Action and sends SlideRequest.
 -- Firing is polled by piece 03 (Controls.isFiring / getAim); this module never sends FireRequest.
 
@@ -151,6 +151,8 @@ function ControlsSystem.start()
 	Controls.Action:connect(function(action: string)
 		if action == "reload" then
 			Net.send("ReloadRequest")
+		elseif action == "heal" then
+			Net.send("UseHealRequest")
 		elseif action == "swap" and weaponCount > 1 then
 			local nextSlot = if weaponSlot >= weaponCount then 1 else weaponSlot + 1
 			Net.send("SwitchWeaponRequest", nextSlot)

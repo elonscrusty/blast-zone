@@ -493,6 +493,40 @@ Config.Streaks = {
 	},
 }
 
+-- Piece 42: loot lying on the street. Heal packs are carried and used on a button (server checks
+-- everything). Floor guns are the same guns as crate drops, but they wait on the ground all match.
+-- Everything is a placeholder number until carter plays.
+Config.Loot = {
+	enabled = true,
+	heal = {
+		amount = 30, -- health a pack gives (never over the max)
+		carryMax = 3,
+		useCooldownSeconds = 1.2, -- least time between two uses
+		floorPacks = 6, -- on the street when a match starts
+		lifetimeSeconds = 150, -- a pack nobody takes goes away after this
+		maxOnFloor = 14, -- whole server; the oldest goes first (death drops can add more)
+		size = 2.2, -- studs, placeholder block
+		color = "#4CFF6A",
+		crossColor = "#FFFFFF",
+		dropOnDeath = true, -- a fighter who falls drops one pack if they carried any
+		botUseBelowFraction = 0.5, -- bots use a pack when health is at or under this share of max
+		sweepSeconds = 1, -- how often the server lets bots decide
+	},
+	floorGuns = {
+		count = 4, -- on the street when a match starts
+		order = { "breaker", "hornet", "longline" }, -- fixed order so a roll always maps the same way
+		weights = { breaker = 1, hornet = 1, longline = 1 } :: { [string]: number },
+	},
+	-- Where floor loot goes: a short walk from a supply crate marker, on open floor only.
+	spots = {
+		offsetStuds = 7, -- from the crate marker
+		angles = 8, -- tries around the marker, at equal steps
+		floorTolerance = 1, -- the ground there must be this close to the marker's floor height
+		rayHeight = 30, -- the check starts this far above the marker's floor
+		minSeparation = 18, -- two loot spots are at least this far apart
+	},
+}
+
 Config.Rewards = {
 	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
