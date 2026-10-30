@@ -555,6 +555,28 @@ Config.Perf = {
 	maxDebrisParts = 0, -- containers burst as particles, not physical parts
 }
 
+-- Piece 38: rain. The server picks one level per match; clients only draw it (placeholder look, cheap on phones).
+Config.Weather = {
+	levels = { "light", "steady", "heavy" },
+	odds = { light = 30, steady = 45, heavy = 25 }, -- weights; the level of the match just played is skipped
+	-- dropsPerSecond x dropSeconds = drops alive at once. fogAdd / hazeAdd are added to the sky Atmosphere
+	-- at full rain. Nothing here darkens the sky: the city time-of-day code owns Lighting.
+	look = {
+		light = { dropsPerSecond = 110, fogAdd = 0.03, hazeAdd = 0.6, speed = 70 },
+		steady = { dropsPerSecond = 200, fogAdd = 0.06, hazeAdd = 1.0, speed = 80 },
+		heavy = { dropsPerSecond = 320, fogAdd = 0.1, hazeAdd = 1.5, speed = 95 },
+	},
+	dropSeconds = 0.9, -- how long one drop lives
+	maxLiveDrops = 300, -- hard cap on drops alive at once, after the phone scale
+	phoneScale = 0.5, -- touch-only devices get half the drops
+	rampSeconds = 4, -- rain fades in and out over this long
+	coverStuds = 70, -- the rain sheet above the camera is this wide
+	heightStuds = 45, -- and this high above the camera
+	applyAtmosphere = true, -- false once the city time-of-day code adds the Lighting attributes itself
+	dropColor = "#9FE9FF",
+	attributes = { fog = "WeatherFogAdd", haze = "WeatherHazeAdd" }, -- written on Lighting for the day-night code
+}
+
 -- Piece 17: saving player progress (DataStore). Read by src/server/Profile only.
 Config.Profile = {
 	storeName = "BlastZoneProfiles_v1", -- changing this starts everyone from nothing: never rename
