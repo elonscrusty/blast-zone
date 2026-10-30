@@ -1,0 +1,32 @@
+--!strict
+local Harness = require("./harness")
+local RateLimit = require("../src/shared/RateLimit")
+
+Harness.test("rate limit lets a burst through, then blocks", function()
+	local r = RateLimit.new(5, 3)
+	Harness.truthy(r:allow("a", 0))
+	Harness.truthy(r:allow("a", 0))
+	Harness.truthy(r:allow("a", 0))
+	Harness.eq(r:allow("a", 0), false)
+end)
+
+Harness.test("rate limit refills over time", function()
+	local r = RateLimit.new(5, 1)
+	Harness.truthy(r:allow("a", 0))
+	Harness.eq(r:allow("a", 0.1), false)
+	Harness.truthy(r:allow("a", 0.25))
+end)
+
+Harness.test("rate limit keeps keys apart", function()
+	local r = RateLimit.new(1, 1)
+	Harness.truthy(r:allow("a", 0))
+	Harness.truthy(r:allow("b", 0))
+	Harness.eq(r:allow("a", 0), false)
+end)
+
+Harness.test("rate limit forget gives a fresh bucket", function()
+	local r = RateLimit.new(1, 1)
+	Harness.truthy(r:allow("a", 0))
+	r:forget("a")
+	Harness.truthy(r:allow("a", 0))
+end)
