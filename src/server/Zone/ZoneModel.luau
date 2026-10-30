@@ -345,7 +345,7 @@ export type Deps = {
 	now: () -> number, -- server time (workspace:GetServerTimeNow)
 	-- Living participants and where they stand (ground plane).
 	getTargets: () -> { Target },
-	-- Piece 01 Damage.apply with cause = "zone". The runner never touches health itself.
+	-- Piece 01 Damage:apply with cause = "zone". The runner never touches health itself.
 	applyDamage: (id: ParticipantId, amount: number, stage: number) -> (),
 	-- Sends a ZoneState to every client.
 	publish: (state: StatePayload) -> (),
