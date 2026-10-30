@@ -3,6 +3,7 @@
 --   Controls.getMove()    -> x, y   (x right, y forward = screen up, length <= 1)
 --   Controls.getAim()     -> x, y, hasAim   (unit vector on screen: x right, y UP)
 --   Controls.getAimWorld() -> Vector3?  (unit direction on the ground, x/z only; nil = no aim input)
+--   Controls.takeLook(dt) -> degrees to turn the view to the right this frame (negative = left)
 --   Controls.isFiring()   -> boolean
 --   Controls.Action       -> Signal of action names: "slide" "reload" "swap" "upgrade1".."upgrade3"
 --   Controls.device()     -> "keyboard" | "touch" | "gamepad"
@@ -14,7 +15,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local Signal = require(Shared.Signal)
+local CameraRules = require(Shared.Movement.CameraRules)
 
 local InputState = require("./InputState")
 
@@ -80,6 +83,16 @@ function Controls.getAimWorld(): Vector3?
 		return nil
 	end
 	return flat(right * x + forward * y)
+end
+
+-- How far the player turned the view since the last call, in degrees to the right. Reads the
+-- drag (mouse button 2, touch swipe) once, and the gamepad stick for `dt` seconds. The camera
+-- asks once per frame; nothing else should.
+function Controls.takeLook(dt: number): number
+	local pixels, stick = InputState.takeLook(state)
+	local cfg = Config.Camera
+	return CameraRules.dragTurn(pixels, cfg.lookDegreesPerPixel, cfg.maxTurnPerFrame)
+		+ CameraRules.stickTurn(stick, dt, cfg.padTurnDegreesPerSecond, cfg.maxTurnPerFrame)
 end
 
 function Controls.isFiring(): boolean
@@ -173,6 +186,15 @@ end
 
 function Controls.setPadAim(x: number, y: number)
 	InputState.setPadAim(state, x, y)
+end
+
+function Controls.setPadLookHold(held: boolean)
+	InputState.setPadLookHold(state, held)
+end
+
+-- The view dragged by this many pixels (right = positive).
+function Controls.addLook(pixels: number)
+	InputState.addLook(state, pixels)
 end
 
 function Controls.setPadTrigger(amount: number)

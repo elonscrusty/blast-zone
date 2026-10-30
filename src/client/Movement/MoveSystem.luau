@@ -20,6 +20,7 @@ local SlideMotion = require(Shared.Movement.SlideMotion)
 local SlideRules = require(Shared.Movement.SlideRules)
 local Net = require(script.Parent.Parent.Core.Net)
 local SlideTrail = require("./SlideTrail")
+local CameraHeading = require("./CameraHeading")
 
 local MoveSystem = {}
 MoveSystem.order = 110
@@ -122,7 +123,7 @@ local function step()
 	end
 
 	local right, forward = readMove(c)
-	local wx, wz = MoveRules.moveToWorld(right, forward, Config.Camera.yawDegrees)
+	local wx, wz = MoveRules.moveToWorld(right, forward, CameraHeading.get())
 	humanoid:Move(Vector3.new(wx, 0, wz), false)
 
 	local aim: Vector3? = nil
@@ -157,7 +158,7 @@ function MoveSystem.requestSlide()
 	end
 
 	local right, forward = readMove(c)
-	local mx, mz = MoveRules.moveToWorld(right, forward, Config.Camera.yawDegrees)
+	local mx, mz = MoveRules.moveToWorld(right, forward, CameraHeading.get())
 	local look = root.CFrame.LookVector
 	local dx, dz = SlideRules.direction(mx, mz, look.X, look.Z)
 	if dx == nil or dz == nil then

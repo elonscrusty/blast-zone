@@ -332,3 +332,84 @@ test("default spectate style is the same view as play", function()
 	eq(style.pitchDegrees, Config.Camera.pitchDegrees)
 	eq(style.distance, Config.Camera.distance)
 end)
+
+-- ===== turning the camera =====
+
+test("turning the view right makes the camera look toward +X, and walking follows it", function()
+	-- a quarter turn to the right: the heading is -90, forward is +X, the camera sits on the -X side
+	local yaw = CameraRules.turnedYaw(0, 90)
+	near(yaw, -90)
+	local fx, fz = CameraRules.forward(yaw)
+	near(fx, 1, 1e-9)
+	near(fz, 0, 1e-9)
+	local ox = CameraRules.offset(55, 46, yaw)
+	Harness.truthy(ox < 0, "camera should be behind the player, on the -X side")
+	-- stick up now walks toward +X, stick right walks toward +Z
+	local wx, wz = MoveRules.moveToWorld(0, 1, yaw)
+	near(wx, 1, 1e-9)
+	near(wz, 0, 1e-9)
+	wx, wz = MoveRules.moveToWorld(1, 0, yaw)
+	near(wx, 0, 1e-9)
+	near(wz, 1, 1e-9)
+	-- turning left goes the other way
+	near(CameraRules.turnedYaw(0, -90), 90)
+end)
+
+test("the heading wraps around, so spinning forever never drifts", function()
+	local yaw = 0
+	for _ = 1, 100 do
+		yaw = CameraRules.turnedYaw(yaw, 37)
+	end
+	Harness.truthy(yaw >= -180 and yaw < 180, "yaw escaped the range: " .. yaw)
+	near(CameraRules.wrapDegrees(360), 0)
+	near(CameraRules.wrapDegrees(-190), 170)
+	near(CameraRules.wrapDegrees(180), -180)
+	-- turning a full circle lands back where it started
+	near(CameraRules.turnedYaw(25, 360), 25, 1e-9)
+end)
+
+test("bad turn numbers never move the camera", function()
+	eq(CameraRules.wrapDegrees(0 / 0), 0)
+	eq(CameraRules.wrapDegrees(math.huge), 0)
+	eq(CameraRules.dragTurn(0 / 0, 0.3, 40), 0)
+	eq(CameraRules.dragTurn(math.huge, 0.3, 40), 0)
+	eq(CameraRules.stickTurn(0 / 0, 0.016, 150, 40), 0)
+	eq(CameraRules.stickTurn(1, math.huge, 150, 40), 0)
+end)
+
+test("a drag turns by pixels times speed, and one huge swipe is capped", function()
+	local c = Config.Camera
+	near(
+		CameraRules.dragTurn(100, c.lookDegreesPerPixel, c.maxTurnPerFrame),
+		100 * c.lookDegreesPerPixel
+	)
+	near(
+		CameraRules.dragTurn(-20, c.lookDegreesPerPixel, c.maxTurnPerFrame),
+		-20 * c.lookDegreesPerPixel
+	)
+	near(CameraRules.dragTurn(1e6, c.lookDegreesPerPixel, c.maxTurnPerFrame), c.maxTurnPerFrame)
+	near(CameraRules.dragTurn(-1e6, c.lookDegreesPerPixel, c.maxTurnPerFrame), -c.maxTurnPerFrame)
+	eq(CameraRules.dragTurn(0, c.lookDegreesPerPixel, c.maxTurnPerFrame), 0)
+end)
+
+test("the gamepad turn does not depend on frame rate and a long hitch is capped", function()
+	local c = Config.Camera
+	local one = CameraRules.stickTurn(1, 1 / 60, c.padTurnDegreesPerSecond, c.maxTurnPerFrame)
+	local sum = 0
+	for _ = 1, 60 do
+		sum += one
+	end
+	near(sum, c.padTurnDegreesPerSecond, 1e-6) -- a full second of full push
+	near(CameraRules.stickTurn(0.5, 1 / 60, c.padTurnDegreesPerSecond, c.maxTurnPerFrame), one / 2)
+	near(
+		CameraRules.stickTurn(-1, 5, c.padTurnDegreesPerSecond, c.maxTurnPerFrame),
+		-c.maxTurnPerFrame
+	)
+end)
+
+test("the turn speeds in Config are sane", function()
+	local c = Config.Camera
+	Harness.truthy(c.lookDegreesPerPixel > 0 and c.lookDegreesPerPixel < 2)
+	Harness.truthy(c.padTurnDegreesPerSecond > 30 and c.padTurnDegreesPerSecond < 720)
+	Harness.truthy(c.maxTurnPerFrame >= 10 and c.maxTurnPerFrame <= 90)
+end)

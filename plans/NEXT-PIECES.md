@@ -54,3 +54,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 40 | Player analytics (match start/end, deaths by cause, onboarding funnel, gun picks; server only) | - | PR up | handoff 40 |
 | 41 | Whole-match tests: a pretend server with bots plays full matches (lobby, crates, guns, zone, winner, coins, reset); 4 seam bugs fixed | - | PR up | piece 41 PR |
 | 42 | Loot & Heal (video 3 bundle A): carried heal packs (use button), floor loot (packs + found guns that never expire), death drop, bots heal | - | PR up | loot PR |
+| 43 | Turn the camera (bug: the view was locked): mouse right-button drag, touch drag on the free right side, gamepad L2 + right stick; walking, minimap follow the turn | 2, 10 | PR up | handoff 43 |

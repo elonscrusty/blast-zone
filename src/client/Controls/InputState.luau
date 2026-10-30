@@ -20,6 +20,9 @@ export type InputState = {
 	padMove: { x: number, y: number },
 	padAim: { x: number, y: number },
 	padTrigger: number,
+	padLookHold: boolean, -- L2 held: the right stick turns the camera instead of aiming
+	padLookX: number, -- right stick sideways, deadzoned (before aim speed), -1..1
+	lookPixels: number, -- drag since the camera last asked (right = positive): mouse button 2, touch drag
 	mouseAim: { x: number, y: number, valid: boolean },
 	mouseDown: boolean,
 	firingStick: boolean,
@@ -44,6 +47,9 @@ function InputStateModule.new(): InputState
 		padMove = { x = 0, y = 0 },
 		padAim = { x = 0, y = 0 },
 		padTrigger = 0,
+		padLookHold = false,
+		padLookX = 0,
+		lookPixels = 0,
 		mouseAim = { x = 0, y = 0, valid = false },
 		mouseDown = false,
 		firingStick = false,
@@ -59,6 +65,9 @@ function InputStateModule.reset(s: InputState)
 	s.padMove = { x = 0, y = 0 }
 	s.padAim = { x = 0, y = 0 }
 	s.padTrigger = 0
+	s.padLookHold = false
+	s.padLookX = 0
+	s.lookPixels = 0
 	s.mouseDown = false
 	s.firingStick = false
 end
@@ -156,7 +165,36 @@ function InputStateModule.setPadAim(s: InputState, x: number, y: number)
 		local dx, dy = InputMath.deadzone(x, y)
 		local ax, ay = InputMath.applySensitivity(dx, dy, s.aimSensitivity)
 		s.padAim = { x = ax, y = ay }
+		s.padLookX = dx
 	end
+end
+
+-- L2 on the gamepad: while held, the right stick turns the camera and stops aiming.
+function InputStateModule.setPadLookHold(s: InputState, held: boolean)
+	if live(s) then
+		s.padLookHold = held
+	end
+end
+
+-- The view was dragged by `pixels` (right = positive): a mouse with button 2 down, or a thumb on
+-- the free side of the touch screen. Collected until the camera takes it.
+function InputStateModule.addLook(s: InputState, pixels: number)
+	if live(s) and pixels == pixels and pixels ~= math.huge and pixels ~= -math.huge then
+		s.lookPixels += pixels
+	end
+end
+
+-- What the player asked of the camera since the last call: (drag pixels, stick -1..1).
+-- The drag is handed over once and starts again from zero.
+function InputStateModule.takeLook(s: InputState): (number, number)
+	if not live(s) then
+		s.lookPixels = 0
+		return 0, 0
+	end
+	local pixels = s.lookPixels
+	s.lookPixels = 0
+	local stick = if s.device == "gamepad" and s.padLookHold then s.padLookX else 0
+	return pixels, stick
 end
 
 function InputStateModule.setPadTrigger(s: InputState, amount: number)
@@ -220,6 +258,9 @@ function InputStateModule.aim(s: InputState): (number, number, boolean)
 		end
 		return 0, 0, false
 	elseif s.device == "gamepad" then
+		if s.padLookHold then
+			return 0, 0, false -- the stick is turning the camera
+		end
 		local m = InputMath.magnitude(s.padAim.x, s.padAim.y)
 		if m > 0 then
 			return s.padAim.x / m, s.padAim.y / m, true
