@@ -131,6 +131,7 @@ local function makeWorld(): BotRunner.World
 				reloading = st.reloading,
 				canFire = st.canFire,
 				slideReady = movement ~= nil and movement.slideReady(id),
+				gunId = st.gunId,
 			}
 		end,
 		others = function(id)
@@ -178,17 +179,42 @@ local function makeWorld(): BotRunner.World
 			pickupCache = out
 			return out
 		end,
+		gunDrops = function()
+			local combat = BotPorts.combat()
+			local list = combat and combat.gunDrops and combat.gunDrops()
+			local out: { BotBrain.GunDrop } = {}
+			for _, d in list or {} do
+				table.insert(out, { id = d.dropId, gunId = d.gunId, pos = { x = d.x, z = d.z } })
+			end
+			return out
+		end,
+		claimGun = function(id, dropId)
+			local combat = BotPorts.combat()
+			if combat and combat.claimGun then
+				combat.claimGun(id, dropId)
+			end
+		end,
 		zone = function()
 			local zoneSystem = BotPorts.zone()
 			local sample = zoneSystem and zoneSystem.getSample()
 			if sample then
 				-- While it closes, head for where it is going to be.
 				local radius = math.min(sample.radius, sample.toRadius)
-				return { center = { x = sample.centerX, z = sample.centerZ }, radius = radius }
+				return {
+					center = { x = sample.centerX, z = sample.centerZ },
+					radius = radius,
+					shrinking = sample.toRadius < sample.radius - 0.01,
+				}
 			end
 			return nil
 		end,
 		weaponRange = function(id)
+			-- The gun in hand (a found gun reaches differently from the pistol).
+			local combat = BotPorts.combat()
+			local st = combat and combat.state(id)
+			if st and st.range then
+				return st.range
+			end
 			return EffectiveStats:get(id).firearm.range
 		end,
 		canSee = function(a, b)
