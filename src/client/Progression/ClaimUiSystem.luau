@@ -18,6 +18,7 @@ local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local TrackPanel = require(script.Parent.TrackPanel)
 local Ui = require(script.Parent.ProgressUi)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local ClaimUiSystem = {}
 ClaimUiSystem.order = 220
@@ -35,9 +36,10 @@ function ClaimUiSystem.start()
 
 	-- ===== lobby TRACK button (under PLAY and SETTINGS) =====
 	local trackSlot, trackButton = Ui.button(gui, gui, "Track", "REWARDS", false)
-	trackSlot.AnchorPoint = Vector2.new(0.5, 0.5)
-	trackSlot.Position = UDim2.fromScale(0.5, 0.88)
-	trackSlot.Size = UDim2.fromScale(0.2, 0.11)
+	trackSlot.AnchorPoint = Vector2.zero
+	trackSlot.Position = UDim2.fromScale(0, 0)
+	trackSlot.Size = UDim2.fromScale(1, 1)
+	trackSlot.Parent = LobbyMenu.slot("track") -- LobbyMenu hangs on the MatchFlow lobby, layer 50
 	trackSlot.Visible = false
 	trackButton.Activated:Connect(TrackPanel.toggle)
 
