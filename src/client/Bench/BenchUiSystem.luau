@@ -82,7 +82,7 @@ function BenchUiSystem.start()
 		position = UDim2.fromScale(0.5, 0.15),
 		anchor = Vector2.new(0.5, 0),
 	})
-	local odds = Components.text(modal.panel, root, "Odds", "caption", {
+	Components.text(modal.panel, root, "Odds", "caption", {
 		text = BenchText.odds(),
 		color = "ink",
 		size = UDim2.fromScale(0.9, 0.05),
