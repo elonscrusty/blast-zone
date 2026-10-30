@@ -69,12 +69,21 @@ local Defs: { Def } = {
 		5,
 		5
 	),
-	tell("03", "ShotFx", "{ shooterId, weaponId, origin, endPos, hitKind }"),
-	tell("03", "HitConfirm", "{ targetId, amount, killed }"),
-	tell("03", "DamageTaken", "{ sourceId?, amount, cause, fromDir? }"),
-	tell("03", "AmmoState", "{ weaponId, ammo, magazine, reloadEndsAt? }"),
+	tell(
+		"03",
+		"ShotFx",
+		"{ shooterId, weaponId, origin, endPos, hitKind: 'target'|'wall'|'container'|'none' }"
+	),
+	tell("03", "HitConfirm", "{ targetId, amount, killed, pos? }"),
+	tell("03", "DamageTaken", "{ sourceId?, amount, cause, fromDir?, weaponId?, health }"),
+	tell("03", "AmmoState", "{ slot, weaponId, ammo, magazine, reloadEndsAt?, serverNow }"),
 	tell("03", "HealthState", "{ health, max }"),
-	tell("03", "ExplosionFx", "{ pos, radius, warnEndsAt? }"),
+	tell("03", "ExplosionFx", "{ pos, radius, shooterId?, warnEndsAt? }"),
+	tell(
+		"03",
+		"DefeatSummary",
+		"{ killerId?, killerName?, cause, weaponId?, hitters: { { name, damage } } }"
+	),
 
 	-- ===== 05 match, spectate, results =====
 	ask("05", "PlayRequest", {}, 1, 2),
