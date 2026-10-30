@@ -21,17 +21,75 @@ function UiKit.color(hex: string): Color3
 	return Color3.fromHex(hex)
 end
 
--- Sizes and places a piece from a Layout rect. Parent must be a full-screen container.
-function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?)
-	local p = Layout.place(rect, leftHanded)
+-- Width / height of the box a placed piece lives in (its parent, else the whole screen).
+local function aspectOf(obj: GuiObject): number
+	local parent = obj.Parent
+	if parent and parent:IsA("GuiBase2d") then
+		local s = parent.AbsoluteSize
+		if s.X > 0 and s.Y > 0 then
+			return s.X / s.Y
+		end
+	end
+	local camera = workspace.CurrentCamera
+	if camera and camera.ViewportSize.Y > 0 then
+		return camera.ViewportSize.X / camera.ViewportSize.Y
+	end
+	return Layout.WIDTH / Layout.HEIGHT
+end
+
+type Placed = { rect: Layout.Rect, leftHanded: boolean? }
+local placed: { [GuiObject]: Placed } = {}
+local watchingScreen = false
+
+local function apply(obj: GuiObject, entry: Placed)
+	local aspect = aspectOf(obj)
+	local p = Layout.place(entry.rect, entry.leftHanded, aspect)
 	obj.AnchorPoint = Vector2.new(p.anchorX, p.anchorY)
 	obj.Position = UDim2.fromScale(p.posX, p.posY)
-	obj.Size = UDim2.fromScale(p.sizeY * p.aspect * (Layout.HEIGHT / Layout.WIDTH), p.sizeY)
+	obj.Size = UDim2.fromScale(p.sizeY * p.aspect / aspect, p.sizeY)
 	local ratio = obj:FindFirstChildOfClass("UIAspectRatioConstraint")
 		or Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = p.aspect
 	ratio.DominantAxis = Enum.DominantAxis.Height
 	ratio.Parent = obj
+end
+
+local function watchScreen()
+	if watchingScreen then
+		return
+	end
+	watchingScreen = true
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			task.defer(function()
+				for obj, entry in placed do
+					apply(obj, entry)
+				end
+			end)
+		end)
+	end
+end
+
+-- Sizes and places a piece from a Layout rect. Parent must be a full-screen container. Placed again
+-- when the screen turns or resizes, and when the piece moves into a screen.
+function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?)
+	local isNew = placed[obj] == nil
+	local entry: Placed = { rect = rect, leftHanded = leftHanded }
+	placed[obj] = entry
+	apply(obj, entry)
+	if isNew then
+		watchScreen()
+		obj.AncestryChanged:Connect(function()
+			local current = placed[obj]
+			if current then
+				task.defer(apply, obj, current)
+			end
+		end)
+		obj.Destroying:Connect(function()
+			placed[obj] = nil
+		end)
+	end
 end
 
 -- Outline thickness in pixels for the current screen height.

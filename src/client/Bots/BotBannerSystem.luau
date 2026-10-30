@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local BotBannerSystem = {}
 
@@ -22,13 +23,13 @@ function BotBannerSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "BotBanner"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 20
+	gui.DisplayOrder = UiLayers.Popups
 	gui.IgnoreGuiInset = false
 	gui.Enabled = false
 
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.new(0.5, 0, 0.18, 0)
+	panel.Position = UDim2.new(0.5, 0, 0, 8) -- top band; the lobby menu starts under it (LobbyLayout.bannerBottom)
 	panel.Size = UDim2.new(0.9, 0, 0, 108)
 	panel.BackgroundColor3 = color("Navy")
 	panel.BackgroundTransparency = 0.1

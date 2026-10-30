@@ -62,8 +62,15 @@ export type Placement = {
 	aspect: number, -- width / height
 }
 
+-- Narrowest screen the layout keeps its design sizes on (16:9). Narrower screens (tablets) get
+-- the 16:9 layout shrunk evenly, so nothing slides into anything else.
+Layout.MIN_ASPECT = 16 / 9
+
 -- Which screen edge a piece hugs, and how big it is relative to screen height.
-function Layout.place(r: Rect, leftHanded: boolean?): Placement
+-- `screenAspect` (width / height of the real screen) keeps each piece's distance to its edge in
+-- height units, so pieces near the same edge keep their spacing on any phone shape. Leave it out
+-- to get the design screen.
+function Layout.place(r: Rect, leftHanded: boolean?, screenAspect: number?): Placement
 	local rect = if leftHanded then Layout.mirror(r) else r
 	local cx = (rect.x + rect.w / 2) / Layout.WIDTH
 	local cy = (rect.y + rect.h / 2) / Layout.HEIGHT
@@ -74,13 +81,39 @@ function Layout.place(r: Rect, leftHanded: boolean?): Placement
 		elseif anchorX == 1 then (rect.x + rect.w) / Layout.WIDTH
 		else cx
 	local posY = if anchorY == 0 then rect.y / Layout.HEIGHT else (rect.y + rect.h) / Layout.HEIGHT
+	local sizeY = rect.h / Layout.HEIGHT
+	if screenAspect and screenAspect > 0 then
+		local shrink = math.min(1, screenAspect / Layout.MIN_ASPECT)
+		local k = (Layout.WIDTH / Layout.HEIGHT) / screenAspect * shrink
+		posX = if anchorX == 0
+			then posX * k
+			elseif anchorX == 1 then 1 - (1 - posX) * k
+			else 0.5 + (posX - 0.5) * k
+		posY = if anchorY == 0 then posY * shrink else 1 - (1 - posY) * shrink
+		sizeY *= shrink
+	end
 	return {
 		anchorX = anchorX,
 		anchorY = anchorY,
 		posX = posX,
 		posY = posY,
-		sizeY = rect.h / Layout.HEIGHT,
+		sizeY = sizeY,
 		aspect = rect.w / rect.h,
+	}
+end
+
+-- Where a piece really lands on a screen `screenAspect` wide, in design-height units (the screen
+-- is 360 tall and 360 * screenAspect wide). Used by tests to look for overlaps on real phones.
+function Layout.onScreen(r: Rect, screenAspect: number, leftHanded: boolean?): Rect
+	local p = Layout.place(r, leftHanded, screenAspect)
+	local screenW = Layout.HEIGHT * screenAspect
+	local h = p.sizeY * Layout.HEIGHT
+	local w = h * p.aspect
+	return {
+		x = p.posX * screenW - p.anchorX * w,
+		y = p.posY * Layout.HEIGHT - p.anchorY * h,
+		w = w,
+		h = h,
 	}
 end
 

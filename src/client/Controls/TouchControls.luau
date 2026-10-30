@@ -173,7 +173,7 @@ local function build()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "TouchControls"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 9
+	gui.DisplayOrder = require(script.Parent.Parent.Ui.UiLayers).TouchControls
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Enabled = false

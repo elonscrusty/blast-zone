@@ -1,7 +1,7 @@
 --!strict
 -- The upgrade cards (piece 08): three cards in a row at the bottom centre, between the thumbs.
 -- Look: carter's "Street Sticker" HUD style (cream card, thick navy outline, hard shadow, gold tile).
--- Screen space (agreed with the HUD): x 26%-74%, y 76%-96% of the safe area. DisplayOrder 20.
+-- Screen space (agreed with the HUD): x 26%-74%, y 76%-96% of the safe area. Layer: UiLayers.Popups.
 --
 -- The client only shows what the server offers and asks for a pick: UpgradeChoose(offerId, index).
 -- The server decides if it counts. Cards stay up while the match runs, never block movement
@@ -18,6 +18,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local UpgradeCardsSystem = {}
 UpgradeCardsSystem.order = 200 -- after the HUD
@@ -296,7 +297,7 @@ function UpgradeCardsSystem.start()
 
 	gui = make("ScreenGui", {
 		Name = "UpgradeCards",
-		DisplayOrder = 20,
+		DisplayOrder = UiLayers.Popups,
 		ResetOnSpawn = false,
 		IgnoreGuiInset = false,
 		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,

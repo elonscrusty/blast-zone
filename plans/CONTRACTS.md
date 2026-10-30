@@ -98,3 +98,34 @@ Piece 08 calls `setProvider(fn)` and `invalidate(id)`. Until then everyone has b
 ## Checks before a PR
 
 `stylua src tests`, `selene src`, `lune run tests/run`, `rojo build default.project.json -o BlastZone.rbxl`.
+
+## Screen layers (piece 22)
+
+Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never a bare number.
+`tests/ui_layers.test.luau` fails the build if a file in `src/client` makes a ScreenGui without `UiLayers`.
+
+| Layer | Value | What goes there |
+| --- | --- | --- |
+| `ZoneTint` | 5 | zone screen edges and arrow (no taps) |
+| `TouchControls` | 9 | thumb sticks and buttons |
+| `Hud` | 10 | health, minimap, timer, gear |
+| `Calm` | 15 | between-fight widgets that are not lobby buttons |
+| `Popups` | 20 | upgrade cards, bots banner |
+| `Spectate` | 30 | spectate arrows |
+| `MatchFlow` | 50 | lobby, countdown, banners, results |
+| `MatchFlowExtra` | 55 | add-ons drawn over results (coins strip) |
+| `Modal` | 100 | full panels with a dim: settings, track, loadout, shop |
+| `Onboarding` | 110 | first-time intro (blocks everything) |
+| `Toast` | 120 | short messages like "Saved" (no taps) |
+
+- Full panels also call `ModalGate.opened(name, closeFn)` when shown and `ModalGate.closed(name)` when hidden,
+  so only one panel is open at a time.
+- Lobby buttons never get their own ScreenGui or numbers. Put them in a slot:
+  `button.Size = UDim2.fromScale(1, 1); button.Parent = LobbyMenu.slot("track")`. Slots live in
+  `src/client/Ui/LobbyLayout.luau` (`status`, `play`, `settings`, `track`, `looks`); add a slot there and the tests
+  check it fits on every phone. The top of the lobby (above `LobbyLayout.bannerBottom`) is for banners.
+- Pieces placed with `UiKit.place` keep their distance to their screen edge in height units, so phones from 16:9
+  to 21:9 get the same spacing; tablets get the 16:9 layout shrunk.
+- Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;
+  #17 coin strip `55` -> `UiLayers.MatchFlowExtra`, track panel `60` -> `UiLayers.Modal` (+ `ModalGate`),
+  lobby TRACK button -> `LobbyMenu.slot("track")`; #20 look picker `15` -> `UiLayers.Calm` (or `LobbyMenu.slot("looks")`).
