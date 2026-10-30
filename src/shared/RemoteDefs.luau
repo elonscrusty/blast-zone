@@ -107,7 +107,7 @@ local Defs: { Def } = {
 		"{ matchId, victimId, victimName, killerId?, killerName?, cause, placement, eliminations, survivedSeconds }"
 	),
 	tell("05", "Announce", "{ kind: 'banner'|'kill'|'win', text: string }"),
-	tell("05", "SpectateTarget", "{ participantId? }"),
+	tell("05", "SpectateTarget", "{ participantId?, name? }"),
 	tell("05", "Results", "ResultsPayload"),
 
 	-- ===== 06 zone =====

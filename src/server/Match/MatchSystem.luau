@@ -156,10 +156,10 @@ local world: MatchController.World = {
 		end
 	end,
 
-	sendSpectate = function(id, targetId)
+	sendSpectate = function(id, targetId, targetName)
 		local player = playerById[id]
 		if player then
-			Net.fire("SpectateTarget", player, { participantId = targetId })
+			Net.fire("SpectateTarget", player, { participantId = targetId, name = targetName })
 		end
 	end,
 

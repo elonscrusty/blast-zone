@@ -42,6 +42,25 @@ function CameraRules.distanceForAspect(
 	return base * (1 + maxWiden * t)
 end
 
+-- Pitch and distance for the view: the normal play camera, or the chosen spectate style.
+-- An unknown style name falls back to the play camera, so a typo never breaks the view.
+function CameraRules.viewFor(
+	play: { pitchDegrees: number, distance: number },
+	spectate: {
+		style: string,
+		styles: { [string]: { pitchDegrees: number, distance: number } },
+	},
+	spectating: boolean
+): (number, number)
+	if spectating then
+		local style = spectate.styles[spectate.style]
+		if style then
+			return style.pitchDegrees, style.distance
+		end
+	end
+	return play.pitchDegrees, play.distance
+end
+
 -- Frame-rate independent follow: how much of the gap to close this frame. tau <= 0 closes it all.
 function CameraRules.followAlpha(dt: number, tau: number): number
 	if tau <= 0 or dt <= 0 then

@@ -662,6 +662,13 @@ Harness.test(
 	end
 )
 
+Harness.test("spectating: the fallen first watch whoever eliminated them", function()
+	local rig, ids = humans(3)
+	rig.untilPhase("Active")
+	rig.kill(ids[1], ids[3])
+	Harness.eq(rig.spectate[ids[1]], ids[3], "killer is watched first, not the first in line")
+end)
+
 Harness.test("a late joiner is not in the match and cannot be hurt", function()
 	local rig, _ = humans(2)
 	rig.untilPhase("Active")

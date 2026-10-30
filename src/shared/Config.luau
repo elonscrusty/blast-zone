@@ -94,6 +94,17 @@ Config.Camera = {
 	maxWiden = 0.35, -- most extra distance (a fraction) for the narrowest screens
 }
 
+-- Camera while watching someone after you are out. `style` picks one entry of `styles`.
+-- A = same (play view), B = wide (far back), C = close (low and near). carter's pick sets `style`.
+Config.Spectate = {
+	style = "same",
+	styles = {
+		same = { pitchDegrees = 55, distance = 46 },
+		wide = { pitchDegrees = 62, distance = 64 },
+		close = { pitchDegrees = 38, distance = 30 },
+	},
+}
+
 Config.Weapons = {
 	startingLoadout = { "volt_pistol", "arc_mortar" }, -- slot 1, slot 2
 	Firearm = {

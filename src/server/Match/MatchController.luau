@@ -43,7 +43,7 @@ export type World = {
 	announce: (kind: string, text: string) -> (),
 	sendEliminated: (payload: any) -> (), -- everyone sees who fell (public info)
 	sendResults: (id: string, payload: any) -> (),
-	sendSpectate: (id: string, targetId: string?) -> (),
+	sendSpectate: (id: string, targetId: string?, targetName: string?) -> (),
 	grantReward: (id: string, amount: number, place: number, matchId: number) -> (),
 	toServerTime: (t: number) -> number, -- clock time -> workspace:GetServerTimeNow() time
 	random: ((n: number) -> number)?,
@@ -114,6 +114,7 @@ function MatchController.new(deps: Deps): Controller
 	local result: Result? = nil
 	local pendingRewards: { [string]: { amount: number, place: number } } = {}
 	local spectateTarget: { [string]: string } = {}
+	local killedBy: { [string]: string } = {} -- victim id -> killer id; a spectator first watches who got them
 	local ledger = rules.newLedger()
 	local lastKey = ""
 
@@ -208,29 +209,28 @@ function MatchController.new(deps: Deps): Controller
 		return mine == nil or not mine.alive
 	end
 
+	local function aliveIdList(): { string }
+		local out: { string } = {}
+		for _, p in registry:aliveList() do
+			table.insert(out, p.id)
+		end
+		return out
+	end
+
 	local function setTarget(id: string, target: string?)
 		if spectateTarget[id] == target then
 			return
 		end
 		spectateTarget[id] = target :: any
-		world.sendSpectate(id, target)
+		local entry = if target then registry:get(target) else nil
+		world.sendSpectate(id, target, if entry then entry.displayName else nil)
 	end
 
 	local function refreshSpectators()
-		local alive = registry:aliveList()
+		local alive = aliveIdList()
 		for _, id in humanOrder do
 			if canSpectate(id) then
-				local current = spectateTarget[id]
-				local ok = false
-				for _, p in alive do
-					if p.id == current then
-						ok = true
-					end
-				end
-				if not ok then
-					local first = alive[1]
-					setTarget(id, if first then first.id else nil)
-				end
+				setTarget(id, rules.pickWatchTarget(alive, spectateTarget[id], killedBy[id]))
 			elseif spectateTarget[id] ~= nil then
 				setTarget(id, nil)
 			end
@@ -241,11 +241,7 @@ function MatchController.new(deps: Deps): Controller
 		if not canSpectate(id) then
 			return
 		end
-		local aliveIds: { string } = {}
-		for _, p in registry:aliveList() do
-			table.insert(aliveIds, p.id)
-		end
-		setTarget(id, rules.cycleTarget(aliveIds, spectateTarget[id], step))
+		setTarget(id, rules.cycleTarget(aliveIdList(), spectateTarget[id], step))
 	end
 
 	-- ===== end of match =====
@@ -415,6 +411,7 @@ function MatchController.new(deps: Deps): Controller
 			end
 		end
 		kills, departed, humanParticipants = {}, {}, {}
+		killedBy = {}
 		pendingIds = {}
 		pendingRewards = {}
 		result = nil
@@ -740,6 +737,9 @@ function MatchController.new(deps: Deps): Controller
 			kills[killerId] = (kills[killerId] or 0) + 1
 		else
 			killerId = nil
+		end
+		if killerId then
+			killedBy[e.victimId] = killerId
 		end
 		local placement = registry:aliveCount() + 1
 		local start = activeStartedAt or clock()
