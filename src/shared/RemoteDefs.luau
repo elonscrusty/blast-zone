@@ -118,6 +118,11 @@ local Defs: { Def } = {
 	ask("07", "PickupRequest", { { name = "pickupId", kind = "id" } }, 10, 10),
 	tell("07", "ContainerHit", "{ containerId, health, max }"),
 	tell("07", "ContainerBroken", "{ containerId, pos }"),
+	tell(
+		"43",
+		"PropBroken",
+		"{ id, kind, x, y, z, sx, sy, sz, color } (a street prop burst; y is the middle)"
+	),
 	tell("07", "PickupSpawned", "{ pickupId, kind, pos }"),
 	tell("07", "PickupRemoved", "{ pickupId, collectedBy?, pos }"),
 	tell("07", "XpState", "XpState"),

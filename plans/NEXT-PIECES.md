@@ -55,3 +55,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 41 | Whole-match tests: a pretend server with bots plays full matches (lobby, crates, guns, zone, winner, coins, reset); 4 seam bugs fixed | - | PR up | piece 41 PR |
 | 42 | Loot & Heal (video 3 bundle A): carried heal packs (use button), floor loot (packs + found guns that never expire), death drop, bots heal | - | PR up | loot PR |
 | 43 | Power Picks (video 3 bundle B): Piercing Rounds, Rapid Fire, Aftershock, Heavy Shell, Long Slide level-up cards | 14 | PR up | power picks PR |
+| 43 | Street that breaks (video 3 gap list #1, carter picked A "Chunk Burst"): cars, dumpsters, planters, benches, barriers burst from shots and blasts; scorch + rubble stay; chunks fly | - | PR up | street breaks PR |

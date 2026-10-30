@@ -100,6 +100,9 @@ local function decorate(p: Part, spec: ArtKit.Spec)
 	if spec.sign then
 		addSign(p, spec.sign)
 	end
+	if spec.owner then
+		p:SetAttribute("ArtOwner", spec.owner)
+	end
 	if spec.fadeWith then
 		p:SetAttribute("FadeWith", spec.fadeWith)
 		CollectionService:AddTag(p, Tags.ArtFollower)

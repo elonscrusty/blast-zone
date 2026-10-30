@@ -331,6 +331,7 @@ Config.Tags = {
 	FinalZoneRegion = "FinalZoneRegion",
 	ArtNeon = "ArtNeon", -- piece 14: art parts whose glow follows the time of day (client)
 	ArtFollower = "ArtFollower", -- piece 14: art parts that copy an occluder's see-through fade
+	Breakable = "Breakable", -- piece 43: street props (cars, bins...) that burst when shot
 }
 
 Config.Workspace = {
@@ -535,6 +536,36 @@ Config.Loot = {
 		rayHeight = 30, -- the check starts this far above the marker's floor
 		minSeparation = 18, -- two loot spots are at least this far apart
 	},
+}
+
+-- Piece 43: the street breaks (carter picked "A Chunk Burst"). Cars, dumpsters, planters, benches and
+-- barriers take shot and blast damage, then burst into chunky blocks. The solid goes away (people
+-- can walk and shoot through), a scorch mark and a few blocks stay until the match ends.
+-- `kinds` are StreetArt.classify names. Health is in the same units as gun damage. Placeholders until carter plays.
+Config.Breakables = {
+	enabled = true,
+	kinds = {
+		car = { health = 160, chunks = 12 },
+		dumpster = { health = 220, chunks = 9 },
+		planter = { health = 90, chunks = 7 },
+		bench = { health = 70, chunks = 6 },
+		barrier = { health = 260, chunks = 9 },
+	} :: { [string]: { health: number, chunks: number } },
+	rubble = {
+		pieces = 6,
+		minSize = 0.5,
+		maxSize = 1.1,
+		scorchColor = "#0E1018",
+		scorchAlpha = 0.45,
+	},
+	fly = {
+		maxLiveChunks = 48, -- all breaks together, on this client
+		seconds = 1.6, -- how long a flying chunk lives before it shrinks away
+		upSpeed = 14,
+		sideSpeed = 11,
+		gravity = 60,
+	},
+	blastMinFactor = 0.2, -- a blast this far from the edge (share of full) still counts
 }
 
 Config.Rewards = {

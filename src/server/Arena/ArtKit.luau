@@ -33,6 +33,7 @@ export type Spec = {
 	reflectance: number,
 	shadow: boolean,
 	fadeWith: string?, -- the occluder part whose see-through fade this part copies
+	owner: string?, -- the solid this part dresses; when that solid breaks (piece 43) its parts go
 	neon: Neon?,
 	light: Light?,
 	sign: Sign?,
@@ -62,6 +63,7 @@ export type Plan = {
 	signs: number,
 	counter: number,
 	fade: string?, -- while set, new parts copy this occluder's fade (kiosk, bandstand)
+	owner: string?, -- while set, new parts belong to this solid (a car that can break)
 }
 
 -- Day colors. The night comes from the lighting, so these are the "lit by the sun" values.
@@ -110,6 +112,7 @@ function ArtKit.newPlan(seed: number): Plan
 		signs = 0,
 		counter = 0,
 		fade = nil,
+		owner = nil,
 	}
 end
 
@@ -222,6 +225,7 @@ local function add(
 		reflectance = opts.reflectance or 0,
 		shadow = opts.shadow == true,
 		fadeWith = opts.fadeWith or plan.fade,
+		owner = plan.owner,
 		neon = opts.neon,
 		light = opts.light,
 		sign = opts.sign,

@@ -789,6 +789,13 @@ function StreetArt.build(plan: ArtKit.Plan, map: ArtMap.Map, handled: { [string]
 	local boxIndex = 0
 	for _, s in map.solids do
 		local kind = StreetArt.classify(s.id)
+		-- the parts of a solid that can burst (piece 43) remember it, so the server can take them away
+		if
+			s.kind ~= "mass"
+			and (kind == "car" or kind == "barrier" or kind == "dumpster" or kind == "planter")
+		then
+			plan.owner = s.id
+		end
 		if kind == "car" then
 			car(plan, boxOf(s))
 		elseif kind == "barrier" then
@@ -815,6 +822,7 @@ function StreetArt.build(plan: ArtKit.Plan, map: ArtMap.Map, handled: { [string]
 		then
 			generic(plan, s)
 		end
+		plan.owner = nil
 	end
 end
 

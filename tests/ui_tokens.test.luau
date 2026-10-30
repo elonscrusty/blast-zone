@@ -94,6 +94,7 @@ local WORLD_ART = {
 	"src/client/Effects/", -- piece 13 particles, tracers and flashes
 	"src/client/Movement/SlideTrail.luau",
 	"src/client/Pickups/PickupFxSystem.luau",
+	"src/client/Props/BreakFxSystem.luau", -- piece 43 flying chunks (3D world parts)
 	"src/client/Progression/CoinView.luau",
 	"src/client/Zone/ZoneBoundary.luau",
 }
