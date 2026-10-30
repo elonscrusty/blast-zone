@@ -138,7 +138,10 @@ end)
 
 Harness.test("two friends and bots from the top-up: full arena starts", function()
 	local rig, ids = humans(2)
-	Harness.eq(rig.ctl.requestBots(Config.Match.targetParticipants - 2), 4)
+	Harness.eq(
+		rig.ctl.requestBots(Config.Match.targetParticipants - 2),
+		Config.Match.targetParticipants - 2
+	)
 	rig.untilPhase("Spawning")
 	Harness.eq(#rig.placed, Config.Match.targetParticipants)
 	Harness.eq(rig.registry:aliveCount(), Config.Match.targetParticipants)

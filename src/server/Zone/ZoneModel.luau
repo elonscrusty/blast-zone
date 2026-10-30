@@ -421,6 +421,8 @@ end
 -- Begins the zone for a match. Call when the match turns Active (the clock starts here).
 -- Starting again replaces the old zone: nothing carries over between matches.
 function Runner.start(self: Runner, matchId: number)
+	-- The numbers can change between matches (a game mode, piece G24), so the timeline is built again each time.
+	self.timeline = ZoneModel.build(self.deps.config)
 	self.running = true
 	self.matchId = matchId
 	self.startTime = self.deps.now()

@@ -94,6 +94,12 @@ function Analysis.flood(
 	return seen
 end
 
+-- Is (x, z) one of the cells in a flood result? Lets a test flood once and ask many times.
+function Analysis.inFlood(g: Grid, seen: { [number]: boolean }, x: number, z: number): boolean
+	local col, row = cellOf(g, x, z)
+	return seen[idx(g, col, row)] == true
+end
+
 function Analysis.reaches(g: Grid, fromX: number, fromZ: number, toX: number, toZ: number): boolean
 	local seen = Analysis.flood(g, fromX, fromZ)
 	local col, row = cellOf(g, toX, toZ)

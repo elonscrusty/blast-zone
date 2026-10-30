@@ -137,12 +137,33 @@ function ProgressionSystem.equip(player: Player, itemId: string): boolean
 	return service ~= nil and service.equip(player, itemId)
 end
 
+-- The Scrap Shop (ShopSystem) buys a look here for the shop day it worked out. ok, or false + the reason.
+function ProgressionSystem.buy(player: Player, itemId: string, day: number): (boolean, string?)
+	if (service :: any) == nil then
+		return false, "notStarted"
+	end
+	return service.buy(player, itemId, day)
+end
+
 -- Other server systems pay coins here (daily challenges). Once per key; false + reason when it did not pay.
 function ProgressionSystem.grant(player: Player, amount: number, key: string): (boolean, string?)
 	if (service :: any) == nil then
 		return false, "notStarted"
 	end
 	return service.grant(player, amount, key)
+end
+
+-- A season pass look (piece G20): once per key; a look already owned pays Scrap instead. False + reason when not given.
+function ProgressionSystem.giveItem(
+	player: Player,
+	itemId: string,
+	key: string,
+	dupScrap: number
+): (boolean, string?)
+	if (service :: any) == nil then
+		return false, "notStarted"
+	end
+	return service.giveItem(player, itemId, key, dupScrap)
 end
 
 -- The run XP a player earned in a finished match (LevelSystem calls this). Once per match; false + nothing paid otherwise.

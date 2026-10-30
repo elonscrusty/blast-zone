@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local FriendInvite = require(Shared.FriendInvite)
 local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
+local Signal = require(Shared.Signal)
 
 local Core = script.Parent.Parent:WaitForChild("Core")
 local MatchContext = require(Core.MatchContext)
@@ -28,6 +29,7 @@ type MatchSystemApi = {
 
 local SocialSystem = {}
 SocialSystem.order = 120 -- after MatchSystem (50)
+SocialSystem.Joined = Signal.new() -- (friend: Player, host: Player): a friend came for a host in this server
 
 local matchSystem: MatchSystemApi? = nil
 
@@ -81,6 +83,8 @@ local function onPlayerAdded(player: Player)
 	if host == nil then
 		return
 	end
+
+	SocialSystem.Joined:fire(player, host) -- squads seat friends together
 
 	-- MatchSystem adds the player on its own PlayerAdded; give it a moment so the order never matters.
 	task.wait(0.5)

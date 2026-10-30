@@ -30,6 +30,7 @@ local Damage = require(Core.Damage)
 local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
+local Squads = require(Core.Squads)
 
 local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local MatchController = require(script.Parent.MatchController)
@@ -255,6 +256,7 @@ function MatchSystem.start()
 		ids = Ids,
 		clock = os.clock,
 		world = world,
+		squads = if Config.Squads.enabled then Squads else nil,
 	})
 
 	Damage.Eliminated:connect(function(event)
