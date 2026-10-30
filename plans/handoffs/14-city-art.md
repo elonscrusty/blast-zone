@@ -5,6 +5,6 @@
 - Roof fade: art on a wall or roof gets `FadeWith` + tag `ArtFollower` and copies that occluder's fade in `InteriorVisibilitySystem`. Art never carries `OccluderKind`, so building footprints are unchanged.
 - Day/night: `src/shared/DayNight.luau` (pure maths) and `src/client/Arena/DayNightSystem.luau` (Lighting, Atmosphere, Bloom, neon via tag `ArtNeon`). Clock comes from ZoneState (`startedAt`, `stage`), so late joiners agree. Neon updates in 12 steps, not every frame.
 - Rules kept (tests/art.test.luau): no floating art, no gold or violet below head height (pickups), no thin cyan glow streak low down (shots), nothing on crate spots or spawn pads, towers outside the wall and the south ones low (camera looks north).
-- Tests: `tests/art.test.luau`, `tests/daynight.test.luau`. 365 pass. Proof renders (real plan in Three.js) were shown to carter.
+- Tests: `tests/art.test.luau`, `tests/daynight.test.luau`. 365 pass. Proof renders of the real plan (Three.js) went to carter.
 - Not tested: Roblox-side parts, lighting and the glow (needs Studio play). selene did not run here (needs the Roblox std download); CI runs it.
 - Left: look at it on a phone for frame rate (drop `Config.Art.skyline.towers` or `maxParts` first), tweak night brightness after playing, `Config.Art.seed` re-rolls clutter.
