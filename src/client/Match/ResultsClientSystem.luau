@@ -15,6 +15,7 @@ local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
 local ResultsText = require(script.Parent.ResultsText)
+local Look = require(script.Parent.Parent.Ui.Look)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
@@ -45,14 +46,13 @@ local function loadLook(): Look
 			return theme.get(nil)
 		end
 	end
-	local p = Config.Palette
 	return {
-		panel = "#FFF4D6",
-		ink = p.Navy,
-		outline = p.Navy,
-		accent = p.RewardGold,
-		danger = p.DangerCoral,
-		info = p.Cyan,
+		panel = Look.hex("panel"),
+		ink = Look.hex("ink"),
+		outline = Look.hex("outline"),
+		accent = Look.hex("accent"),
+		danger = Look.hex("danger"),
+		info = Look.hex("info"),
 		strokeScale = 0.0085,
 		shadowOffset = 0.011,
 	}
@@ -64,12 +64,13 @@ local function hex(h: string): Color3
 end
 
 local TONES: { [string]: { top: Color3, bottom: Color3 } } = {
-	win = { top = hex(Config.Palette.Cyan), bottom = hex("#1E8FA0") },
-	lose = { top = hex(Config.Palette.DangerCoral), bottom = hex("#A23A42") },
-	draw = { top = hex(Config.Palette.Pavement), bottom = hex("#8A6D45") },
+	win = { top = Look.color("winTop"), bottom = Look.color("winBottom") },
+	lose = { top = Look.color("loseTop"), bottom = Look.color("loseBottom") },
+	draw = { top = Look.color("drawTop"), bottom = Look.color("drawBottom") },
+	abandon = { top = Look.color("abandonTop"), bottom = Look.color("abandonBottom") },
 }
 
-local FONT = Enum.Font.FredokaOne
+local FONT = Look.font("display")
 local MIN_TOUCH = Config.Settings.minTouchTarget
 
 local gui: ScreenGui
@@ -100,7 +101,7 @@ local function text(parent: Instance, name: string, str: string, maxSize: number
 	l.Text = str
 	l.Font = FONT
 	l.TextScaled = true
-	l.TextColor3 = Color3.new(1, 1, 1)
+	l.TextColor3 = Look.color("inkOnDark")
 	l.Active = false
 	local cap = Instance.new("UITextSizeConstraint")
 	cap.MaxTextSize = maxSize
@@ -299,7 +300,7 @@ function ResultsClientSystem.start()
 	results.Name = "Results"
 	results.Size = UDim2.fromScale(1, 1)
 	results.BorderSizePixel = 0
-	results.BackgroundColor3 = Color3.new(1, 1, 1)
+	results.BackgroundColor3 = Color3.fromHSV(0, 0, 1) -- white base so the gradient shows its true colours
 	results.Visible = false
 	results.Parent = gui
 	local gradient = Instance.new("UIGradient")

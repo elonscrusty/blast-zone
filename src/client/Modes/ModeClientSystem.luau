@@ -11,19 +11,18 @@ local ModeRules = require(Shared.Modes.ModeRules)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
 local Components = require(script.Parent.Parent.Ui.Components)
+local Layout = require(script.Parent.Parent.Hud.Layout)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local ModeClientSystem = {}
 ModeClientSystem.order = 200
 
-local BUTTON_WIDTH = 0.2 -- of the screen
-local BUTTON_GAP = 0.02
-local BUTTON_HEIGHT = 0.1
-local ROW_TOP = 0.3 -- under the map vote row (0.18)
+local GAP = 4 -- points between the stacked buttons
 
 -- The words on one button. Pure, so the lock text is the same everywhere.
 local function labelFor(entry: ModeRules.Choice, yourVote: string?): string
 	if entry.locked then
-		return `🔒 {entry.name}  Lv {entry.unlockLevel}`
+		return `{entry.name}  Lv {entry.unlockLevel}` -- locked: dim button, no emoji (design rule)
 	end
 	return `{entry.name}  {entry.votes}` .. (if yourVote == entry.id then "  ✓" else "")
 end
@@ -32,17 +31,13 @@ function ModeClientSystem.start()
 	local gui, root = Components.screen("ModeVote", "MatchFlowExtra")
 	gui.Enabled = false
 
-	local row = Instance.new("Frame")
-	row.Name = "Row"
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.fromScale(1, 1)
-	row.Parent = root
+	-- A column in its own spot (Ui/ScreenMap.modeVote), beside the look picker and left of the PLAY menu.
+	local row = Components.piece(root, "Row", ScreenMap.modeVote, nil, Layout.LOBBY_MIN_ASPECT)
 
 	local function render(state: ModeRules.State)
 		gui.Enabled = state.open and #state.modes > 1
 		row:ClearAllChildren()
 		local count = #state.modes
-		local total = count * BUTTON_WIDTH + (count - 1) * BUTTON_GAP
 		for i, entry in state.modes do
 			local style: Components.ButtonStyle = if entry.locked
 				then "quiet"
@@ -57,10 +52,12 @@ function ModeClientSystem.start()
 					end
 				end,
 			})
+			-- placed by hand (no list layout): each button brings a shadow frame that must not take a slot
 			button.AnchorPoint = Vector2.new(0, 0)
-			button.Position =
-				UDim2.fromScale(0.5 - total / 2 + (i - 1) * (BUTTON_WIDTH + BUTTON_GAP), ROW_TOP)
-			button.Size = UDim2.fromScale(BUTTON_WIDTH, BUTTON_HEIGHT)
+			local total = ScreenMap.modeVote.h
+			local each = (total - GAP * (count - 1)) / count
+			button.Size = UDim2.fromScale(1, each / total)
+			button.Position = UDim2.fromScale(0, (i - 1) * (each + GAP) / total)
 		end
 	end
 

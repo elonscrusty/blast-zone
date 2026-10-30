@@ -10,15 +10,17 @@ local SocialService = game:GetService("SocialService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local FriendInvite = require(Shared.FriendInvite)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local Components = require(script.Parent.Parent.Ui.Components)
+local Layout = require(script.Parent.Parent.Hud.Layout)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local player = Players.LocalPlayer
-local FONT = Enum.Font.FredokaOne
-local MIN_TOUCH = Config.Settings.minTouchTarget
+local FONT = Look.font("display")
 
 type Look = {
 	panel: string,
@@ -39,10 +41,10 @@ local function loadLook(): Look
 		end
 	end
 	return {
-		panel = "#FFF4D6",
-		ink = Config.Palette.Navy,
-		outline = Config.Palette.Navy,
-		accent = Config.Palette.RewardGold,
+		panel = Look.hex("panel"),
+		ink = Look.hex("ink"),
+		outline = Look.hex("outline"),
+		accent = Look.hex("accent"),
 		strokeScale = 0.0085,
 		shadowOffset = 0.011,
 	}
@@ -54,25 +56,12 @@ InviteButtonSystem.order = 220
 function InviteButtonSystem.start()
 	local look = loadLook()
 
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "InviteFriends"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = UiLayers.MatchFlow -- lobby layer, so an open panel (Modal) covers it
+	local gui, root = Components.screen("InviteFriends", "MatchFlow") -- lobby layer, so an open panel (Modal) covers it
 	gui.Enabled = false
 
-	-- Bottom middle, under PLAY and SETTINGS: easy for a thumb, clear of the joystick and fire button.
-	local slot = Instance.new("Frame")
-	slot.Name = "InviteSlot"
-	slot.BackgroundTransparency = 1
-	slot.AnchorPoint = Vector2.new(0.5, 0.5)
-	slot.Position = UDim2.fromScale(0.5, 0.88)
-	slot.Size = UDim2.fromScale(0.24, 0.1)
-	slot.Parent = gui
-	local minSize = Instance.new("UISizeConstraint")
-	minSize.MinSize = Vector2.new(MIN_TOUCH * 3, MIN_TOUCH)
-	minSize.MaxSize = Vector2.new(320, 80)
-	minSize.Parent = slot
+	-- Its own spot above BENCH and MISSIONS (Ui/ScreenMap.invite): clear of PLAY, SETTINGS and REWARDS.
+	local slot =
+		Components.piece(root, "InviteSlot", ScreenMap.invite, nil, Layout.LOBBY_MIN_ASPECT)
 
 	local shadow = Instance.new("Frame")
 	shadow.Name = "Shadow"
@@ -112,7 +101,6 @@ function InviteButtonSystem.start()
 		shadow.Position = UDim2.fromOffset(0, math.max(2, math.floor(h * look.shadowOffset + 0.5)))
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
-	gui.Parent = player:WaitForChild("PlayerGui")
 	resize()
 
 	-- ===== when to show it =====

@@ -9,18 +9,19 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
+local Look = require(script.Parent.Parent.Ui.Look)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local IntroSteps = require(script.Parent.IntroSteps)
 
 local IntroView = {}
 
 local ASPECT = 2.1 -- panel width / height
-local CYAN = "#36D9E8"
-local GOLD = "#FFC44D"
-local CORAL = "#F15B64"
-local NAVY = "#14243A"
-local NAVY_LIGHT = "#1D3552"
-local CREAM = "#FFF4D6"
+local CYAN = Look.hex("info")
+local GOLD = Look.hex("accent")
+local CORAL = Look.hex("danger")
+local NAVY = Look.hex("outline")
+local NAVY_LIGHT = Look.hex("minimap") -- the dark picture wells
+local CREAM = Look.hex("panel")
 
 local gui: ScreenGui? = nil
 local panel: Frame

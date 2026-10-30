@@ -14,6 +14,9 @@ local Config = require(Shared.Config)
 
 local AirdropClient = require(script.Parent.AirdropClient)
 local Components = require(script.Parent.Parent.Ui.Components)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
+local Settings = require(script.Parent.Parent.Settings.Settings)
+local UiKit = require(script.Parent.Parent.Hud.UiKit)
 
 local AirdropHintSystem = {}
 AirdropHintSystem.order = 330
@@ -30,12 +33,17 @@ local function ensure(): (ScreenGui, TextLabel)
 	end
 	local screen, root = Components.screen("AirdropHint", "Moments")
 	screen.Enabled = false
-	local text = Components.text(root, root, "Hint", "title", {
-		color = "accent",
-		anchor = Vector2.new(0.5, 0),
-		position = UDim2.fromScale(0.5, 0.2),
-		size = UDim2.fromScale(0.6, 0.05),
-	})
+	-- Its own line under the HUD warning (Ui/ScreenMap.airdropHint), clear of the spectate bar and kill feed.
+	-- It swaps sides with the thumbs for left-handed play, so the swap button and pick chips never sit on it.
+	local piece =
+		Components.piece(root, "HintLine", ScreenMap.airdropHint, Settings.flag("leftHanded"))
+	Settings.Changed:connect(function(key: string)
+		if key == "leftHanded" then
+			UiKit.place(piece, ScreenMap.airdropHint, Settings.flag("leftHanded"))
+		end
+	end)
+	local text = Components.text(piece, root, "Hint", "title", { color = "accent" })
+	text.TextWrapped = false
 	gui, label = screen, text
 	return screen, text
 end

@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local StatsRules = require(Shared.Stats.StatsRules)
 local BoardRules = require(Shared.Stats.BoardRules)
 local Net = require(script.Parent.Parent.Core.Net)
@@ -31,18 +32,17 @@ local function loadLook(): Look
 			return theme.get(nil)
 		end
 	end
-	local p = Config.Palette
 	return {
-		panel = "#FFF4D6",
-		ink = p.Navy,
-		outline = p.Navy,
-		accent = p.RewardGold,
+		panel = Look.hex("panel"),
+		ink = Look.hex("ink"),
+		outline = Look.hex("outline"),
+		accent = Look.hex("accent"),
 		strokeScale = 0.0085,
 	}
 end
 
 local look = loadLook()
-local FONT = Enum.Font.FredokaOne
+local FONT = Look.font("display")
 
 local stats: StatsRules.Stats = StatsRules.empty()
 local phase: string? = nil

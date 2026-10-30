@@ -119,12 +119,22 @@ export type Placement = {
 -- Narrowest screen the layout keeps its design sizes on (16:9). Narrower screens (tablets) get
 -- the 16:9 layout shrunk evenly, so nothing slides into anything else.
 Layout.MIN_ASPECT = 16 / 9
+-- The lobby has the design phone's full width of columns (look picker, modes, PLAY menu, BENCH, shop
+-- column), so on anything narrower than 19.5:9 it is the same layout shrunk evenly. Nothing overlaps.
+Layout.LOBBY_MIN_ASPECT = 19.5 / 9
 
 -- Which screen edge a piece hugs, and how big it is relative to screen height.
 -- `screenAspect` (width / height of the real screen) keeps each piece's distance to its edge in
 -- height units, so pieces near the same edge keep their spacing on any phone shape. Leave it out
 -- to get the design screen.
-function Layout.place(r: Rect, leftHanded: boolean?, screenAspect: number?): Placement
+-- `minAspect` is the narrowest screen the rect keeps full size on (default MIN_ASPECT). The lobby
+-- passes LOBBY_MIN_ASPECT: it has five columns side by side, so it shrinks evenly on narrower phones.
+function Layout.place(
+	r: Rect,
+	leftHanded: boolean?,
+	screenAspect: number?,
+	minAspect: number?
+): Placement
 	local rect = if leftHanded then Layout.mirror(r) else r
 	local cx = (rect.x + rect.w / 2) / Layout.WIDTH
 	local cy = (rect.y + rect.h / 2) / Layout.HEIGHT
@@ -137,7 +147,7 @@ function Layout.place(r: Rect, leftHanded: boolean?, screenAspect: number?): Pla
 	local posY = if anchorY == 0 then rect.y / Layout.HEIGHT else (rect.y + rect.h) / Layout.HEIGHT
 	local sizeY = rect.h / Layout.HEIGHT
 	if screenAspect and screenAspect > 0 then
-		local shrink = math.min(1, screenAspect / Layout.MIN_ASPECT)
+		local shrink = math.min(1, screenAspect / (minAspect or Layout.MIN_ASPECT))
 		local k = (Layout.WIDTH / Layout.HEIGHT) / screenAspect * shrink
 		posX = if anchorX == 0
 			then posX * k
@@ -158,8 +168,13 @@ end
 
 -- Where a piece really lands on a screen `screenAspect` wide, in design-height units (the screen
 -- is 360 tall and 360 * screenAspect wide). Used by tests to look for overlaps on real phones.
-function Layout.onScreen(r: Rect, screenAspect: number, leftHanded: boolean?): Rect
-	local p = Layout.place(r, leftHanded, screenAspect)
+function Layout.onScreen(
+	r: Rect,
+	screenAspect: number,
+	leftHanded: boolean?,
+	minAspect: number?
+): Rect
+	local p = Layout.place(r, leftHanded, screenAspect, minAspect)
 	local screenW = Layout.HEIGHT * screenAspect
 	local h = p.sizeY * Layout.HEIGHT
 	local w = h * p.aspect

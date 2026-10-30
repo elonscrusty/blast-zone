@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CoinLooks = require(Shared.Progression.CoinLooks)
+local Look = require(script.Parent.Parent.Ui.Look)
 local Config = require(Shared.Config)
 local TrackDefs = require(Shared.Progression.TrackDefs)
 local CoinView = require(script.Parent.CoinView)
@@ -70,8 +71,8 @@ local function addRow(def: TrackDefs.Item, order: number, state: any, nextId: st
 	row.Name = def.id
 	row.LayoutOrder = order
 	row.Size = UDim2.new(1, -8, 0, 64)
-	row.BackgroundColor3 = Ui.hex("#FFFFFF")
-	row.BackgroundTransparency = 0.55
+	row.BackgroundColor3 = Look.color("panelAlt")
+	row.BackgroundTransparency = 0
 	row.Parent = list
 	Ui.round(row, 0.2)
 
@@ -175,7 +176,7 @@ local function build()
 	scrim.Text = ""
 	scrim.AutoButtonColor = false
 	scrim.Size = UDim2.fromScale(1, 1)
-	scrim.BackgroundColor3 = Color3.new(0, 0, 0)
+	scrim.BackgroundColor3 = Look.color("backdrop")
 	scrim.BackgroundTransparency = 0.45
 	scrim.Parent = g
 

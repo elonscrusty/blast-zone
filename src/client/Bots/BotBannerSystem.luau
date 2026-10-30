@@ -6,19 +6,19 @@
 
 local Net = require(script.Parent.Parent.Core.Net)
 local Components = require(script.Parent.Parent.Ui.Components)
+local Layout = require(script.Parent.Parent.Hud.Layout)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local BotBannerSystem = {}
 
 local TAP_LOCK_SECONDS = 2
 
--- Top band, under the status chips (design phone 780 x 360). The lobby menu starts under it.
-local RECT = { x = 215, y = 48, w = 350, h = 64 }
-
 function BotBannerSystem.start()
 	local gui, root = Components.screen("BotBanner", "Popups")
 	gui.Enabled = false
 
-	local piece = Components.piece(root, "Piece", RECT)
+	local piece =
+		Components.piece(root, "Piece", ScreenMap.botsBanner, nil, Layout.LOBBY_MIN_ASPECT)
 	local panel = Components.panel(piece, root, "Panel", "panel")
 	panel.Size = UDim2.fromScale(1, 1)
 

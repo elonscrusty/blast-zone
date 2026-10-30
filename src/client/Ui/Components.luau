@@ -80,14 +80,15 @@ function Components.piece(
 	root: GuiObject,
 	name: string,
 	rect: Layout.Rect,
-	leftHanded: boolean?
+	leftHanded: boolean?,
+	minAspect: number?
 ): Frame
 	local f = Instance.new("Frame")
 	f.Name = name
 	f.BackgroundTransparency = 1
 	f.Active = false
 	f.Parent = root
-	UiKit.place(f, rect, leftHanded)
+	UiKit.place(f, rect, leftHanded, minAspect)
 	return f
 end
 
