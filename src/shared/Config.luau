@@ -90,6 +90,25 @@ Config.MapVote = {
 	} :: { [string]: string },
 }
 
+-- Video 3 gap 11: squads (duo and trio). Players vote Solo / Duo / Trio in the lobby; the server seats
+-- teams when the match starts. Friends who joined each other stay together, then loose players fill seats,
+-- then bots. Teammates cannot hurt each other (self damage still counts), the zone still hurts everyone.
+-- A squad is out when all of its members are out; the last squad standing wins.
+Config.Squads = {
+	enabled = false, -- carter: "Solo only for now" (2026-10-30). Turn on to show the vote and seat squads.
+	modes = {
+		{ id = "solo", name = "Solo", size = 1 },
+		{ id = "duo", name = "Duo", size = 2 },
+		{ id = "trio", name = "Trio", size = 3 },
+	} :: { { id: string, name: string, size: number } },
+	defaultMode = "solo", -- nobody voted
+	minTeams = 2, -- fewer teams than this and the match plays solo (a duo of two people is a solo fight)
+	friendlyFire = false,
+	maxModeIdLength = 8,
+	stateRepeatSeconds = 1, -- the running vote count reaches everyone at most this often
+	colorCount = 8, -- team colours the client cycles through (look only)
+}
+
 -- Piece G24 (video 3 gap 24). Game modes. Players vote for a mode in the lobby like they vote for a map; the server
 -- counts, checks the voter's account level, and applies the winner's tuning right before the fight (Spawning),
 -- then puts everything back when the match ends. A mode never touches health, damage per hit, speed or ammo, and
@@ -154,7 +173,7 @@ Config.Policies = {
 	simultaneousFinalElimination = "draw-both-rank-1",
 	eliminatedPlayers = "cannot-fire-collect-or-pick-upgrades",
 	xpOwnership = "exclusive-first-valid-claim",
-	friendlyFire = true, -- free-for-all
+	friendlyFire = true, -- free-for-all in Solo; squads turn it off (Config.Squads.friendlyFire)
 }
 
 Config.Health = {
