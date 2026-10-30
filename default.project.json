@@ -2,6 +2,13 @@
   "name": "BlastZone",
   "tree": {
     "$className": "DataModel",
+    "Players": {
+      "$className": "Players",
+      "$ignoreUnknownInstances": true,
+      "$properties": {
+        "MaxPlayers": 25
+      }
+    },
     "Workspace": {
       "$ignoreUnknownInstances": true
     },
