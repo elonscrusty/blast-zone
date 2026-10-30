@@ -25,6 +25,7 @@ local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 local EffectiveStats = require(Core.EffectiveStats)
+local SpawnShields = require(Core.SpawnShields)
 
 local BotBrain = require("./BotBrain")
 local BotPorts = require("./BotPorts")
@@ -98,6 +99,13 @@ local function makeWorld(): BotRunner.World
 		isActive = function()
 			return MatchContext:isCombat()
 		end,
+		fightSeconds = function()
+			-- Calm start counts from the start of Active; FinalPressure means full strength.
+			if MatchContext:getPhase() == MatchPhase.Active then
+				return MatchContext:phaseElapsed()
+			end
+			return math.huge
+		end,
 		selfState = function(id)
 			local root = rootOf(id)
 			local combat = BotPorts.combat()
@@ -131,10 +139,11 @@ local function makeWorld(): BotRunner.World
 				if p.id ~= id then
 					local root = rootOf(p.id)
 					if root then
-						table.insert(
-							out,
-							{ id = p.id, pos = { x = root.Position.X, z = root.Position.Z } }
-						)
+						table.insert(out, {
+							id = p.id,
+							pos = { x = root.Position.X, z = root.Position.Z },
+							shielded = SpawnShields:isShielded(p.id),
+						})
 					end
 				end
 			end

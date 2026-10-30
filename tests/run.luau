@@ -29,5 +29,6 @@ require("./match_results_text.test")
 require("./match_rules.test")
 require("./stability.test")
 require("./onboarding.test")
+require("./spawn_fair.test")
 
 Harness.summary()

@@ -6,10 +6,12 @@
 
 local BotBrain = require("./BotBrain")
 local BotTuning = require("./BotTuning")
+local BotWarmup = require("./BotWarmup")
 
 export type World = {
 	now: () -> number,
 	isActive: () -> boolean, -- a match is running (bots stand still otherwise)
+	fightSeconds: (() -> number)?, -- seconds since the fight began (calm start); nil = always sharp
 	selfState: (id: string) -> BotBrain.Self?, -- nil = eliminated or gone
 	others: (id: string) -> { BotBrain.Body }, -- every other living participant
 	pickups: () -> { BotBrain.Pickup },
@@ -129,6 +131,10 @@ function BotRunner.step(self: Runner)
 			entry.nextThink = now + self.tuning.thinkInterval
 			-- Building the snapshot talks to the game, so it sits inside the pcall too.
 			local ok, result = pcall(function(): BotBrain.Intent
+				local fightSeconds = world.fightSeconds
+				local tuning = if fightSeconds
+					then BotWarmup.apply(self.tuning, fightSeconds())
+					else self.tuning
 				local view: BotBrain.View = {
 					now = now,
 					me = me,
@@ -138,7 +144,7 @@ function BotRunner.step(self: Runner)
 					range = world.weaponRange(id),
 					canSee = world.canSee,
 					rand = self.rand,
-					tuning = self.tuning,
+					tuning = tuning,
 				}
 				return BotBrain.think(view, entry.state)
 			end)

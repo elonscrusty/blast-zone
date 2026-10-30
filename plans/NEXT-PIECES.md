@@ -27,3 +27,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 18 | Coins + unlock track (looks only) + combined claim strip on the results screen | 19 | PR up | this PR |
 | 15 | Phone refinement (floating sticks, pick chips) + full controller support | 20 | PR up | #18 |
 | N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | this PR |
+| 21 | Fair spawns: spawn shield + bots calm start | 18 | PR up | #21 |

@@ -9,6 +9,11 @@ export type Tuning = {
 	sightRange: number,
 	reactionTime: number,
 	aimErrorDegrees: number,
+	-- calm start (BotWarmup): values at the very start of the fight
+	warmupSeconds: number,
+	warmupSightRange: number,
+	warmupReactionTime: number,
+	warmupAimErrorDegrees: number,
 	-- auto-fill
 	aloneBelow: number, -- fewer people than this counts as "alone"
 	autoFillDelay: number, -- seconds waiting alone before bots join
@@ -54,6 +59,12 @@ export type ConfigLike = {
 		reactionSeconds: number,
 		aimErrorDegrees: number,
 		hiddenStatAdvantage: boolean,
+		warmup: {
+			seconds: number,
+			sightRange: number,
+			reactionSeconds: number,
+			aimErrorDegrees: number,
+		}?,
 	},
 	Match: {
 		minToStart: number,
@@ -67,12 +78,19 @@ function BotTuning.from(config: ConfigLike): Tuning
 		config.Bots.hiddenStatAdvantage == false,
 		"Config.Bots.hiddenStatAdvantage must stay false: bots use player rules"
 	)
+	local warmup = config.Bots.warmup
 	return {
 		labelPrefix = config.Bots.labelPrefix,
 		names = config.Bots.names,
 		sightRange = config.Bots.sightRange,
 		reactionTime = config.Bots.reactionSeconds,
 		aimErrorDegrees = config.Bots.aimErrorDegrees,
+		warmupSeconds = if warmup then warmup.seconds else 0,
+		warmupSightRange = if warmup then warmup.sightRange else config.Bots.sightRange,
+		warmupReactionTime = if warmup then warmup.reactionSeconds else config.Bots.reactionSeconds,
+		warmupAimErrorDegrees = if warmup
+			then warmup.aimErrorDegrees
+			else config.Bots.aimErrorDegrees,
 
 		aloneBelow = config.Match.minToStart,
 		autoFillDelay = 10,

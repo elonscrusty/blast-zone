@@ -10,6 +10,7 @@ local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local SpawnShields = require(script.Parent.Parent.Core.SpawnShields)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
@@ -133,6 +134,10 @@ function Firing.fire(id: string, claimedOrigin: Vector3?, dir: Vector3): (boolea
 			Firing.sendAmmo(id)
 		end
 		return false, result.reason
+	end
+	-- Shooting ends your own spawn shield: no attacking from behind it.
+	if Config.SpawnShield.dropOnFire then
+		SpawnShields:drop(id)
 	end
 	local origin = shotOrigin(root, claimedOrigin, Combatants.bodies())
 	if slot == 2 then
