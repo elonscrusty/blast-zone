@@ -1,0 +1,10 @@
+# V14 Bench: parts, merge, blueprints (video 3 gap #14)
+- Done: parts (Bolt, Plate, Coil) in 4 tiers (Rough, Tuned, Polished, Prime) drop after every finished match (win 4, top 3 = 3, top half = 2, rest = 1; all tier 1; each kind the same chance, shown on the panel). 3 of one part merge into 1 of the next tier. 6 plans (blueprints) spend parts and build gear. Gear is looks only: no stats, no Robux, no prices, nothing in combat reads it.
+- Pick: carter picked B Blueprint Build (merge + plans) on the 3D page `plans/previews/bench.html` (made by `python3 tools/bench_preview.py`). A (merge only) and C (feed one gear) are not built.
+- Server decides: `BenchSystem` (server) listens to `MatchSystem.RewardGranted` (real players only, once per match through a receipt key `...:bench`) and to `BenchRequest`, `BenchMerge(kind, tier)`, `BenchBuild(blueprintId)`; each is checked by `Guard` and again by `BenchRules`. Saved in `data.bench` (no schema bump; unknown ids are kept).
+- Pure logic (Lune, `tests/bench.test.luau`): `src/shared/Bench/` BenchDefs (the list), BenchRules (merge, build, drops, view), BenchService (store + send), BenchMemoryStore, BenchText (words, odds).
+- Screen: `src/client/Bench/BenchUiSystem.luau`, placeholder look built from `Ui/Components` roles. BENCH button sits in lobby slot `bench` (group `more`, grown up by 56 points, above MISSIONS). Row 30 in `plans/UI-SCREENS.md`. Claude Design draws the real look.
+- Knobs: `Config.Bench` (`drops`, `fieldSize`). Plan list and merge count are in `BenchDefs` (`mergeCount = 3`).
+- Hooks for others: each plan has a `slot` hint (head, body, feet) for the gear slots piece (#15); `BenchRules.view(state).built` counts built gear (could feed power rating #16). Nothing equips built gear yet.
+- Not tested until carter plays: how fast parts come (about 2-3 a match), whether the panel fits a phone at true size.
+- Left: wearing built gear, sounds, a reveal when a plan is built, parts from crates, a part-find perk, gear looks (Claude Design).

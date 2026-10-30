@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bench: three ways to merge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* One 3D stage, three tabs, one Play button. Single dark look on purpose. */
+:root { --bg:#0b1220; --stage:#14243a; --panel:#111c2e; --line:#24364f; --fg:#e8eef6; --muted:#8ea2bb;
+  --cyan:#36d9e8; --gold:#ffc44d; --display:"Arial Narrow",system-ui,sans-serif; color-scheme:dark; }
+html,body{background:var(--bg);color:var(--fg);margin:0;font-family:system-ui,-apple-system,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:14px max(16px,env(safe-area-inset-right)) 28px max(16px,env(safe-area-inset-left));display:grid;gap:12px}
+h1{font-family:var(--display);font-size:1.4rem;letter-spacing:.05em;margin:0;text-transform:uppercase}
+.stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);aspect-ratio:4/3;max-height:62vh;width:100%;
+  background:radial-gradient(120% 90% at 50% 30%,#1d3352 0%,var(--stage) 55%,#0c1626 100%)}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.cap{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-family:var(--display);font-size:1.15rem;letter-spacing:.06em;
+  text-transform:uppercase;text-shadow:0 1px 6px #000;pointer-events:none}
+.cap b{color:var(--gold)}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pick{min-height:64px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-family:var(--display);
+  font-size:1rem;text-transform:uppercase;letter-spacing:.04em;display:grid;gap:2px;place-content:center;text-align:center;padding:6px 4px}
+.pick span{font-size:.72rem;color:var(--muted);text-transform:none;letter-spacing:.02em}
+.pick[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.play{min-height:52px;border-radius:12px;border:1px solid var(--cyan);background:#0f2a35;color:var(--cyan);font-family:var(--display);font-size:1.05rem;
+  text-transform:uppercase;letter-spacing:.08em}
+.note{color:var(--muted);font-size:.85rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Bench: pick how parts merge</h1>
+  <div class="stage"><canvas id="c"></canvas><div class="cap" id="cap"></div></div>
+  <div class="row3" id="tabs"></div>
+  <button class="play" id="play">▶ Play again</button>
+  <div class="note">Drag the picture to turn it. Colours: grey, blue, gold, pink = tier 1, 2, 3, 4.</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DATA = {"blueprints":[{"id":"spark_cap","name":"Spark Cap","needs":[{"count":2,"kind":"bolt","tier":1},{"count":1,"kind":"plate","tier":1}],"slot":"head"},{"id":"street_vest","name":"Street Vest","needs":[{"count":2,"kind":"plate","tier":1},{"count":1,"kind":"coil","tier":1}],"slot":"body"},{"id":"dash_kicks","name":"Dash Kicks","needs":[{"count":2,"kind":"coil","tier":1},{"count":1,"kind":"bolt","tier":1}],"slot":"feet"},{"id":"night_visor","name":"Night Visor","needs":[{"count":1,"kind":"bolt","tier":2},{"count":1,"kind":"plate","tier":2},{"count":1,"kind":"coil","tier":2}],"slot":"head"},{"id":"bulwark_coat","name":"Bulwark Coat","needs":[{"count":1,"kind":"plate","tier":3},{"count":1,"kind":"coil","tier":2}],"slot":"body"},{"id":"prime_halo","name":"Prime Halo","needs":[{"count":1,"kind":"bolt","tier":4},{"count":1,"kind":"coil","tier":3},{"count":1,"kind":"plate","tier":2}],"slot":"head"}],"kinds":[{"id":"bolt","name":"Bolt"},{"id":"plate","name":"Plate"},{"id":"coil","name":"Coil"}],"mergeCount":3,"tiers":[{"color":"#9aa7b5","name":"Rough","tier":1},{"color":"#36d9e8","name":"Tuned","tier":2},{"color":"#ffc44d","name":"Polished","tier":3},{"color":"#e94cff","name":"Prime","tier":4}]};
+const TIERS = DATA.tiers; // [{name,color}]
+const MODES = [
+  { id:"A", name:"Triple Merge", sub:"3 same = 1 better", cap:"<b>3</b> same parts = <b>1</b> better part" },
+  { id:"B", name:"Blueprint Build", sub:"fill a plan, get gear ⭐", cap:"Fill the <b>plan</b>. Get <b>gear</b>" },
+  { id:"C", name:"Feed Gear", sub:"gear grows", cap:"Feed parts. Gear <b>grows</b>" },
+];
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 4/3, 0.1, 100);
+scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x1a2538, 0.9));
+const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(4, 7, 5); scene.add(key);
+const rim = new THREE.PointLight(0x36d9e8, 1.2, 20); rim.position.set(-4, 3, -3); scene.add(rim);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 64), new THREE.MeshStandardMaterial({ color:0x0e1a2c, roughness:.9 }));
+floor.rotation.x = -Math.PI/2; scene.add(floor);
+const grid = new THREE.GridHelper(14, 28, 0x36d9e8, 0x1d3a52); grid.position.y = 0.01; grid.material.transparent = true; grid.material.opacity = .35; scene.add(grid);
+
+const world = new THREE.Group(); scene.add(world);
+let yaw = 0.3, pitch = 0.5, dist = 9.2;
+function placeCamera(){ camera.position.set(Math.sin(yaw)*Math.cos(pitch)*dist, Math.sin(pitch)*dist+1, Math.cos(yaw)*Math.cos(pitch)*dist); camera.lookAt(0,0.8,0.2); }
+let drag = null;
+canvas.addEventListener("pointerdown", e => { drag = { x:e.clientX, y:e.clientY, yaw, pitch }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", e => { if(!drag) return; yaw = drag.yaw - (e.clientX-drag.x)*.008; pitch = Math.min(1.2, Math.max(.12, drag.pitch + (e.clientY-drag.y)*.006)); });
+canvas.addEventListener("pointerup", () => drag = null);
+
+const mats = {};
+function mat(tier, ghost){
+  const k = tier + (ghost ? "g" : "");
+  if(!mats[k]){
+    const c = new THREE.Color(TIERS[tier-1].color);
+    mats[k] = new THREE.MeshStandardMaterial({ color:c, roughness:.35, metalness:.55, emissive:c, emissiveIntensity: ghost ? .5 : .08*tier,
+      transparent: !!ghost, opacity: ghost ? .28 : 1, wireframe: !!ghost });
+  }
+  return mats[k];
+}
+// kind -> shape. Original shapes: Bolt = hex nut, Plate = rounded slab, Coil = ring.
+function makePart(kind, tier, ghost){
+  const g = new THREE.Group();
+  let m;
+  if(kind === "bolt"){ m = new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.42,6), mat(tier,ghost)); }
+  else if(kind === "plate"){ m = new THREE.Mesh(new THREE.BoxGeometry(1.1,.2,.8), mat(tier,ghost)); }
+  else { m = new THREE.Mesh(new THREE.TorusGeometry(.42,.15,12,28), mat(tier,ghost)); m.rotation.x = Math.PI/2; }
+  g.add(m);
+  if(tier >= 3 && !ghost){ const s = new THREE.Mesh(new THREE.OctahedronGeometry(.16), mat(tier)); s.position.y = .5; g.add(s); }
+  if(tier >= 4 && !ghost){ const r = new THREE.Mesh(new THREE.TorusGeometry(.72,.03,8,40), mat(tier)); r.rotation.x = Math.PI/2; g.add(r); }
+  g.scale.setScalar(.6 + .16*tier);
+  g.userData = { kind, tier };
+  return g;
+}
+// The gear: a visor band with a glowing slit. Tier changes colour, crest and size.
+function makeGear(tier, ghost){
+  const g = new THREE.Group();
+  const frameM = mat(tier, ghost);
+  for(const sx of [-1,1]){
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.46,.13,12,28), frameM); ring.position.set(sx*.58,0,0); g.add(ring);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(.4,28), new THREE.MeshBasicMaterial({ color:ghost?0x36d9e8:0xcaf7ff, transparent:!!ghost, opacity:ghost?.35:1 })); lens.position.set(sx*.58,0,.02); g.add(lens);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.9), frameM); arm.position.set(sx*1.08,0,-.4); g.add(arm);
+  }
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.12), frameM); g.add(bridge);
+  for(let i=0;i<Math.max(0,tier-1);i++){ const f = new THREE.Mesh(new THREE.ConeGeometry(.1,.42,6), frameM); f.position.set((i-(tier-2)/2)*.4,.78,0); g.add(f); }
+  g.scale.setScalar(1);
+  return g;
+}
+const ease = x => x<0?0:x>1?1:x*x*(3-2*x);
+const lerp = (a,b,t) => a+(b-a)*t;
+const seg = (t,a,b) => ease((t-a)/(b-a));
+let cur = null, cleanup = [];
+function clear(){ while(world.children.length) world.remove(world.children[0]); cleanup = []; }
+function add(o,x,y,z){ o.position.set(x,y,z); world.add(o); return o; }
+function ladder(){ // the four tiers in a row at the back
+  const kinds = ["bolt","plate","coil","bolt"];
+  for(let t=1;t<=4;t++) add(makePart(kinds[t-1], t), -2.8 + (t-1)*1.9, .55 + .08*t, -3.0);
+}
+function flash(p, t){ const s = new THREE.Mesh(new THREE.SphereGeometry(1,24,16), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity: Math.max(0,.55*(1-t)) })); s.scale.setScalar(.25 + t*1.1); s.position.copy(p); return s; }
+
+const SCENES = {
+  A(){ // 3 rough bolts glide together and pop into 1 tuned bolt
+    clear(); ladder();
+    const ins = [ -2.4, 0, 2.4 ].map(x => add(makePart("bolt",1), x, .6, 1.4));
+    const out = add(makePart("bolt",2), 0, .8, 1.4); out.visible = false;
+    const fl = add(new THREE.Group(), 0, 1, 1.4);
+    return t => {
+      const m = seg(t,.15,.6);
+      ins.forEach((p,i) => { p.visible = t < .6; p.position.x = lerp([-2.4,0,2.4][i], 0, m); p.position.y = .6 + Math.sin(m*Math.PI)*1.1; p.rotation.y = m*6; });
+      out.visible = t >= .6; out.scale.setScalar(.92*(1 + .35*Math.max(0,1-seg(t,.6,.8))*1.4)); out.rotation.y = t*3;
+      while(fl.children.length) fl.remove(fl.children[0]);
+      if(t>.58 && t<.85) fl.add(flash(new THREE.Vector3(), seg(t,.58,.85)));
+    };
+  },
+  B(){ // a ghost plan; three parts snap into it; the plan turns into solid gear
+    clear();
+    const plan = add(makeGear(3,true), 0, 1.7, 0);
+    const slots = [[-2.2,.5],[0,.5],[2.2,.5]].map(([x,z],i) => { const g = makePart(["bolt","plate","coil"][i], 2, true); return add(g, x, .55, 1.2); });
+    const parts = ["bolt","plate","coil"].map((k,i) => add(makePart(k,2), [-2.6,0,2.6][i], .7, 3.2));
+    const gear = add(makeGear(3), 0, 1.7, 0); gear.visible = false;
+    const fl = add(new THREE.Group(), 0, 1.7, 0);
+    return t => {
+      parts.forEach((p,i) => { const a = .1 + i*.18, m = seg(t,a,a+.22); p.position.set(lerp([-2.6,0,2.6][i],[-2.2,0,2.2][i],m), .7 + Math.sin(m*Math.PI)*.9, lerp(3.2,1.2,m)); p.visible = t < .72; p.rotation.y = m*5; });
+      plan.visible = t < .72; plan.rotation.y = Math.sin(t*4)*.4;
+      slots.forEach(s => s.visible = t < .72);
+      gear.visible = t >= .72; gear.rotation.y = Math.sin(t*5)*.5; gear.scale.setScalar(1 + .3*Math.max(0,1-seg(t,.72,.9)));
+      while(fl.children.length) fl.remove(fl.children[0]);
+      if(t>.7 && t<.95) fl.add(flash(new THREE.Vector3(), seg(t,.7,.95)));
+    };
+  },
+  C(){ // one gear on a pedestal; parts fly in; a ring fills; the gear grows a tier
+    clear();
+    add(new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.6,.4,32), new THREE.MeshStandardMaterial({ color:0x1d3352, roughness:.6, metalness:.4 })), 0, .2, 0);
+    let gear = add(makeGear(1), 0, 1.5, 0);
+    const bigGear = add(makeGear(2), 0, 1.5, 0); bigGear.visible = false;
+    const ringBack = add(new THREE.Mesh(new THREE.RingGeometry(1.9,2.1,64), new THREE.MeshBasicMaterial({ color:0x24364f, side:THREE.DoubleSide })), 0, .45, 0); ringBack.rotation.x = -Math.PI/2;
+    const parts = [0,1,2].map(i => add(makePart(["bolt","plate","coil"][i],1), [-2.8,0,2.8][i], .7, 3.4));
+    let ringFill = null;
+    const fl = add(new THREE.Group(), 0, 1.5, 0);
+    return t => {
+      parts.forEach((p,i) => { const a = .08 + i*.2, m = seg(t,a,a+.2); p.position.set(lerp([-2.8,0,2.8][i],0,m), .7 + Math.sin(m*Math.PI)*1.0, lerp(3.4,0,m)); p.scale.setScalar((.76)*(1-.9*m)+.05); p.visible = m < 1; });
+      const filled = Math.min(1, (seg(t,.08,.28)+seg(t,.28,.48)+seg(t,.48,.68))/3);
+      if(ringFill){ world.remove(ringFill); }
+      if(filled > .01){ ringFill = new THREE.Mesh(new THREE.RingGeometry(1.9,2.1,64,1,0,Math.PI*2*filled), new THREE.MeshBasicMaterial({ color:0xffc44d, side:THREE.DoubleSide })); ringFill.position.y = .46; ringFill.rotation.x = -Math.PI/2; world.add(ringFill); }
+      const up = t >= .72;
+      gear.visible = !up; bigGear.visible = up; bigGear.rotation.y = Math.sin(t*5)*.5; gear.rotation.y = Math.sin(t*5)*.5;
+      bigGear.scale.setScalar(1 + .3*Math.max(0,1-seg(t,.72,.9)));
+      while(fl.children.length) fl.remove(fl.children[0]);
+      if(t>.7 && t<.95) fl.add(flash(new THREE.Vector3(), seg(t,.7,.95)));
+    };
+  },
+};
+
+let tick = null, t0 = performance.now(), frozen = null;
+function setMode(i){
+  cur = i;
+  tick = SCENES[MODES[i].id]();
+  document.getElementById("cap").innerHTML = MODES[i].cap;
+  [...document.querySelectorAll(".pick")].forEach((b,j) => b.setAttribute("aria-pressed", j===i));
+  t0 = performance.now();
+}
+MODES.forEach((m,i) => {
+  const b = document.createElement("button"); b.className = "pick"; b.innerHTML = m.id + " · " + m.name + "<span>" + m.sub + "</span>";
+  b.onclick = () => setMode(i); document.getElementById("tabs").appendChild(b);
+});
+document.getElementById("play").onclick = () => { t0 = performance.now(); };
+function resize(){ const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width/r.height; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize);
+const q = new URLSearchParams(location.search);
+function frame(now){
+  resize(); placeCamera();
+  const period = 4200, local = ((now - t0) % (period + 1600)) / period;
+  tick(frozen !== null ? frozen : Math.min(1, local));
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+setMode(Math.max(0, MODES.findIndex(m => m.id === (q.get("mode") || "B"))));
+if(q.has("t")) frozen = parseFloat(q.get("t"));
+if(q.has("yaw")) yaw = parseFloat(q.get("yaw"));
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

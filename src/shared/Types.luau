@@ -276,6 +276,28 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Gap 14: the bench (server to client only). Looks come from Claude Design; this is only the facts.
+export type BenchPartView = { kind: string, tier: number, count: number, canMerge: boolean }
+export type BenchNeedView = { kind: string, tier: number, count: number, have: number }
+export type BenchBlueprintView = {
+	id: string,
+	name: string,
+	slot: string, -- "head" | "body" | "feet"
+	needs: { BenchNeedView },
+	built: boolean,
+	ready: boolean,
+}
+export type BenchState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	parts: { BenchPartView },
+	blueprints: { BenchBlueprintView },
+	built: number,
+	total: number,
+	justGot: { { kind: string, tier: number } }?, -- parts that just dropped after a match
+	event: string?, -- "merged" | "built" | "dropped" | "denied"
+	reason: string?, -- why a request was denied
+}
+
 -- Gap 19: chests. One prize out of an opened chest (a repeated look turns into Scrap, dupe = true).
 export type ChestPrize = {
 	rowId: string,

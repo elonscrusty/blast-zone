@@ -996,6 +996,13 @@ Config.Wallet = {
 	maxGrant = 50, -- sanity cap for one grant, like Config.Progression.maxMatchGrant
 }
 
+-- Video 3 gap 14: the bench. Parts drop after a match (more for a better place), merge 3 into 1 up a tier, and
+-- build gear (looks only) from blueprints. The list is in shared/Bench/BenchDefs.
+Config.Bench = {
+	drops = { win = 4, podium = 3, middle = 2, other = 1 }, -- tier 1 parts per finished match
+	fieldSize = 8, -- "middle" means the top half of this many fighters
+}
+
 -- Gap 19: chests with a reveal. Free, earned by playing (never bought, never Robux). First place gives a Neon Chest,
 -- top 3 a Street Chest, and every `meterGoal`th finished match a Street Chest too. What can come out, and the odds
 -- (shown on the chest screen before anything is opened), are in shared/Chest/ChestDefs.
