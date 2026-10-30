@@ -4,6 +4,8 @@
 -- every match, so there is nothing to call. Workspace.Arena carries LayoutId, LayoutName and
 -- NextLayoutName attributes for any screen that wants to show the map.
 local ArenaBuilder = require("./ArenaBuilder")
+local ArtBuilder = require("./ArtBuilder")
+local ArtPlan = require("./ArtPlan")
 local Layout = require("./Layout")
 local MapRotation = require("./MapRotation")
 
@@ -45,6 +47,7 @@ function ArenaSystem.start()
 	for _, id in r.dropped do
 		warn(`[arena] no layout called {id} in Config.Arena.rotation, skipping it`)
 	end
+<<<<<<< HEAD
 	buildMap(r:current())
 
 	-- Pick the map for each match as it goes Countdown -> Spawning. The phase signal fires before
@@ -75,6 +78,37 @@ end
 -- Called once per match, right before the map is built.
 function ArenaSystem.setChooser(fn: (() -> string?)?)
 	chooser = fn
+=======
+	local layout = Layout.compile(spec)
+	built = ArenaBuilder.build(layout)
+	if Config.Features.cityArt then
+		-- Paint only. A failure here must never stop the match, so the plain graybox stays.
+		local ok, err = pcall(function()
+			local art = Config.Art
+			local result = ArtPlan.build(layout, {
+				seed = art.seed,
+				towers = art.skyline.towers,
+				innerGap = art.skyline.innerGap,
+				outerReach = art.skyline.outerReach,
+			})
+			local folder = (built :: ArenaBuilder.Built).folder
+			ArtBuilder.build(result, folder)
+			-- the art redraws these boxes, so the bare gray ones go invisible (still solid)
+			local solids = folder:FindFirstChild("Solids")
+			for _, s in layout.solids do
+				local box = if solids and ArtPlan.replaces(s)
+					then solids:FindFirstChild(s.id)
+					else nil
+				if box and box:IsA("BasePart") then
+					box.Transparency = 1
+				end
+			end
+		end)
+		if not ok then
+			warn(`[arena] city art skipped: {err}`)
+		end
+	end
+>>>>>>> origin/claude/project-thread-wkrr14
 end
 
 function ArenaSystem.getLayout(): Layout.Layout?

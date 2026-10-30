@@ -47,5 +47,7 @@ require("./onboarding.test")
 require("./spawn_fair.test")
 require("./map_rotation.test")
 require("./streaks.test")
+require("./art.test")
+require("./daynight.test")
 
 Harness.summary()
