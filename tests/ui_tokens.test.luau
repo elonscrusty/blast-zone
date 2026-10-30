@@ -87,6 +87,7 @@ local LOOK_LAYER = {
 	"src/client/Hud/UiKit.luau",
 }
 local WORLD_ART = {
+	"src/client/Arena/DayNightSystem.luau", -- piece 14 sky and light colours
 	"src/client/Character/CharacterGun.luau",
 	"src/client/Combat/CombatFx.luau",
 	"src/client/Combat/GunModels.luau",

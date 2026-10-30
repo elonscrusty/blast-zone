@@ -665,6 +665,7 @@ Config.Stats = {
 		fallback = { x = 0, z = -40 }, -- used when there is neither (faces +Z)
 		modelName = "TopWinsBoard",
 		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
+	},
 }
 
 -- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
