@@ -22,8 +22,8 @@ local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local RunXp = require(script.Parent.Parent.Core.RunXp)
 
-local ContainerRules = require("./ContainerRules")
-local PickupSystem = require("./PickupSystem")
+local ContainerRules = require(script.Parent.ContainerRules)
+local PickupSystem = require(script.Parent.PickupSystem)
 
 local ContainerSystem = {}
 ContainerSystem.order = 110
