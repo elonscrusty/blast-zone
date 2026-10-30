@@ -69,6 +69,7 @@ export type WeaponStats = {
 	range: number,
 	pellets: number,
 	spreadDegrees: number,
+	pierce: number, -- extra bodies one bullet passes through (0 = stops at the first)
 }
 
 export type ExplosiveStats = {
@@ -79,6 +80,7 @@ export type ExplosiveStats = {
 	reloadSeconds: number,
 	range: number,
 	projectileSpeed: number,
+	aftershock: number, -- 1 = a second, weaker blast follows the first
 }
 
 -- What the rest of the game reads. Piece 08 builds this from base Config + upgrade stacks.

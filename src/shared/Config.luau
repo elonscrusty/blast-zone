@@ -148,6 +148,7 @@ Config.Weapons = {
 		range = 70, -- hitscan stops here; no unseen long shots
 		pellets = 1,
 		spreadDegrees = 0,
+		pierce = 0, -- extra bodies a bullet flies through; only upgrades raise it (Config.Powers)
 		muzzleOffset = 2.5, -- studs in front of the body; server rejects shots whose muzzle is in a wall
 		maxOriginDrift = 6, -- server accepts a client origin only this close to the character
 		autoReload = true, -- trying to fire on an empty magazine starts a reload
@@ -166,6 +167,7 @@ Config.Weapons = {
 		range = 60,
 		warnSeconds = 0.5, -- landing marker shows before the blast
 		selfDamageScale = 0.5,
+		aftershock = 0, -- 1 = the blast goes off a second time; only an upgrade sets it (Config.Powers)
 	},
 	-- Guns found in supply containers. Picking one up replaces the slot 1 gun (full magazine) until
 	-- another is picked up; the old one (unless it is the Volt Pistol) drops where you stand.
@@ -235,6 +237,14 @@ Config.Weapons = {
 		height = 1.2, -- gun centre above the floor
 		folder = "WeaponDrops", -- Workspace folder for guns on the ground
 	},
+}
+
+-- Piece 43: the big level-up powers. Their on/off stats live in the upgrade catalogue; these are the
+-- numbers the shot code uses once a power is on. Placeholders until carter plays.
+Config.Powers = {
+	pierceFalloff = 0.6, -- each body a bullet passes through takes this share of the one before it
+	aftershockDelaySeconds = 0.7, -- the second blast goes off this long after the first
+	aftershockDamageShare = 0.5, -- and hurts this share as much
 }
 
 -- Piece 03 only. Everything about how shots and health behave that is not a weapon stat.

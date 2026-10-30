@@ -28,6 +28,7 @@ type Live = {
 	y: number,
 	damage: number,
 	radius: number,
+	aftershock: boolean, -- Config.Powers: a second, weaker blast follows
 }
 
 local live: { Live } = {}
@@ -83,6 +84,7 @@ function Shells.launch(
 		y = origin.Y,
 		damage = stats.damage,
 		radius = stats.radius,
+		aftershock = stats.aftershock >= 1,
 	})
 	local muzzle = origin
 		+ Vector3.new(dx, 0, dz) * math.min(Config.Weapons.Firearm.muzzleOffset, flight)
@@ -197,7 +199,19 @@ function Shells.step(dt: number)
 		end
 		if burst ~= nil then
 			table.remove(live, i)
-			detonate(s, Vector3.new(burst.x, s.y, burst.z))
+			local center = Vector3.new(burst.x, s.y, burst.z)
+			detonate(s, center)
+			if s.aftershock then
+				-- The second blast: same place, less damage, and only if the match is still the same one.
+				local again = table.clone(s)
+				again.damage = s.damage * Config.Powers.aftershockDamageShare
+				again.aftershock = false
+				task.delay(Config.Powers.aftershockDelaySeconds, function()
+					if MatchContext:isCurrent(again.matchId) and MatchContext:isCombat() then
+						detonate(again, center)
+					end
+				end)
+			end
 		end
 	end
 end

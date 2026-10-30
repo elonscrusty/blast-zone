@@ -41,6 +41,11 @@ local ICON_TEXT: { [string]: string } = {
 	range = "FAR",
 	boom = "BOOM",
 	damage = "DMG",
+	pierce = "PIERCE",
+	rapid = "RAPID",
+	after = "AFTER",
+	heavy = "HEAVY",
+	zip = "ZIP",
 }
 
 local PAD_HINT = { "←", "↑", "→" } -- D-pad left, up, right pick card 1, 2, 3
