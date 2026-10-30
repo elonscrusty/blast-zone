@@ -10,6 +10,7 @@ local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
@@ -117,6 +118,9 @@ function Firing.fire(id: string, claimedOrigin: Vector3?, dir: Vector3): (boolea
 	local root = Combatants.root(id)
 	if c == nil or root == nil then
 		return false, "no-body"
+	end
+	if MoveGuard.isHeld(id) then
+		return false, "move-check" -- the body just jumped further than it can: no shot from there
 	end
 	local dx, dz = Ballistics.flatten(dir.X, dir.Y, dir.Z)
 	if dx == nil or dz == nil then

@@ -19,7 +19,7 @@ local started = false
 local lastWarn: { [string]: number } = {}
 
 local function warnThrottled(player: Player, name: string, why: string)
-	local key = tostring(player.UserId) .. name
+	local key = tostring(player.UserId) .. ":" .. name
 	local now = os.clock()
 	if (lastWarn[key] or -10) + 5 < now then
 		lastWarn[key] = now
@@ -33,9 +33,22 @@ function Net.init()
 	end
 	started = true
 	Remotes.build()
+	-- Server-to-client remotes: a client firing one back gets nothing, and the server does not
+	-- keep a queue of its junk (an unheard RemoteEvent stores what it is sent).
+	for _, def in RemoteDefs.list do
+		if def.direction == "toClient" then
+			Remotes.get(def.name).OnServerEvent:Connect(function() end)
+		end
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		for _, limiter in limiters do
 			limiter:forget(player.UserId)
+		end
+		local prefix = tostring(player.UserId)
+		for key in lastWarn do
+			if string.sub(key, 1, #prefix + 1) == prefix .. ":" then
+				lastWarn[key] = nil
+			end
 		end
 	end)
 end

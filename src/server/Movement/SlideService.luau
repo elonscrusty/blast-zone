@@ -19,6 +19,7 @@ local SlideBook = require(Shared.Movement.SlideBook)
 local SlideCast = require(Shared.Movement.SlideCast)
 local SlideMotion = require(Shared.Movement.SlideMotion)
 local SlideRules = require(Shared.Movement.SlideRules)
+local Signal = require(Shared.Signal)
 
 local Core = script.Parent.Parent.Core
 local EffectiveStats = require(Core.EffectiveStats)
@@ -27,6 +28,10 @@ local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 
 local SlideService = {}
+
+-- A player's slide was accepted: (participantId, distance). The move watch (piece 27) lets that
+-- much extra distance through.
+SlideService.PlayerSlid = Signal.new()
 
 export type Result = {
 	ok: boolean,
@@ -137,6 +142,7 @@ function SlideService.request(id: string, dirX: number?, dirZ: number?): Result
 	local to = from + Vector3.new(dx, 0, dz) * distance
 
 	if body.player then
+		SlideService.PlayerSlid:fire(id, distance)
 		Net.fire("SlideState", body.player, { cooldownEndsAt = now + cooldown, serverNow = now })
 		-- If the player is farther than a slide can explain once it is over, put them back.
 		local walk = body.humanoid.WalkSpeed

@@ -26,6 +26,7 @@ local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 
+local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local MatchController = require(script.Parent.MatchController)
 local MatchRules = require(script.Parent.MatchRules)
 
@@ -65,9 +66,8 @@ local function loadCharacter(player: Player, at: CFrame?)
 		return
 	end
 	player:LoadCharacter()
-	local character = player.Character
-	if character and at then
-		character:PivotTo(at)
+	if at then
+		MoveGuard.place(player, at) -- tells the move watch this jump is the server's own
 	end
 end
 
