@@ -160,4 +160,15 @@ export type ResultsPayload = {
 	you: { placement: number, eliminations: number, survivedSeconds: number, reward: number }?,
 }
 
+-- Piece 18: what the server tells one player about their coins and unlocks (never the other way round).
+export type ProgressState = {
+	status: string, -- "ready" | "loading" | "failed" | "lost" | "temporary" (temporary = works, but is not being saved)
+	coins: number,
+	totalEarned: number,
+	unlocked: { string }, -- item ids bought from the track (defaults are always owned)
+	equipped: { [string]: string }, -- slot -> item id
+	gained: { matchId: number, amount: number }?, -- set once, right after a match reward was paid
+	denied: string?, -- why the last unlock/equip request was refused
+}
+
 return {}

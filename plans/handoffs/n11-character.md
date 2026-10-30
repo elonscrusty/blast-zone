@@ -1,0 +1,9 @@
+# N11 Original character and animations
+- Done: three original fighters (Runner, Courier, Spark) dressed onto the R15 body, plus drawn animations: move/strafe, aim/fire, reload, slide, hit, defeat, victory. No animation assets, so no ids to invent.
+- Looks: `src/shared/Character/Looks.luau` is plain data (parts, colors); `src/server/Character/CharacterStyler.luau` builds it (colors, bigger head, welded no-collide parts). Default is `Config.Character.defaultLook` (Runner); three touch buttons along the bottom (`LookPickerSystem`, calm phases only) send `SetLookRequest`; the server checks it and sets the `CharacterLook` player attribute. Bots wear the same look in Crash Dummy colors, chest target left clear.
+- Poses: `src/shared/Character/Pose.luau` turns "what is this fighter doing" into joint angles (legs/torso from movement, arms from the hands, recoil and hit flinch on top). `src/client/Character/CharacterAnimSystem.luau` reads position, Health/Alive attributes and ShotFx/SlideFx/Results/AmmoState, then `CharacterRig` sets Motor6D.Transform on every body.
+- `CharacterGun` re-welds the combat piece's `CombatGun` (parts "Slide", "Grip") from the hips into the right hand and adds a muzzle flash. If piece 03 renames those parts, the gun just stays on the hips.
+- `CharacterSetupSystem` (server): no stock Animate script, `BreakJointsOnDeath` off, root anchored on death so the defeat pose can play.
+- Tests: `tests/character_pose.test.luau`, `tests/character_looks.test.luau` (poses finite, reload/slide/hit/defeat shapes, parts valid and few glow). luau-lsp type check clean. Nothing run in Studio.
+- Untested until carter plays: how the parts sit on the real R15 head and torso (tune `Looks.UNIT`), the angle signs on real joints, defeat pose height, gun in hand.
+- Gaps: a reload only shows for you (the server sends AmmoState to its owner); the look is not saved between sessions (Phase 5); no sounds.
