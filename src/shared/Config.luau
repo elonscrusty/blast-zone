@@ -353,6 +353,7 @@ Config.Stats = {
 		lobbyOffset = 30, -- studs in front of the first LobbySpawn part when there is no spot
 		fallback = { x = 0, z = -40 }, -- used when there is neither (faces +Z)
 		modelName = "TopWinsBoard",
+		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
 	},
 }
 

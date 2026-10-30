@@ -1,5 +1,5 @@
 --!strict
--- The 3D top-wins board in the lobby (piece 24, carter's pick A "Trophy Wall"):
+-- The 3D top-wins board, look A "Trophy Wall" (kept as a skin; carter picked B, see NeonTower.luau):
 -- a cream sticker board on two posts, with gold, silver and bronze podiums and trophies in front.
 -- The server builds it and fills the top list. Each client fills the YOU row with its own stats
 -- (StatsClientSystem), hides the board during a fight and spins the trophies.
