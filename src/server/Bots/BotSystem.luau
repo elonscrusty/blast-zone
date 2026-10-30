@@ -44,6 +44,9 @@ local lastTap: { [Player]: number } = {}
 local lastShown: number? = nil
 local warned: { [string]: boolean } = {}
 local runner: BotRunner.Runner? = nil
+local sightParams: RaycastParams? = nil
+local sightParamsAt = -10
+local sightGroundY = 0
 
 local function warnOnce(key: string, text: string)
 	if not warned[key] then
@@ -170,11 +173,24 @@ local function makeWorld(): BotRunner.World
 			return EffectiveStats:get(id).firearm.range
 		end,
 		canSee = function(a, b)
-			local combat = BotPorts.combat()
-			local params = if combat and combat.shotParams
-				then combat.shotParams()
-				else BotRoblox.fallbackShotParams()
-			return BotRoblox.clearBetween(params, groundY(), a.x, a.z, b.x, b.z)
+			-- Walls do not move, so one params object serves every look for a couple of seconds.
+			local now = os.clock()
+			if not sightParams or now - sightParamsAt > 2 then
+				local combat = BotPorts.combat()
+				sightParams = if combat and combat.shotParams
+					then combat.shotParams()
+					else BotRoblox.fallbackShotParams()
+				sightParamsAt = now
+				sightGroundY = groundY()
+			end
+			return BotRoblox.clearBetween(
+				sightParams :: RaycastParams,
+				sightGroundY,
+				a.x,
+				a.z,
+				b.x,
+				b.z
+			)
 		end,
 		move = function(id, x, z)
 			local rig = rigs[id]
