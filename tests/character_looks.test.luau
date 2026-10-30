@@ -1,6 +1,7 @@
 --!strict
 local Harness = require("./harness")
 local Looks = require("../src/shared/Character/Looks")
+local RemoteDefs = require("../src/shared/RemoteDefs")
 
 local test, eq, near, truthy = Harness.test, Harness.eq, Harness.near, Harness.truthy
 
@@ -118,4 +119,15 @@ test("Spark's shoulder spikes mirror each other and lean outward", function()
 	local tipL, tipR = spikes[3], spikes[6]
 	near(tipL.pos[1], -tipR.pos[1], 1e-9)
 	near(tipL.pos[2], tipR.pos[2], 1e-9)
+end)
+
+test("the look request is a guarded, rate limited ask that names a short string", function()
+	local def = RemoteDefs.byName["SetLookRequest"]
+	truthy(def ~= nil)
+	eq(def.direction, "toServer")
+	eq(#(def.schema :: { any }), 1)
+	truthy((def.rate :: any).perSecond <= 3)
+	for _, name in Looks.NAMES do
+		truthy(#name <= (def.schema :: any)[1].maxLen)
+	end
 end)

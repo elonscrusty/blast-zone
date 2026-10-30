@@ -127,6 +127,9 @@ local Defs: { Def } = {
 	tell("09", "BotFillState", "{ secondsLeft: number? } (nil hides the banner)"),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====
+
+	-- ===== N11 character looks =====
+	ask("N11", "SetLookRequest", { { name = "look", kind = "string", maxLen = 16 } }, 2, 3),
 }
 
 local Index: { [string]: Def } = {}
