@@ -134,6 +134,11 @@ local Defs: { Def } = {
 	ask("07", "PickupRequest", { { name = "pickupId", kind = "id" } }, 10, 10),
 	tell("07", "ContainerHit", "{ containerId, health, max }"),
 	tell("07", "ContainerBroken", "{ containerId, pos }"),
+	tell(
+		"43",
+		"PropBroken",
+		"{ id, kind, x, y, z, sx, sy, sz, color } (a street prop burst; y is the middle)"
+	),
 	tell("07", "PickupSpawned", "{ pickupId, kind, pos }"),
 	tell("07", "PickupRemoved", "{ pickupId, collectedBy?, pos }"),
 	tell("07", "XpState", "XpState"),
@@ -172,6 +177,12 @@ local Defs: { Def } = {
 	-- ===== 25 daily challenges =====
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
+
+	-- ===== video 3 gap 18: Scrap Shop =====
+	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
+	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
+	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
+	tell("V3-18", "ShopState", "ShopState"),
 
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
@@ -237,6 +248,10 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== V16 power rating (video 3 gap #16) =====
+	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating
+	tell("V16", "PowerUpdate", "PowerPayload"),
 }
 
 local Index: { [string]: Def } = {}
