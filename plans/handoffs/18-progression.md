@@ -1,5 +1,5 @@
 # 18 Coins and unlock track
-- One earned currency (name/look: `Config.Progression.look`, carter picked C Tokens: green, sand rim, star; A Volts and B Scrap are built as skins). Earned only from matches: `MatchSystem.RewardGranted` -> `ProgressService.onReward`, paid once per match key (`Profiles.matchReceiptKey`). Never from a client.
+- One earned currency (name/look: `Config.Progression.look`, carter picked B Scrap: copper coin, gear mark; A Volts and C Tokens are built as skins). Earned only from matches: `MatchSystem.RewardGranted` -> `ProgressService.onReward`, paid once per match key (`Profiles.matchReceiptKey`). Never from a client.
 - Track = 6 tiers bought in order for coins (100-540); rewards are slide-trail and shot-tracer colors only. No combat power. Items: `src/shared/Progression/TrackDefs.luau` (saved ids, never rename).
 - Rules are pure and Lune-tested: `ProgressRules`, `ProgressService` (talks to a Store), `MemoryStore` (stand-in), `ProgressText`. Roblox wiring: `src/server/Progression/ProgressionSystem.luau`.
 - Saving: calls piece 17 (`Profiles.grantOnce/update/saveNow`, data in `data.progression`). If `Profile/Profiles` is missing it falls back to memory and the client says "Test mode: coins are not saved". Failed load = nothing paid, "Progress not loaded".

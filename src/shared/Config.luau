@@ -313,7 +313,7 @@ Config.Bots = {
 }
 
 Config.Rewards = {
-	currencyName = "Tokens", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
+	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
 	perElimination = 5,
 	placementBonus = { 30, 15, 8 }, -- 1st, 2nd, 3rd
@@ -322,7 +322,7 @@ Config.Rewards = {
 
 -- Piece 18: coins and the unlock track. Looks only, no combat power.
 Config.Progression = {
-	look = "C", -- coin look: "A" Volts, "B" Scrap, "C" Tokens (CoinLooks). carter chose Tokens.
+	look = "B", -- coin look: "A" Volts, "B" Scrap, "C" Tokens (CoinLooks). carter chose Scrap.
 	maxMatchGrant = 200, -- sanity cap for one match's coins; real rewards are far smaller
 	-- Player attributes the server sets so every client can draw a player's chosen look.
 	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
