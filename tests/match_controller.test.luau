@@ -10,7 +10,7 @@ local MatchRules = require("../src/server/Match/MatchRules")
 local MatchController = require("../src/server/Match/MatchController")
 
 -- A whole server in miniature: real context, roster and damage door, fake world, hand-cranked clock.
-type Rig = {
+export type Rig = {
 	ctl: MatchController.Controller,
 	ctx: any,
 	registry: any,
@@ -747,3 +747,5 @@ Harness.test("results go out as soon as the match ends, so the banner shows at o
 	Harness.eq(rig.results[ids[2]].you.placement, 2)
 	Harness.truthy(rig.results[ids[1]].endsAt > rig.now(), "close time is in the future")
 end)
+
+return { newRig = newRig, humans = humans }

@@ -47,6 +47,10 @@ local runner: BotRunner.Runner? = nil
 local sightParams: RaycastParams? = nil
 local sightParamsAt = -10
 local sightGroundY = 0
+local pickupCache: { BotBrain.Pickup } = {}
+local pickupCacheAt = -10
+local PICKUP_CACHE_SECONDS = 0.1 -- every bot thinking in the same moment shares one scan
+local STEP_SECONDS = 1 / 30 -- bots move and think at 30 Hz; thinkInterval is much longer anyway
 
 local function warnOnce(key: string, text: string)
 	if not warned[key] then
@@ -137,6 +141,11 @@ local function makeWorld(): BotRunner.World
 			return out
 		end,
 		pickups = function()
+			local clock = os.clock()
+			if clock - pickupCacheAt < PICKUP_CACHE_SECONDS then
+				return pickupCache
+			end
+			pickupCacheAt = clock
 			local out: { BotBrain.Pickup } = {}
 			local serverNow = Workspace:GetServerTimeNow()
 			for _, part in CollectionService:GetTagged("Pickup") do
@@ -157,6 +166,7 @@ local function makeWorld(): BotRunner.World
 					end
 				end
 			end
+			pickupCache = out
 			return out
 		end,
 		zone = function()
@@ -269,10 +279,14 @@ local function collectNearby()
 		return
 	end
 	local reach = Config.Pickups.collectRadius
+	local orbs = CollectionService:GetTagged("Pickup") -- once for every bot, not once per bot
+	if #orbs == 0 then
+		return
+	end
 	for id in rigs do
 		local root = rootOf(id)
 		if root and Participants:isAlive(id) then
-			for _, part in CollectionService:GetTagged("Pickup") do
+			for _, part in orbs do
 				local pickupId = part:GetAttribute("PickupId")
 				if
 					type(pickupId) == "string"
@@ -366,8 +380,13 @@ function BotSystem.start()
 	end)
 	local activeRunner = runner :: BotRunner.Runner
 	local sinceCollect = 0
+	local sinceStep = 0
 	RunService.Heartbeat:Connect(function(dt)
-		activeRunner:step()
+		sinceStep += dt
+		if sinceStep >= STEP_SECONDS then
+			sinceStep = 0
+			activeRunner:step()
+		end
 		sinceCollect += dt
 		if sinceCollect >= 0.25 then
 			sinceCollect = 0

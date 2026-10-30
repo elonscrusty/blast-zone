@@ -151,7 +151,24 @@ local function detonate(s: Live, center: Vector3)
 	end
 end
 
+-- The same list without one fighter (a shell never touches its own shooter in flight).
+local function without(list: { Ballistics.Target }, id: string): { Ballistics.Target }
+	local out: { Ballistics.Target } = {}
+	for _, t in list do
+		if t.id ~= id then
+			table.insert(out, t)
+		end
+	end
+	return out
+end
+
 function Shells.step(dt: number)
+	if #live == 0 then
+		return
+	end
+	-- Bodies and positions are read once per frame, not once per shell.
+	local bodies = Combatants.bodies()
+	local everyone = Combatants.targets(nil, Config.Combat.shellContactPadding)
 	for i = #live, 1, -1 do
 		local s = live[i]
 		local gone = not MatchContext:isCurrent(s.matchId)
@@ -161,8 +178,7 @@ function Shells.step(dt: number)
 			table.remove(live, i)
 			continue
 		end
-		local bodies = Combatants.bodies()
-		local targets = Combatants.targets(s.ownerId, Config.Combat.shellContactPadding)
+		local targets = without(everyone, s.ownerId)
 		local function wallDistance(
 			x: number,
 			z: number,

@@ -154,10 +154,14 @@ function PickupSystem.tryClaim(
 end
 
 -- Removes every orb. Used when a match is over or a new one begins.
+-- No message per orb: a destroyed part is already gone from every screen, and a whole floor of orbs
+-- would otherwise be sixty broadcasts in one frame at the end of every match.
 function PickupSystem.clear()
-	for id in table.clone(records) do
-		remove(id, nil)
+	for _, record in records do
+		record.part:Destroy()
 	end
+	table.clear(records)
+	table.clear(oldestFirst)
 	for _, leftover in CollectionService:GetTagged(TAG) do
 		leftover:Destroy()
 	end
