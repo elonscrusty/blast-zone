@@ -95,6 +95,16 @@ SettingsModel.defs = {
 		group = "Controls",
 	},
 	{
+		key = "floatingSticks",
+		label = "Floating sticks",
+		kind = "toggle",
+		min = 0,
+		max = 1,
+		step = 1,
+		default = true,
+		group = "Controls",
+	},
+	{
 		key = "leftHanded",
 		label = "Left-handed",
 		kind = "toggle",

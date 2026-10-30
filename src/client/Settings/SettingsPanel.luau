@@ -14,8 +14,8 @@ local SettingsModel = require(script.Parent.SettingsModel)
 
 local SettingsPanel = {}
 
-local PANEL: Layout.Rect = { x = 120, y = 34, w = 540, h = 292 }
-local ROW_H = 44
+local PANEL: Layout.Rect = { x = 100, y = 14, w = 580, h = 332 }
+local ROW_H = 46
 
 local gui: ScreenGui
 local dimButton: TextButton
@@ -270,7 +270,7 @@ local function build()
 		frame.Name = def.key
 		frame.BackgroundTransparency = 1
 		frame.Size = UDim2.fromScale(0.44, ROW_H / PANEL.h)
-		frame.Position = UDim2.fromScale(0.04 + col * 0.48, 0.2 + row * (ROW_H + 8) / PANEL.h)
+		frame.Position = UDim2.fromScale(0.04 + col * 0.48, 0.17 + row * (ROW_H + 6) / PANEL.h)
 		frame.Parent = panel
 		UiKit.label(frame, "Label", {
 			text = def.label,

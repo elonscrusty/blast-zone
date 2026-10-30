@@ -350,3 +350,30 @@ Harness.test("focus stays put while its button exists and restarts when it vanis
 	local zero = { { id = "z", x = 0, y = 0, w = 0, h = 0 } :: FocusMap.Item }
 	Harness.eq(FocusMap.first(zero), nil) -- hidden or empty buttons cannot take focus
 end)
+
+local ChipModel = require("../src/client/Controls/ChipModel")
+
+Harness.test("chips follow the offer: one per option up to three, none once closed", function()
+	local c = ChipModel.new()
+	Harness.eq(ChipModel.applyOffer(c, { offerId = "o1", options = { {}, {}, {} } }), 3)
+	Harness.eq(ChipModel.visible(c, 3), true)
+	Harness.eq(ChipModel.visible(c, 4), false)
+	Harness.eq(ChipModel.applyOffer(c, { offerId = "o2", options = { {}, {} } }), 2)
+	Harness.eq(ChipModel.visible(c, 3), false)
+	Harness.eq(ChipModel.applyOffer(c, { offerId = "o3", options = { {}, {}, {}, {}, {} } }), 3)
+	ChipModel.clear(c)
+	Harness.eq(ChipModel.visible(c, 1), false)
+end)
+
+Harness.test("a bad or empty offer shows no chips", function()
+	local c = ChipModel.new()
+	Harness.eq(ChipModel.applyOffer(c, nil), 0)
+	Harness.eq(ChipModel.applyOffer(c, "x"), 0)
+	Harness.eq(ChipModel.applyOffer(c, { options = { {} } }), 0) -- no offer id
+	Harness.eq(ChipModel.applyOffer(c, { offerId = "o", options = 5 }), 0)
+	Harness.eq(ChipModel.applyOffer(c, { offerId = "o", options = {} }), 0)
+	Harness.eq(ChipModel.fighting("Active"), true)
+	Harness.eq(ChipModel.fighting("FinalPressure"), true)
+	Harness.eq(ChipModel.fighting("Results"), false)
+	Harness.eq(ChipModel.fighting(nil), false)
+end)

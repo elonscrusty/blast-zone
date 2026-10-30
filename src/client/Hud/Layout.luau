@@ -6,6 +6,7 @@
 -- Reserved areas other pieces rely on:
 --   CardsBand (piece 08, upgrade cards): bottom centre, between the thumbs.
 --   Player: the character stays at screen centre, so that box stays clear.
+-- Upgrade picks: three chips (chip1..3) by the aim thumb; the move thumb never lifts.
 
 export type Rect = { x: number, y: number, w: number, h: number }
 
@@ -26,20 +27,49 @@ Layout.regions = {
 	status = { x = 311, y = 16, w = 158, h = 28 } :: Rect, -- players left and zone timer
 	warning = { x = 285, y = 52, w = 210, h = 24 } :: Rect, -- one warning at a time
 	minimap = { x = 676, y = 16, w = 88, h = 88 } :: Rect,
-	weapon = { x = 590, y = 140, w = 100, h = 56 } :: Rect, -- also the weapon-swap button
+	weapon = { x = 586, y = 72, w = 88, h = 48 } :: Rect, -- also the weapon-swap button
 	-- Touch controls
 	moveStick = { x = 24, y = 210, w = 126, h = 126 } :: Rect,
 	fireStick = { x = 630, y = 210, w = 126, h = 126 } :: Rect,
 	slide = { x = 690, y = 138, w = 60, h = 60 } :: Rect,
 	reload = { x = 578, y = 208, w = 50, h = 50 } :: Rect,
-	settings = { x = 16, y = 82, w = 36, h = 36 } :: Rect, -- small gear; the one allowed under 48
+	settings = { x = 16, y = 80, w = 44, h = 44 } :: Rect, -- gear; just under 48 so it stays out of the way
+	-- Upgrade pick chips (only drawn while an offer is up): a row above the aim thumb that mirrors
+	-- the three cards, so a pick never needs the move thumb. Over the open street, not the card band.
+	chip1 = { x = 524, y = 132, w = 48, h = 48 } :: Rect,
+	chip2 = { x = 580, y = 132, w = 48, h = 48 } :: Rect,
+	chip3 = { x = 636, y = 132, w = 48, h = 48 } :: Rect,
+}
+
+-- Where a thumb may land and the stick appears under it (Settings "Floating sticks"). These sit
+-- under the buttons on purpose, so a touch on a button is a button and anything else is the
+-- stick. The two ends keep out of the card band and the gear.
+Layout.zones = {
+	moveZone = { x = 8, y = 150, w = 192, h = 196 } :: Rect,
+	fireZone = { x = 580, y = 150, w = 192, h = 196 } :: Rect,
 }
 
 -- Circles keep their shape on any screen; everything else scales by height too.
-Layout.circles = { minimap = true, moveStick = true, fireStick = true, slide = true, reload = true }
+Layout.circles = {
+	minimap = true,
+	moveStick = true,
+	fireStick = true,
+	slide = true,
+	reload = true,
+	chip1 = true,
+	chip2 = true,
+	chip3 = true,
+}
 
 -- What counts as a thumb target (must be 48 points or more, and clear of the cards band).
-Layout.touchTargets = { "moveStick", "fireStick", "slide", "reload", "weapon" }
+Layout.touchTargets =
+	{ "moveStick", "fireStick", "slide", "reload", "weapon", "chip1", "chip2", "chip3" }
+
+-- Which chip rect to place chip `index` with, so the numbers still read 1 2 3 from left to right
+-- when the whole control set is mirrored for left-handed play.
+function Layout.chipName(index: number, leftHanded: boolean?): string
+	return "chip" .. (if leftHanded then 4 - index else index)
+end
 
 function Layout.mirror(r: Rect): Rect
 	return { x = Layout.WIDTH - r.x - r.w, y = r.y, w = r.w, h = r.h }
