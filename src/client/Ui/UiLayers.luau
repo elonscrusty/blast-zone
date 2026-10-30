@@ -8,6 +8,7 @@ local UiLayers = {}
 UiLayers.ZoneTint = 5 -- red screen edges and the zone arrow; never takes taps
 UiLayers.TouchControls = 9 -- thumb sticks and buttons
 UiLayers.Hud = 10 -- health, minimap, timer, gear
+UiLayers.BigMap = 12 -- the whole-arena map; over the HUD, under everything else
 UiLayers.Calm = 15 -- widgets shown between fights that are not lobby buttons
 UiLayers.Moments = 17 -- big banners (double kill, circle closing); over the HUD, under upgrade cards
 UiLayers.Popups = 20 -- upgrade cards, bots banner
@@ -24,6 +25,7 @@ UiLayers.order = {
 	"ZoneTint",
 	"TouchControls",
 	"Hud",
+	"BigMap",
 	"Calm",
 	"Moments",
 	"Popups",

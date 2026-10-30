@@ -68,6 +68,7 @@ require("./moments.test")
 require("./art.test")
 require("./daynight.test")
 require("./wallet.test")
+require("./big_map.test")
 require("./season.test")
 require("./shop.test")
 

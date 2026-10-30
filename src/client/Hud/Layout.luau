@@ -56,6 +56,11 @@ Layout.zones = {
 	lookZone = { x = 452, y = 0, w = 328, h = 270 } :: Rect,
 }
 
+-- The big map (piece 47) is a square over the middle of the screen. It is not one of the HUD pieces
+-- on purpose: it may cover the HUD and the player, but never the thumbs, the buttons or the card band.
+-- The pick chips are the one exception: a level-up offer closes the map (see HudSystem).
+Layout.bigMap = { x = 280, y = 12, w = 220, h = 220 } :: Rect
+
 -- Circles keep their shape on any screen; everything else scales by height too.
 Layout.circles = {
 	minimap = true,
