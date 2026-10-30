@@ -276,6 +276,80 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Piece 48: weekly missions, achievements and login days for one player (server to client only).
+export type MissionRow = {
+	id: string,
+	tier: string?, -- weekly missions only: "easy" | "medium" | "hard"
+	kind: string, -- what counts, same words as DailyChallengeView.kind
+	goal: number,
+	progress: number,
+	reward: number, -- Scrap
+	claimed: boolean,
+	ready: boolean, -- goal reached and not claimed yet: show a CLAIM button
+}
+
+export type MissionBonus = {
+	have: number, -- weekly missions claimed this week
+	need: number,
+	reward: number,
+	claimed: boolean,
+	ready: boolean,
+}
+
+export type LoginView = {
+	next: number, -- which day of the row the next claim is (1 up to #rewards)
+	rewards: { number },
+	canClaim: boolean, -- false once claimed today
+	count: number, -- days claimed in all
+	secondsLeft: number, -- until the next login day
+}
+
+export type MissionsState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	weekSecondsLeft: number, -- until the next week of missions
+	weekly: { MissionRow },
+	bonus: MissionBonus,
+	awards: { MissionRow },
+	login: LoginView,
+	justClaimed: string?, -- set once, right after a claim: "week:<id>" | "award:<id>" | "bonus" | "login"
+	justAmount: number?, -- the Scrap that claim paid
+}
+
+-- Video 3 gap 20: the season pass for one player (server to client only).
+export type SeasonRewardView = {
+	kind: string, -- "scrap" | "item"
+	amount: number?, -- scrap
+	itemId: string?, -- item
+	name: string?, -- item name
+}
+
+export type SeasonTierView = {
+	tier: number,
+	xpNeeded: number, -- season XP total this tier opens at
+	free: SeasonRewardView,
+	paid: SeasonRewardView,
+	freeState: string, -- "locked" | "ready" | "claimed"
+	paidState: string, -- "locked" | "needPass" | "ready" | "claimed"
+}
+
+export type SeasonClaimView = { tier: number, row: string, reward: SeasonRewardView }
+
+export type SeasonState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	season: number,
+	secondsLeft: number, -- until the season turns
+	xp: number,
+	tier: number, -- tiers reached
+	maxTier: number,
+	intoTier: number, -- XP toward the next tier
+	forNext: number?, -- XP the next tier needs (nil at the top)
+	hasPass: boolean, -- the paid row is open
+	forSale: boolean, -- the paid row can be bought (false until carter gives the product number)
+	tiers: { SeasonTierView },
+	justClaimed: { SeasonClaimView }?, -- set once, right after claims were paid
+	denied: string?, -- why the last claim was refused
+}
+
 -- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
 export type LoadoutState = {
 	selection: { [string]: string }, -- slot -> item id
@@ -290,6 +364,21 @@ export type WeatherState = {
 	matchId: MatchId,
 	level: string, -- "clear" | one of Config.Weather.levels
 	serverNow: number,
+}
+
+-- Airdrop: one falling crate and its beam. Times are server time (Workspace:GetServerTimeNow()).
+-- "incoming" = it is on its way (or landed and shut), "opened" = the loot is on the street,
+-- "clear" = every drop is gone (match over); a "clear" has no other fields but serverNow.
+export type AirdropState = {
+	event: string,
+	dropId: string?,
+	matchId: MatchId?,
+	pos: Vector3?,
+	startedAt: number?,
+	landsAt: number?,
+	opensAt: number?,
+	serverNow: number,
+	look: string?,
 }
 
 return {}

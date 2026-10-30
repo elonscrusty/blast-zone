@@ -30,7 +30,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | --- | --- | --- | --- | --- |
 | 1 | **Street that breaks** (**done, piece 47**) | Parked cars, fences, bins burst into pieces and leave rubble. Dashing and blasts kick up debris. Results count "things broken". | Static props. Slide and blasts break nothing. | M |
 | 2 | **Street that lives** | Ambient traffic, wandering bystanders who run from fights, roaming guards or hazards near the edge. Makes the city feel busy. (Keep bystanders harmless: Roblox rules, kids.) | Empty streets. | M-L |
-| 3 | **Airdrop with a light beam** | A tall beam of light marks a falling loot box, everyone sees where to run. | Crates sit in fixed spots, no event. | S-M |
+| 3 | **Airdrop with a light beam** (PR up, piece AD) | A tall beam of light marks a falling loot box, everyone sees where to run. | Crates sit in fixed spots, no event. | S-M |
 | 4 | **Always-on name plates** | Every fighter has a name, a health bar and a small level badge over the head. Your own has a green ring under the feet. | Enemy bars show for a few seconds after a hit. No badge, no ring. | S |
 | 5 | **Big moment banners** | Large banner with an emblem for double kill, killing spree, "invincible" at sudden death, circle closing. | Plain text notices ("DOUBLE! +15 HP"). | S |
 | 6 | **Level-up celebration in the world** | Burst, big arrow over the hero, star emblem, then the 3 cards. | Cards only. | S |
@@ -38,7 +38,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | 8 | **Expandable big map** | Tap the minimap to open a full-screen map. | Small round map only. | S |
 | 9 | **Bigger fights** | 25 fighters, about 4 minutes. | Built for about 8 (bots fill). Needs map size, spawn, perf and bot checks. | L |
 | 10 | **Heavier weapon effects** (props now burst; the big blast look still follows Power Picks) | Purple tracer for the big weapon, huge blast flash, rocks and sparks when something is hit. | Shots, hit sparks, shake exist. No big-blast look yet. | S-M (follows Power Picks) |
-| 11 | **Squads (duo/trio)** | Title says team mode; party chat invites "anyone up for a duo?". | Solo only. carter's brief is solo, so this is optional. | L |
+| 11 | **Squads (duo/trio)** | Title says team mode; party chat invites "anyone up for a duo?". | **Done (V11)**: Solo/Duo/Trio vote, squads seated, no friendly fire, squad wins. See handoff V11. | L |
 
 ## Gaps: heroes and gear
 

@@ -184,6 +184,14 @@ local Defs: { Def } = {
 	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
 	tell("V3-18", "ShopState", "ShopState"),
 
+	-- ===== 48 missions + login days =====
+	ask("48", "MissionsRequest", {}, 1, 2), -- a client asks for its weekly missions, awards and login row
+	ask("48", "MissionClaim", {
+		{ name = "what", kind = "id", maxLen = 8 }, -- "week" | "award" | "bonus" | "login"
+		{ name = "id", kind = "id", maxLen = 24, optional = true }, -- the mission or award id (not for bonus/login)
+	}, 2, 4),
+	tell("48", "MissionsState", "MissionsState"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 
@@ -210,6 +218,26 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== V11 squads (duo and trio) =====
+	ask(
+		"V11",
+		"SquadVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Squads.maxModeIdLength } },
+		2,
+		3
+	),
+	ask("V11", "SquadVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"V11",
+		"SquadVoteState",
+		"{ open, modes: { { id, name, size, votes } }, yourVote?, chosen? }"
+	),
+	tell(
+		"V11",
+		"SquadState",
+		"{ matchId, size, team?, mates: { { id, name, alive } } } (size 1 = solo, nothing to show)"
+	),
+
 	-- ===== G24 game modes =====
 	ask(
 		"G24",
@@ -233,12 +261,28 @@ local Defs: { Def } = {
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
 	),
 
+	-- ===== airdrop (video 3 gap #3) =====
+	ask("AD", "AirdropRequest", {}, 1, 2), -- a client that joined late asks for the drops that are running
+	tell(
+		"AD",
+		"AirdropState",
+		"AirdropState (event: 'incoming'|'opened'|'clear', dropId, matchId, pos, startedAt, landsAt, opensAt, serverNow, look)"
+	),
+
 	-- ===== 46 big moments =====
 	tell(
 		"46",
 		"Moment",
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
+
+	-- ===== G20 season pass =====
+	ask("G20", "SeasonRequest", {}, 1, 2), -- a client asks for its pass (the server also sends it unasked)
+	ask("G20", "SeasonClaimRequest", {
+		{ name = "tier", kind = "integer", min = 0, max = 100 }, -- 0 = take everything ready
+		{ name = "row", kind = "string", maxLen = 8 },
+	}, 3, 4),
+	tell("G20", "SeasonState", "SeasonState"),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 

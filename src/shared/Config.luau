@@ -90,6 +90,25 @@ Config.MapVote = {
 	} :: { [string]: string },
 }
 
+-- Video 3 gap 11: squads (duo and trio). Players vote Solo / Duo / Trio in the lobby; the server seats
+-- teams when the match starts. Friends who joined each other stay together, then loose players fill seats,
+-- then bots. Teammates cannot hurt each other (self damage still counts), the zone still hurts everyone.
+-- A squad is out when all of its members are out; the last squad standing wins.
+Config.Squads = {
+	enabled = false, -- carter: "Solo only for now" (2026-10-30). Turn on to show the vote and seat squads.
+	modes = {
+		{ id = "solo", name = "Solo", size = 1 },
+		{ id = "duo", name = "Duo", size = 2 },
+		{ id = "trio", name = "Trio", size = 3 },
+	} :: { { id: string, name: string, size: number } },
+	defaultMode = "solo", -- nobody voted
+	minTeams = 2, -- fewer teams than this and the match plays solo (a duo of two people is a solo fight)
+	friendlyFire = false,
+	maxModeIdLength = 8,
+	stateRepeatSeconds = 1, -- the running vote count reaches everyone at most this often
+	colorCount = 8, -- team colours the client cycles through (look only)
+}
+
 -- Piece G24 (video 3 gap 24). Game modes. Players vote for a mode in the lobby like they vote for a map; the server
 -- counts, checks the voter's account level, and applies the winner's tuning right before the fight (Spawning),
 -- then puts everything back when the match ends. A mode never touches health, damage per hit, speed or ammo, and
@@ -154,7 +173,7 @@ Config.Policies = {
 	simultaneousFinalElimination = "draw-both-rank-1",
 	eliminatedPlayers = "cannot-fire-collect-or-pick-upgrades",
 	xpOwnership = "exclusive-first-valid-claim",
-	friendlyFire = true, -- free-for-all
+	friendlyFire = true, -- free-for-all in Solo; squads turn it off (Config.Squads.friendlyFire)
 }
 
 Config.Health = {
@@ -734,6 +753,90 @@ Config.Loot = {
 	},
 }
 
+-- Airdrop (video 3 gap #3): a supply crate falls into the circle during a match. A tall light beam shows
+-- everyone where. After it lands it stays shut for a short time (so fighters can race there), then
+-- bursts open and the loot lies on the street (a found gun, heal packs, XP orbs). The server decides
+-- when, where and what; clients only draw. All numbers are placeholders until carter plays.
+Config.Airdrop = {
+	enabled = true,
+	look = "B", -- carter picked B Cyan Searchlight. Skins: "A" Gold Pillar, "C" Coral Flare (see looks below)
+	count = 2, -- drops per match
+	firstAtSeconds = 45, -- seconds after the fight starts; the drops spread evenly from first to last
+	lastAtSeconds = 115,
+	jitterSeconds = 8, -- each drop moves earlier or later by up to this much
+	minGapSeconds = 25, -- two drops are never closer in time than this
+	fallSeconds = 7, -- from "incoming" until the crate touches down
+	shutSeconds = 4, -- the crate stays shut this long after touching down
+	beamFadeSeconds = 1.5, -- the beam fades after the crate opens
+	startHeight = 90, -- studs above the street where the crate comes into view
+	crateSize = 3.4,
+	crateColor = "#2A3A5C",
+	bandColor = "#FFC44D",
+	spot = {
+		insideMargin = 14, -- keep this far inside the circle (it shrinks while the crate falls)
+		tries = 40, -- random places tried before giving up on this drop
+		clearStuds = 3, -- the street must be open this far around the landing spot
+		floorTolerance = 1, -- and as high as the floor of the supply crate markers
+		rayHeight = 30, -- the check starts this far above the floor
+		minApartStuds = 40, -- two drops in one match land at least this far apart
+	},
+	loot = {
+		gun = true, -- one found gun (same pool as Config.Loot.floorGuns)
+		packs = 2, -- heal packs
+		orbs = 6, -- XP orbs
+		ringStuds = 4, -- packs and the gun lie on a ring this wide around the crate
+	},
+	beamHeight = 260, -- studs
+	-- The three looks carter was shown. Only `look` above is used; the others stay as skins.
+	looks = {
+		A = {
+			name = "Gold Pillar",
+			color = "#FFC44D",
+			coreColor = "#FFF1B8",
+			outerDiameter = 5.2,
+			coreDiameter = 2.2,
+			outerTransparency = 0.55,
+			coreTransparency = 0.1,
+			ringDiameter = 13,
+			dashes = false,
+			fallProp = "chute", -- a gold parachute above the crate
+		},
+		B = {
+			name = "Cyan Searchlight",
+			color = "#36D9E8",
+			coreColor = "#FFFFFF",
+			outerDiameter = 8,
+			coreDiameter = 0.8,
+			outerTransparency = 0.62,
+			coreTransparency = 0,
+			ringDiameter = 14,
+			dashes = false,
+			fallProp = "flame", -- a cyan rocket flame under the crate
+		},
+		C = {
+			name = "Coral Flare",
+			color = "#F15B64",
+			coreColor = "#FFB3A8",
+			outerDiameter = 3.8,
+			coreDiameter = 0.7,
+			outerTransparency = 0.45,
+			coreTransparency = 0.1,
+			ringDiameter = 12,
+			dashes = true, -- the column is cut into blinking stripes
+			fallProp = "smoke", -- a red smoke trail behind the crate
+		},
+	} :: { [string]: { [string]: any } },
+	dashHeight = 6,
+	dashGap = 3.5,
+	dashBlinkHz = 2,
+	-- Placeholder words for the "incoming" strip. Claude Design owns the real look.
+	hintText = {
+		incoming = "AIRDROP INCOMING",
+		landed = "AIRDROP - GO GO GO",
+	},
+	hintRefreshSeconds = 0.25,
+}
+
 -- Piece 47: the street breaks (carter picked "A Chunk Burst"). Cars, dumpsters, planters, benches and
 -- barriers take shot and blast damage, then burst into chunky blocks. The solid goes away (people
 -- can walk and shoot through), a scorch mark and a few blocks stay until the match ends.
@@ -795,6 +898,31 @@ Config.Level = {
 Config.Daily = {
 	resetHourUtc = 0, -- the new day starts at this hour (UTC)
 	rewards = { easy = 20, medium = 35, hard = 50 },
+}
+
+-- Piece 48: weekly missions, achievements and login days. All pay Scrap (Config.Rewards.currencyName), claimed
+-- with a button. Weeks start on Monday at Config.Daily.resetHourUtc. Lists: shared/Missions/MissionDefs.
+Config.Missions = {
+	weeklyRewards = { easy = 60, medium = 90, hard = 120 }, -- the three weekly missions
+	weeklyBonus = 100, -- extra Scrap after all three weekly missions are claimed
+	-- The login row: one reward per day you come and claim. Missing days never reset it. After the last
+	-- one the row starts again. Every number stays under Config.Progression.maxMatchGrant.
+	loginRewards = { 10, 15, 20, 25, 30, 40, 100 },
+}
+
+-- Video 3 gap 20: the season pass. A season runs `lengthDays` from `startUnix` and then starts again; each season
+-- the bar, the claims and the paid row reset. Season XP is the same run XP the account level uses. Rewards are
+-- looks and Scrap only (never power). The paid row opens only through SeasonSystem.unlockPaid. Nothing sells it
+-- yet: `forSale` stays false until the buy step (a purchase receipt handler) is built and carter gives his real
+-- Roblox product number. No product number or price is made up here. The rows are in shared/Season/SeasonDefs.
+Config.Season = {
+	startUnix = 1793577600, -- 2026-11-02 00:00 UTC: season 1 begins (earlier times count as season 1)
+	lengthDays = 14, -- carter picked 2 weeks
+	xpPerTier = 120, -- season XP to climb one tier
+	forSale = false, -- the client shows the paid row as "coming soon" while this is false
+	duplicateScrap = 40, -- a look you already own pays this much Scrap instead
+	maxXpPerMatch = 600, -- sanity cap for one match's XP (same as Config.Level.maxXpPerMatch)
+	keepKeys = 12, -- how many recent match keys a player's season remembers (stops a match counting twice)
 }
 
 -- Video 3 gap 18: the Scrap Shop. Looks only (slide trails and shot tracers), paid in Scrap, never Robux, never
