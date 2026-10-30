@@ -692,7 +692,7 @@ Config.Daily = {
 Config.Chest = {
 	maxStored = 20, -- chests of one kind a player can hold; more are not given (the meter waits)
 	meterGoal = 4,
-	revealStyle = "A", -- "A" Lid Pop, "B" Drop Burst, "C" Card Flip (ChestReveal.styles); placeholder until carter picks
+	revealStyle = "A", -- "A" Lid Pop (carter picked), "B" Drop Burst, "C" Card Flip stay as skins (ChestReveal.styles)
 	reduceMotionStyle = "B", -- the quick one, used when the player turned on reduce flashes
 }
 
