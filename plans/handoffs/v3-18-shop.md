@@ -1,0 +1,10 @@
+# V3-18 Scrap Shop (video 3 gap 18: a shop with a "new" dot)
+- Done: SHOP button in the lobby (slot `shop`, right column) with a red new dot until you open today's shop. The panel lists 6 looks: 2 always on sale + 4 that change every day (same for everyone, new at `Config.Daily.resetHourUtc`). Each card is BUY / WEAR / WORN. A strip says "NEW LOOK!" after a buy.
+- Sells looks only (slide trails + shot tracers, `shared/Shop/ShopDefs`), paid in Scrap. No Robux, no ids, no random buys (so no odds to show), no power. Prices are placeholders in `Config.Shop.prices` (common 60, rare 150, epic 300).
+- Server decides: `BuyRequest(itemId)` only asks. `ShopRules.buy` checks the look is in TODAY's stock (day from the server clock), not owned, and affordable; all or nothing, then the look is worn. `ProgressService.buy` saves and pushes `ProgressState`; shop looks ride in its `unlocked` list.
+- Stock: `ShopRules.stockFor(day)` = always-on + one look per `Config.Shop.dailySlots` entry (common, common, rare, epic), no repeats, depends only on the day. Add new looks at the END of `ShopDefs.list`.
+- Saving: bought looks live in `data.progression.unlocked` (already saved). "Opened today" is `data.shop.seenDay` (new, tiny, filled on first open). Without the profile module both live in memory ("temporary").
+- Files: `shared/Shop/` (Defs, Rules, Service, Text), `server/Shop/ShopSystem`, `client/Shop/ShopUiSystem` (built only from `Ui/Components`, so the Claude Design skin restyles it). Touched: `TrackDefs.shop`, `ProgressService.buy`, `ProgressionSystem.buy`, `RemoteDefs` (ShopRequest, ShopSeenRequest, BuyRequest, ShopState), `LobbyLayout` (new `shop` slot).
+- Tests: `tests/shop.test.luau` (ids, prices, stock for 60 days, every look shows up, buy refusals change nothing, no double charge, yesterday's look refused, new dot per day, remote limits).
+- Not tested until carter plays: how six cards fit a small phone, the new dot, the SHOP button fitting the right column.
+- Left: sell emotes/character looks, a real "sold out/owned" art state, a Robux section (needs real product ids from carter), sounds for buy.

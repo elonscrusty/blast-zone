@@ -4,11 +4,13 @@
 --   onReward   a match paid `amount` to this player. Pays once per match key; duplicates and bad numbers pay nothing.
 --   grant      the same for any other server-side key (daily challenges).
 --   unlock     buys the next tier if affordable (one change, all or nothing).
+--   buy        buys a look from today's Scrap Shop stock (one change, all or nothing).
 --   equip      puts an owned item on.
 -- After every change it tells the player (`send`) and tells the world which look to show (`applyLook`).
 
 local LevelRules = require("../Level/LevelRules")
 local ProgressRules = require("./ProgressRules")
+local ShopRules = require("../Shop/ShopRules")
 local TrackDefs = require("./TrackDefs")
 local Types = require("../Types")
 
@@ -41,6 +43,7 @@ export type Service = {
 	onXp: (player: any, xp: number, matchId: number) -> boolean,
 	giveItem: (player: any, itemId: string, key: string, dupScrap: number) -> (boolean, string?),
 	unlock: (player: any, itemId: string) -> boolean,
+	buy: (player: any, itemId: string, day: number) -> (boolean, string?),
 	equip: (player: any, itemId: string) -> boolean,
 	push: (player: any) -> (),
 }
@@ -74,6 +77,12 @@ local function stateOf(
 		for _, tier in TrackDefs.tiers do
 			if p.unlocked[tier.id] then
 				table.insert(unlocked, tier.id)
+			end
+		end
+		-- Shop looks ride in `unlocked` too: that is how the client learns they are owned.
+		for _, shopItem in TrackDefs.shop do
+			if p.unlocked[shopItem.id] then
+				table.insert(unlocked, shopItem.id)
 			end
 		end
 		for _, slot in TrackDefs.slots do
@@ -228,6 +237,28 @@ function ProgressService.new(deps: Deps): Service
 			push(player, nil, why or reason)
 		end
 		return ok
+	end
+
+	-- Buys a look from the Scrap Shop (shared/Shop). `day` is the shop day the server computed, never a client's.
+	-- All or nothing; a new look is worn at once. Returns ok, and the reason when refused.
+	function service.buy(player: any, itemId: string, day: number): (boolean, string?)
+		local why: string? = nil
+		local ok, reason = store.update(player, function(p)
+			local r = ShopRules.buy(p, itemId, day)
+			if not r.ok then
+				why = r.reason
+				return false
+			end
+			return true
+		end)
+		if ok then
+			store.saveNow(player)
+			look(player)
+			push(player, nil, nil)
+			return true, nil
+		end
+		push(player, nil, why or reason)
+		return false, why or reason
 	end
 
 	function service.equip(player: any, itemId: string): boolean

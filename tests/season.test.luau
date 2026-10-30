@@ -91,6 +91,18 @@ Harness.test(
 	end
 )
 
+Harness.test("pass: no pass look clashes with the shop, the track or the level gifts", function()
+	local others: { [string]: boolean } = {}
+	for _, list in { TrackDefs.defaults, TrackDefs.tiers, TrackDefs.gifts, TrackDefs.shop } do
+		for _, it in list do
+			others[it.id] = true
+		end
+	end
+	for _, it in TrackDefs.passItems do
+		Harness.truthy(not others[it.id], it.id .. " is already another item")
+	end
+end)
+
 Harness.test("pass: nothing is for sale and no product number is made up", function()
 	Harness.eq(Config.Season.forSale, false)
 	for key in Config.Season :: any do
@@ -426,7 +438,7 @@ Harness.test("claim all: tier 0 takes everything ready in order, paid only when 
 	Harness.eq(last(r).tiers[1].paidState, "ready")
 	Harness.truthy(r.service.claim(r.player, 0, "free"))
 	Harness.eq(#r.paid + #r.given, 6, "3 paid rewards")
-	Harness.eq(r.given[1].itemId, "trail_sunset", "tier 3 paid is a look")
+	Harness.eq(r.given[1].itemId, "trail_dusk", "tier 3 paid is a look")
 	Harness.eq(last(r).tiers[3].paidState, "claimed")
 end)
 
@@ -502,13 +514,13 @@ end
 
 Harness.test("giveItem: gives a pass look once per key, shows it as owned, never power", function()
 	local r = coinRig()
-	local ok = r.service.giveItem(r.player, "trail_mint", "s:1:10:free", 40)
+	local ok = r.service.giveItem(r.player, "trail_aqua", "s:1:10:free", 40)
 	Harness.truthy(ok)
 	local p = r.store.read(r.player) :: ProgressRules.Progression
-	Harness.truthy(ProgressRules.owns(p, "trail_mint"))
+	Harness.truthy(ProgressRules.owns(p, "trail_aqua"))
 	local state = r.sent[#r.sent]
-	Harness.truthy(table.find(state.gifts, "trail_mint") ~= nil, "listed with the owned looks")
-	local ok2, why = r.service.giveItem(r.player, "trail_mint", "s:1:10:free", 40)
+	Harness.truthy(table.find(state.gifts, "trail_aqua") ~= nil, "listed with the owned looks")
+	local ok2, why = r.service.giveItem(r.player, "trail_aqua", "s:1:10:free", 40)
 	Harness.truthy(not ok2)
 	Harness.eq(why, "duplicate")
 end)
@@ -541,7 +553,7 @@ Harness.test("a pass look can be worn like any owned look", function()
 	Harness.truthy(r.service.equip(r.player, "trail_royal"))
 	local p = r.store.read(r.player) :: ProgressRules.Progression
 	Harness.eq(ProgressRules.equippedIn(p, "trail").id, "trail_royal")
-	Harness.truthy(not r.service.equip(r.player, "tracer_lime"), "not owned yet")
+	Harness.truthy(not r.service.equip(r.player, "tracer_citrus"), "not owned yet")
 end)
 
 -- ===== words =====

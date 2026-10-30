@@ -55,8 +55,11 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 41 | Whole-match tests: a pretend server with bots plays full matches (lobby, crates, guns, zone, winner, coins, reset); 4 seam bugs fixed | - | PR up | piece 41 PR |
 | 42 | Loot & Heal (video 3 bundle A): carried heal packs (use button), floor loot (packs + found guns that never expire), death drop, bots heal | - | PR up | loot PR |
 | 43 | Power Picks (video 3 bundle B): Piercing Rounds, Rapid Fire, Aftershock, Heavy Shell, Long Slide level-up cards | 14 | PR up | power picks PR |
+| 47 | Street that breaks (video 3 gap list #1, carter picked A "Chunk Burst"): cars, dumpsters, planters, benches, barriers burst from shots and blasts; scorch + rubble stay; chunks fly | - | PR up | street breaks PR |
 | 46 | Big moments (video 3 gaps 4-6): name plates (name, level badge, health bar, own ring), call-out banners (double kill, spree, circle closing, sudden death), level-up burst; 3 looks A/B/C | 14, 22 | PR up | big moments PR |
 | 44 | Turn the camera (bug: the view was locked): mouse right-button drag, touch drag on the free right side, gamepad L2 + right stick; walking, minimap follow the turn | 2, 10 | PR up | handoff 44 |
 | 45 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |
 | 46 | Heroes (video 3 gaps #12 + stat cards of #13): 5 original heroes, own health + own two guns, free HERO loadout slot, server-decided, gun stat cards (logic only; looks from Claude Design) | 9, 20 | PR up | heroes PR |
 | G20 | Season pass (video 3 gap 20): 28-day seasons, 20 tiers, free row + paid row, season XP from every match, TAKE / TAKE ALL (looks and Scrap only; the paid row is not for sale yet; logic only, look from Claude Design) | 18, 34 | PR up | season pass PR |
+| V3-18 | Scrap Shop (video 3 gap 18): SHOP lobby button with a new dot, 2 always-on + 4 daily looks (slide trails and shot tracers) bought with Scrap, server checks stock/price/ownership, no Robux, no random buys (logic only; looks from Claude Design) | 18, 25 | PR up | shop PR |
+| V16 | Power rating (video 3 gap #16): one show-off number from level, looks owned, wins, eliminations, matches; each part capped; server-made, sent to its owner only; logic only, no screen | 20 | PR up | power rating PR |
