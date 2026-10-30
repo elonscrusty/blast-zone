@@ -72,5 +72,6 @@ require("./wallet.test")
 require("./big_map.test")
 require("./season.test")
 require("./shop.test")
+require("./wiring.test")
 
 Harness.summary()

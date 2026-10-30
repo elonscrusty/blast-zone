@@ -1,6 +1,6 @@
 --!strict
--- Shows other participants' slides: the server says "p123 slid", this draws the streak on that
--- body. Your own slide draws its streak the moment you press, so it is skipped here.
+-- Shows other participants' slides and hops: the server says "p123 slid" (or hopped), this draws the
+-- streak on that body. Your own slide draws its streak the moment you press, so it is skipped here.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,7 +30,7 @@ end
 
 function SlideFxSystem.start()
 	local ownId = Ids.player(Players.LocalPlayer.UserId)
-	Net.on("SlideFx", function(fx: { participantId: string, duration: number })
+	local function streak(fx: { participantId: string, duration: number })
 		if
 			type(fx) ~= "table"
 			or fx.participantId == ownId
@@ -42,7 +42,9 @@ function SlideFxSystem.start()
 		if character and type(fx.duration) == "number" then
 			SlideTrail.play(character, math.clamp(fx.duration, 0.05, 1))
 		end
-	end)
+	end
+	Net.on("SlideFx", streak)
+	Net.on("VaultFx", streak) -- a hop over low cover gets the same streak
 end
 
 return SlideFxSystem
