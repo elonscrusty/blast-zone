@@ -23,6 +23,14 @@ local store: OrderedDataStore? = nil
 local pending = BoardRules.newQueue()
 local names: { [number]: string } = {}
 local lastError: string? = nil
+local accessOff = false -- a 403 (API access off, e.g. Studio): stop calling until the server restarts
+
+local function noteError(err: string?)
+	lastError = err
+	if err and string.find(err, "403", 1, true) then
+		accessOff = true
+	end
+end
 
 local function say(text: string)
 	warn("[TopWins] " .. text)
@@ -56,9 +64,14 @@ function TopWinsStore.pendingCount(): number
 	return pending:size()
 end
 
+-- True once a call came back 403: the store is never asked again on this server.
+function TopWinsStore.isOff(): boolean
+	return accessOff
+end
+
 function TopWinsStore.flush()
 	local s = getStore()
-	if s == nil or pending:size() == 0 then
+	if s == nil or accessOff or pending:size() == 0 then
 		return
 	end
 	for _, item in pending:take(cfg.writesPerFlush) do
@@ -72,10 +85,10 @@ function TopWinsStore.flush()
 			end)
 		end, task.wait)
 		if not ok then
-			lastError = err
+			noteError(err)
 			say(`write failed for {item.userId}: {err or "?"}`)
-			if err and string.find(err, "403", 1, true) then
-				return -- API access is off (Studio): keep quiet until the next flush
+			if accessOff then
+				return -- API access is off (Studio): no more writes on this server
 			end
 			pending:put(item.userId, item.wins) -- try again next time
 		end
@@ -104,7 +117,7 @@ end
 
 function TopWinsStore.readTop(): (boolean, { BoardRules.Row })
 	local s = getStore()
-	if s == nil then
+	if s == nil or accessOff then
 		return false, {}
 	end
 	local ok, page, err = SaveRetry.run(function()
@@ -112,7 +125,7 @@ function TopWinsStore.readTop(): (boolean, { BoardRules.Row })
 		return pages:GetCurrentPage()
 	end, task.wait)
 	if not ok then
-		lastError = err
+		noteError(err)
 		say(`read failed: {err or "?"}`)
 		return false, {}
 	end
