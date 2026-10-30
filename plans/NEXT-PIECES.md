@@ -39,3 +39,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |
 | 31 | UI system for Claude Design: screen list, brief, look/logic split (Ui/Tokens, Skins, Components), import tool | 20 | PR up | UI system PR |
 | 19 | Lobby plaza (3D) + loadout logic; look comes from Claude Design | 7, 20 | PR up | this PR |
+| 28 | Second map (D Neon Plaza, carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | second-map PR |
