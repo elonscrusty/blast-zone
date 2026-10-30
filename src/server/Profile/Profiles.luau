@@ -86,11 +86,28 @@ function Profiles.init()
 	if manager ~= nil then
 		return
 	end
-	local dataStore = DataStoreService:GetDataStore(Config.Profile.storeName)
-	local store = ProfileStore.new({
-		update = function(key: string, transform: (any) -> (any, { number }?))
+	-- An unpublished place (Studio) has no DataStore: keep saves in memory so play tests still run.
+	local okStore, dataStore = pcall(function()
+		return DataStoreService:GetDataStore(Config.Profile.storeName)
+	end)
+	local update: (string, (any) -> (any, { number }?)) -> any
+	if okStore then
+		update = function(key, transform)
 			return dataStore:UpdateAsync(key, transform)
-		end,
+		end
+	else
+		say(`no DataStore ({dataStore}); using a memory save that is lost when the server stops`)
+		local memory: { [string]: any } = {}
+		update = function(key, transform)
+			local new = transform(memory[key])
+			if new ~= nil then
+				memory[key] = new
+			end
+			return memory[key]
+		end
+	end
+	local store = ProfileStore.new({
+		update = update,
 		jobId = jobId,
 		clock = os.time,
 		wait = task.wait,
