@@ -1,0 +1,11 @@
+# 10 HUD, controls, settings
+- Done: combat HUD in look B (carter's pick, "Street Sticker"): health + run level, players left, zone timer, one warning line, minimap with safe circle, weapon/ammo/reload, hit edges and hit arrow. Files: `src/client/Hud/`.
+- Controls: `src/client/Controls/Controls.luau` is the one door for input. `getMove()`, `getAimWorld()` (ground direction), `isFiring()`, `Action` signal (slide, reload, swap, upgrade1-3). Touch sticks + Slide + Reload + weapon tap, WASD/mouse/Space/R/Q/1-3, gamepad (sticks, R2 fire, A slide, X reload, L1/R1 swap, DPad 1-3).
+- ControlsSystem sends `ReloadRequest` and `SwitchWeaponRequest`. Piece 02 sends `SlideRequest` and turns `getMove()` into a world direction; piece 03 polls `isFiring()`/`getAimWorld()` and sends `FireRequest`. ControlsSystem turns the default Roblox controls off.
+- Settings: `src/client/Settings/` (music, effects, camera shake, fewer flashes, HUD size, aim speed, button size, left-handed). Read with `Settings.get("cameraShake")`. Sound goes through `SoundService.Music` / `.Effects` SoundGroups so the sliders work. Gear on the HUD opens the panel; piece 05 can call `SettingsPanel.toggle()` from the lobby.
+- Space kept free for others: bottom centre x 26-74%, y 76-96% (piece 08 cards, also mirrored for left-handed). Results screen is piece 05, upgrade cards are piece 08. Layout is checked by tests/hud_layout.test.luau.
+- Tests: `lune run tests/run` (89 checks: layout, minimap, zone edge, warnings, HUD numbers, input state, bindings, settings). Also luau-lsp type check clean on my folders. Nothing was run in Studio.
+- Not tested (needs Studio): how it looks and feels on a real phone, stick and slider dragging, notch spacing, the gamepad paths.
+- Left: settings are not saved between sessions (needs a server remote and `SaveRetry`, Phase 5). Looks A (Neon Grid) and C (Clean Glass) are not built as skins. No sounds are played by the HUD yet. No spectate controls (piece 05).
+- Selene could not run here (no network for the Roblox std); a stripped-down run found no lint warnings. CI runs the real one.
+- Open: mortar HUD needs `Config.Features.explosiveWeapon` on; the swap button hides itself when only one weapon exists.
