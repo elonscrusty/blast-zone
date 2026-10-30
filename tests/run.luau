@@ -8,5 +8,6 @@ require("./save_retry.test")
 require("./config.test")
 require("./guard.test")
 require("./core.test")
+require("./movement.test")
 
 Harness.summary()

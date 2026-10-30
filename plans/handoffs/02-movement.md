@@ -1,0 +1,11 @@
+# 02 Movement, camera, Slide
+- Done: fixed-heading elevated camera, camera-relative walking, body turns to the aim, no jumping, and the Slide (14 studs, 0.25 s, 5 s cooldown, no invulnerability). Numbers are in `Config.Movement/Camera/Slide`.
+- Server (`src/server/Movement/`): `SlideService.request(id, dirX, dirZ)` is the one door for players and bots (alive, live match, cooldown, wall sweep, floor check, arena edge). `MovementSystem` sets walk speed from `EffectiveStats` and turns jumping off. `BotPort` = `slide`, `slideReady`, `registerBotBody` for piece 09.
+- Client (`src/client/Movement/`): `CameraSystem`, `MoveSystem` (reads `Controls.getMove/getAimWorld`, sends `SlideRequest` on the "slide" action), `SlideFxSystem` + `SlideTrail` (cyan streak).
+- Shared (`src/shared/Movement/`): `SlideRules`, `SlideBook`, `CameraRules`, `MoveRules` (plain numbers, tested), `SlideCast`, `SlideMotion` (Roblox).
+- Who moves whom: a player's own client slides (it owns the character) and starts at once; the server decides distance, tells the client (`SlideFx`, `SlideState`, `SlideDenied`) and pulls the player back if the end point is not believable. Bots are moved by the server.
+- Camera follows `Camera.CameraSubject`, so piece 05's spectate works with no extra code. Cooldown for the HUD: `SlideState.cooldownEndsAt` (server time).
+- Tests: `tests/movement.test.luau` (directions, wall/floor/edge limits, timing, cooldown, camera, speed cap). Nothing run in Studio.
+- Untested until carter plays: how the slide and camera feel, `SlideMotion` against real walls, the Blockcast sweep sizes, trail look.
+- Left: camera shake (piece 10 setting exists), the two trail looks carter does not pick (dust, ghost copies) are not built as skins, no general speed-hack check (only the slide end check).
+- Open: camera look (A tall, B close, C sky) is set to A until carter picks; change `Config.Camera` and `Config.Slide` only.

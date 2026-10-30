@@ -1,0 +1,93 @@
+--!strict
+-- The elevated, angled camera. It follows the player from a fixed heading (it never turns during
+-- play), glides with a very short delay, and pulls back a little on narrow screens so a phone held
+-- upright still shows threats at the sides. Spectating works by itself: piece 05 points
+-- Camera.CameraSubject at the participant to watch, and this camera follows whatever it points at.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local CameraRules = require(Shared.Movement.CameraRules)
+
+local CameraSystem = {}
+CameraSystem.order = 50
+
+local BIND_NAME = "BlastZoneCamera"
+local player = Players.LocalPlayer
+
+local focus: Vector3? = nil
+local lastRoot: BasePart? = nil
+local lastFrame = os.clock()
+
+local function rootOfModel(model: Instance?): BasePart?
+	local root = if model then model:FindFirstChild("HumanoidRootPart") else nil
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+-- Who the camera looks at: whatever the camera subject is, else the player's own character.
+local function subjectRoot(camera: Camera): BasePart?
+	local subject = camera.CameraSubject
+	if subject and subject:IsA("Humanoid") then
+		local root = rootOfModel(subject.Parent)
+		if root then
+			return root
+		end
+	elseif subject and subject:IsA("BasePart") then
+		return subject
+	end
+	return rootOfModel(player.Character)
+end
+
+local function step()
+	local camera = workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local now = os.clock()
+	local dt = math.min(now - lastFrame, 0.1)
+	lastFrame = now
+
+	if camera.CameraType ~= Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
+	camera.FieldOfView = Config.Camera.fieldOfView
+
+	local root = subjectRoot(camera)
+	if root == nil then
+		return
+	end
+	local target = root.Position
+	local cfg = Config.Camera
+	-- Jump straight there for a new subject (respawn, spectate swap) or a long hop (teleport).
+	if focus == nil or root ~= lastRoot or (target - focus).Magnitude > cfg.snapDistance then
+		focus = target
+	else
+		focus = focus:Lerp(target, CameraRules.followAlpha(dt, cfg.followSmoothingSeconds))
+	end
+	lastRoot = root
+
+	local view = camera.ViewportSize
+	local aspect = if view.Y > 0 then view.X / view.Y else 1.78
+	local distance = CameraRules.distanceForAspect(
+		cfg.distance,
+		aspect,
+		cfg.narrowAspect,
+		cfg.narrowAspectFloor,
+		cfg.maxWiden
+	)
+	local dx, dy, dz = CameraRules.offset(cfg.pitchDegrees, distance, cfg.yawDegrees)
+	local at = focus :: Vector3
+	camera.CFrame = CFrame.lookAt(at + Vector3.new(dx, dy, dz), at)
+end
+
+function CameraSystem.start()
+	RunService:BindToRenderStep(BIND_NAME, Enum.RenderPriority.Camera.Value + 1, step)
+end
+
+return CameraSystem
