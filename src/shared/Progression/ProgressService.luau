@@ -41,6 +41,7 @@ export type Service = {
 	onReward: (player: any, amount: number, matchId: number) -> boolean,
 	grant: (player: any, amount: number, key: string) -> (boolean, string?),
 	onXp: (player: any, xp: number, matchId: number) -> boolean,
+	giveItem: (player: any, itemId: string, key: string, dupScrap: number) -> (boolean, string?),
 	unlock: (player: any, itemId: string) -> boolean,
 	buy: (player: any, itemId: string, day: number) -> (boolean, string?),
 	equip: (player: any, itemId: string) -> boolean,
@@ -65,9 +66,11 @@ local function stateOf(
 	local info = LevelRules.info(0)
 	if p ~= nil then
 		info = LevelRules.info(p.accountXp)
-		for _, gift in TrackDefs.gifts do
-			if p.unlocked[gift.id] then
-				table.insert(gifts, gift.id)
+		for _, list in { TrackDefs.gifts, TrackDefs.passItems } do
+			for _, gift in list do
+				if p.unlocked[gift.id] then
+					table.insert(gifts, gift.id)
+				end
 			end
 		end
 		coins, total = p.coins, p.totalEarned
@@ -186,6 +189,33 @@ function ProgressService.new(deps: Deps): Service
 			push(player, nil, reason, nil)
 		end
 		return ok
+	end
+
+	-- A look from the season pass (piece G20): owned once per key, or `dupScrap` Scrap if it was already owned. Only
+	-- items that are not for sale (cost -1) can be given. One change, so a repeat of the key pays nothing.
+	function service.giveItem(
+		player: any,
+		itemId: string,
+		key: string,
+		dupScrap: number
+	): (boolean, string?)
+		local def = TrackDefs.get(itemId)
+		if def == nil or def.cost ~= -1 then
+			return false, "unknownItem"
+		end
+		local ok, reason = store.grantOnce(player, key, function(p)
+			if ProgressRules.owns(p, itemId) then
+				return ProgressRules.addCoins(p, dupScrap, deps.maxGrant).ok
+			end
+			p.unlocked[itemId] = true
+			return true
+		end)
+		if ok then
+			store.saveNow(player)
+			look(player)
+			push(player, nil, nil)
+		end
+		return ok, reason
 	end
 
 	function service.unlock(player: any, itemId: string): boolean
