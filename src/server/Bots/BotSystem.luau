@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Server = ServerScriptService:WaitForChild("Server")
@@ -172,6 +173,7 @@ local function makeWorld(): BotRunner.World
 							id = p.id,
 							pos = { x = root.Position.X, z = root.Position.Z },
 							shielded = SpawnShields:isShielded(p.id),
+							human = not Ids.isBot(p.id),
 						})
 					end
 				end

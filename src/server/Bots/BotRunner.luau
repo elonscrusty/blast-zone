@@ -149,6 +149,7 @@ function BotRunner.step(self: Runner)
 					now = now,
 					me = me,
 					others = world.others(id),
+					fightSeconds = if fightSeconds then fightSeconds() else nil,
 					pickups = world.pickups(),
 					gunDrops = if world.gunDrops then world.gunDrops() else nil,
 					zone = world.zone(),
