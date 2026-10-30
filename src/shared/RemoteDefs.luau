@@ -149,6 +149,10 @@ local Defs: { Def } = {
 
 	-- ===== N11 character looks =====
 	ask("N11", "SetLookRequest", { { name = "look", kind = "string", maxLen = 16 } }, 2, 3),
+
+	-- ===== 24 stats + top-wins board =====
+	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
+	tell("24", "StatsUpdate", "StatsPayload"),
 }
 
 local Index: { [string]: Def } = {}

@@ -447,4 +447,20 @@ Config.AntiCheat = {
 	warnEverySeconds = 10,
 }
 
+-- Piece 24: lifetime stats (wins, eliminations, matches) and the global top-wins board.
+Config.Stats = {
+	profileKey = "stats", -- saved inside the player's profile as data.stats (piece 17)
+	board = {
+		storeName = "TopWins_v1", -- OrderedDataStore; key = userId, value = saved wins
+		rows = 10,
+		refreshSeconds = 60, -- read the top list this often
+		writeSeconds = 30, -- send queued win counts this often
+		writesPerFlush = 8,
+		spotTag = "LeaderboardSpot", -- optional part (lobby piece) where the board stands, front facing its LookVector
+		lobbyOffset = 30, -- studs in front of the first LobbySpawn part when there is no spot
+		fallback = { x = 0, z = -40 }, -- used when there is neither (faces +Z)
+		modelName = "TopWinsBoard",
+	},
+}
+
 return Config
