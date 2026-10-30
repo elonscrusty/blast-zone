@@ -21,6 +21,9 @@ export type Tuning = {
 	topUpDelay: number, -- seconds a part-full lobby waits before bots top it up
 	maxParticipants: number,
 	tapGap: number, -- seconds between "Add bots now" taps
+	-- spread start: bots leave a human alone this long unless they are this close (studs)
+	spreadSeconds: number,
+	spreadHumanRange: number,
 	-- thinking
 	thinkInterval: number,
 	pickupRange: number,
@@ -137,6 +140,9 @@ function BotTuning.from(config: ConfigLike): Tuning
 		fillTo = math.min(config.Match.targetParticipants, config.Match.maxParticipants),
 		maxParticipants = config.Match.maxParticipants,
 		tapGap = 2,
+
+		spreadSeconds = 15,
+		spreadHumanRange = 14,
 
 		thinkInterval = 0.1,
 		pickupRange = 40,

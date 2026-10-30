@@ -517,3 +517,30 @@ Harness.test("auto-fill counts only people who pressed Play once anyone has", fu
 	Harness.eq(BotRoster.lobbyHumans(3, 0), 3)
 	Harness.eq(BotRoster.lobbyHumans(3, 3), 3)
 end)
+
+Harness.test("spread start: bots leave a lone human alone for the first seconds", function()
+	local human: BotBrain.Body = { id = "u1", pos = { x = 0, z = 30 }, human = true }
+	local rival = enemy("b2", 25, 0)
+	-- Early: the human is the nearest one, but the bot picks the other bot.
+	local early = view(selfAt(0, 0), { others = { human, rival }, fightSeconds = 3 })
+	local state = BotBrain.newState()
+	BotBrain.think(early, state)
+	Harness.eq(state.targetId, "b2", "early the bot goes for the other bot")
+	-- Early, human alone and far: nobody to shoot yet.
+	local alone = BotBrain.newState()
+	BotBrain.think(view(selfAt(0, 0), { others = { human }, fightSeconds = 3 }), alone)
+	Harness.eq(alone.targetId, nil, "early, a far human is not a target")
+	-- Early but right on top of the bot: it defends itself.
+	local close: BotBrain.Body =
+		{ id = "u1", pos = { x = 0, z = T.spreadHumanRange - 2 }, human = true }
+	local near = BotBrain.newState()
+	BotBrain.think(view(selfAt(0, 0), { others = { close }, fightSeconds = 3 }), near)
+	Harness.eq(near.targetId, "u1", "a human in the bot's face still gets shot")
+	-- After the spread window the human is a normal target again.
+	local late = BotBrain.newState()
+	BotBrain.think(
+		view(selfAt(0, 0), { others = { human }, fightSeconds = T.spreadSeconds + 1 }),
+		late
+	)
+	Harness.eq(late.targetId, "u1")
+end)

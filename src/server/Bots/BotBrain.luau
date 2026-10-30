@@ -11,7 +11,7 @@ local BotTuning = require("./BotTuning")
 type Tuning = BotTuning.Tuning
 
 export type Vec2 = { x: number, z: number }
-export type Body = { id: string, pos: Vec2, shielded: boolean? } -- shielded: spawn shield, not worth shooting
+export type Body = { id: string, pos: Vec2, shielded: boolean?, human: boolean? } -- shielded: spawn shield, not worth shooting
 export type Pickup = { id: string, pos: Vec2 }
 export type Zone = { center: Vec2, radius: number, shrinking: boolean? }
 export type GunDrop = { id: string, gunId: string, pos: Vec2 } -- a found gun lying on the ground
@@ -31,6 +31,7 @@ export type View = {
 	now: number,
 	me: Self,
 	others: { Body }, -- every other living participant; the brain filters by sight
+	fightSeconds: number?, -- seconds since the fight began (nil = do not spread targets)
 	pickups: { Pickup },
 	gunDrops: { GunDrop }?,
 	zone: Zone?,
@@ -129,8 +130,15 @@ local function findTarget(view: View, state: State): Body?
 	local sticky: Body? = nil
 	for _, other in view.others do
 		local d = dist(view.me.pos, other.pos)
+		-- Spread start: a lone player is not everyone's first target. For the first seconds a bot
+		-- leaves a human to the bots that bump into them (close range) and picks on other bots.
+		local spared = other.human == true
+			and view.fightSeconds ~= nil
+			and view.fightSeconds < view.tuning.spreadSeconds
+			and d > view.tuning.spreadHumanRange
 		if
 			not other.shielded
+			and not spared
 			and d <= view.tuning.sightRange
 			and view.canSee(view.me.pos, other.pos)
 		then
