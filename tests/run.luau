@@ -10,5 +10,6 @@ require("./guard.test")
 require("./pickups.test")
 require("./core.test")
 require("./zone.test")
+require("./upgrades.test")
 
 Harness.summary()

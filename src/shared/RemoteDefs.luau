@@ -105,7 +105,7 @@ local Defs: { Def } = {
 		{ name = "offerId", kind = "id" },
 		{ name = "optionIndex", kind = "integer", min = 1, max = Config.Upgrades.offerSize },
 	}, 4, 3),
-	tell("08", "UpgradeOffer", "UpgradeOffer"),
+	tell("08", "UpgradeOffer", "UpgradeOffer? (nil closes the cards)"),
 	tell("08", "UpgradeApplied", "{ upgradeId, stacks, text }"),
 
 	-- ===== 09 bots, 10 hud: add here only if you truly need a new remote =====

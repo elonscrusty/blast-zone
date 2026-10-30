@@ -16,6 +16,6 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | not started | |
 | 06 | Safe zone + sudden death | 15 | PR up | this PR |
 | 07 | Supply containers (3 loot tiers), XP orbs, run XP wiring | 13, 14 | PR up | see PR list |
-| 08 | Upgrade catalogue + offers (server) | 14 | not started | |
+| 08 | Upgrade catalogue + offers (server) + upgrade cards (client, Bottom Row) | 14, 20 | PR up | this PR |
 | 09 | Test bots | 18 | not started | |
 | 10 | HUD, upgrade cards, mobile/controller controls, settings | 20 | not started | |
