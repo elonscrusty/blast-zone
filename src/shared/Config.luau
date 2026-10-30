@@ -686,6 +686,13 @@ Config.Daily = {
 	rewards = { easy = 20, medium = 35, hard = 50 },
 }
 
+-- Video 3 gap 14: the bench. Parts drop after a match (more for a better place), merge 3 into 1 up a tier, and
+-- build gear (looks only) from blueprints. The list is in shared/Bench/BenchDefs.
+Config.Bench = {
+	drops = { win = 4, podium = 3, middle = 2, other = 1 }, -- tier 1 parts per finished match
+	fieldSize = 8, -- "middle" means the top half of this many fighters
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,

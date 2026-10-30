@@ -214,6 +214,15 @@ local Defs: { Def } = {
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
 
+	-- ===== G14 bench: parts, merge, blueprints =====
+	ask("G14", "BenchRequest", {}, 1, 2), -- a client asks for its bench (the server also sends it unasked)
+	ask("G14", "BenchMerge", {
+		{ name = "kind", kind = "id", maxLen = 12 },
+		{ name = "tier", kind = "integer", min = 1, max = 4 },
+	}, 4, 6),
+	ask("G14", "BenchBuild", { { name = "blueprintId", kind = "id", maxLen = 24 } }, 3, 4),
+	tell("G14", "BenchState", "BenchState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
