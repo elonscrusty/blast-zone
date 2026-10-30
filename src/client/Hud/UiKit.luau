@@ -45,13 +45,13 @@ local function aspectOf(obj: GuiObject): number
 	return Layout.WIDTH / Layout.HEIGHT
 end
 
-type Placed = { rect: Layout.Rect, leftHanded: boolean? }
+type Placed = { rect: Layout.Rect, leftHanded: boolean?, minAspect: number? }
 local placed: { [GuiObject]: Placed } = {}
 local watchingScreen = false
 
 local function applyPlacement(obj: GuiObject, entry: Placed)
 	local aspect = aspectOf(obj)
-	local p = Layout.place(entry.rect, entry.leftHanded, aspect)
+	local p = Layout.place(entry.rect, entry.leftHanded, aspect, entry.minAspect)
 	obj.AnchorPoint = Vector2.new(p.anchorX, p.anchorY)
 	obj.Position = UDim2.fromScale(p.posX, p.posY)
 	obj.Size = UDim2.fromScale(p.sizeY * p.aspect / aspect, p.sizeY)
@@ -81,9 +81,9 @@ end
 
 -- Sizes and places a piece from a Layout rect. Parent must be a full-screen container. Placed again
 -- when the screen turns or resizes, and when the piece moves into a screen.
-function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?)
+function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?, minAspect: number?)
 	local isNew = placed[obj] == nil
-	local entry: Placed = { rect = rect, leftHanded = leftHanded }
+	local entry: Placed = { rect = rect, leftHanded = leftHanded, minAspect = minAspect }
 	placed[obj] = entry
 	applyPlacement(obj, entry)
 	if isNew then

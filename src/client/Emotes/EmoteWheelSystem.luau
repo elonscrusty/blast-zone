@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local EmoteRules = require(Shared.Character.EmoteRules)
 local Emotes = require(Shared.Character.Emotes)
 local MatchPhase = require(Shared.MatchPhase)
@@ -24,12 +25,12 @@ EmoteWheelSystem.order = 220
 local tuning = Config.Emotes
 local localPlayer = Players.LocalPlayer
 
-local NAVY = Color3.fromHex(Config.Palette.Navy)
-local CYAN = Color3.fromHex(Config.Palette.Cyan)
-local GOLD = Color3.fromHex(Config.Palette.RewardGold)
-local WHITE = Color3.fromRGB(243, 241, 234)
-local LOCKED = Color3.fromRGB(204, 211, 220)
-local LOCKED_INK = Color3.fromRGB(59, 70, 86)
+local NAVY = Look.color("outline")
+local CYAN = Look.color("info")
+local GOLD = Look.color("accent")
+local WHITE = Look.color("panel")
+local LOCKED = Look.color("dim")
+local LOCKED_INK = Look.color("inkSoft")
 
 local BUTTON = 72 -- points; touch minimum is 48
 local BUBBLE = 58
@@ -68,7 +69,7 @@ local function round(parent: Instance, name: string, size: number, centre: Vecto
 	b.AnchorPoint = Vector2.new(0.5, 0.5)
 	b.Position = UDim2.new(1, centre.X - BUTTON / 2, 1, centre.Y - BUTTON / 2)
 	b.Size = UDim2.fromOffset(size, size)
-	b.Font = Enum.Font.GothamBlack
+	b.Font = Look.font("display")
 	b.TextSize = 12
 	b.TextWrapped = true
 	b.AutoButtonColor = true

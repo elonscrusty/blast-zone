@@ -5,10 +5,11 @@ local Harness = require("./harness")
 local Layout = require("../src/client/Hud/Layout")
 local LobbyLayout = require("../src/client/Ui/LobbyLayout")
 local ModalGate = require("../src/client/Ui/ModalGate")
+local ScreenMap = require("../src/client/Ui/ScreenMap")
 local UiLayers = require("../src/client/Ui/UiLayers")
 
 -- Phone shapes (width / height): 16:9, 2:1, 19.5:9, 20:9, 21:9. Tablets (4:3) get the 16:9 layout shrunk.
-local PHONES = { 16 / 9, 2, 19.5 / 9, 20 / 9, 21 / 9 }
+local PHONES = { 16 / 9, 2, 19.5 / 9, 20 / 9, 21 / 9, 1914 / 604 } -- last: a short, very wide Studio window
 local TABLET = 4 / 3
 
 local function layer(name: string): number
@@ -260,4 +261,79 @@ Harness.test("HUD: on a tablet everything shrinks evenly and stays on screen", f
 			name .. " off a tablet screen"
 		)
 	end
+end)
+
+-- Banners and floating buttons (Ui/ScreenMap) against everything else in the same phase, on every phone shape.
+Harness.test("screen map: lobby banners, votes and buttons never overlap on any phone", function()
+	-- Phones (16:9 to 21:9) only: a tablet squeezes the centre pieces toward the edge pieces, a known gap.
+	for _, aspect in PHONES do
+		local screenW = Layout.HEIGHT * aspect
+		local placed: { [string]: LobbyLayout.Rect } = {}
+		for _, name in ScreenMap.lobbyPieces do
+			local r =
+				Layout.onScreen((ScreenMap :: any)[name], aspect, nil, Layout.LOBBY_MIN_ASPECT)
+			placed[name] = r
+			local edge = if aspect == TABLET
+				then 8
+				else NOTCH * math.min(1, aspect / Layout.LOBBY_MIN_ASPECT)
+			Harness.truthy(
+				r.x >= edge - 1e-6 and r.x + r.w <= screenW - edge + 1e-6,
+				`{name} under the notch at {aspect}`
+			)
+			Harness.truthy(r.y >= 0 and r.y + r.h <= Layout.HEIGHT, `{name} off screen at {aspect}`)
+		end
+		for name, rect in LobbyLayout.groups :: any do
+			placed["group " .. name] = Layout.onScreen(rect, aspect, nil, Layout.LOBBY_MIN_ASPECT)
+		end
+		local names = {}
+		for name in placed do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		for i, a in names do
+			for j = i + 1, #names do
+				local b = names[j]
+				-- two lobby groups are checked by the test above; here only the new pieces matter
+				if string.sub(a, 1, 6) ~= "group " or string.sub(b, 1, 6) ~= "group " then
+					Harness.eq(
+						Layout.overlaps(grow(placed[a], -1e-6), grow(placed[b], -1e-6)),
+						false,
+						`{a} overlaps {b} at {aspect}`
+					)
+				end
+			end
+		end
+	end
+end)
+
+Harness.test("screen map: in a fight the airdrop line and spectate bar clear the HUD", function()
+	for _, aspect in PHONES do
+		for _, left in { false, true } do
+			for _, piece in { "airdropHint", "spectate" } do
+				-- the airdrop line swaps sides with the thumbs; the spectate bar is centred
+				local r = Layout.onScreen(
+					(ScreenMap :: any)[piece],
+					aspect,
+					piece == "airdropHint" and left
+				)
+				for name, region in Layout.regions :: any do
+					-- only the thumb controls mirror for left-handed play; the display pieces stay put
+					local mirrors = left and table.find(Layout.touchTargets, name) ~= nil
+					Harness.eq(
+						Layout.overlaps(
+							grow(r, -1e-6),
+							grow(Layout.onScreen(region, aspect, mirrors), -1e-6)
+						),
+						false,
+						`{piece} overlaps HUD {name} at {aspect} (left {left})`
+					)
+				end
+			end
+		end
+	end
+	Harness.eq(
+		Layout.overlaps(grow(ScreenMap.airdropHint, -1e-6), grow(ScreenMap.spectate, -1e-6)),
+		false,
+		"airdrop line sits on the spectate bar"
+	)
 end)

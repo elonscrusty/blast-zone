@@ -1,6 +1,5 @@
 --!strict
--- The daily challenge board (piece 25). PLACEHOLDER LOOK: plain frames only. The real look comes from the UI
--- system (Claude Design thread); keep the data flow, swap the drawing. The server counts and pays; this screen
+-- The daily challenge board (piece 25). Look: Street Sticker+ colours and fonts from Ui/Look. The server counts and pays; this screen
 -- only shows DailyState and asks (DailyRequest).
 --   * DAILY button in the lobby slot "daily" (LobbyMenu), opens a full panel (UiLayers.Modal + ModalGate).
 --   * A short strip (UiLayers.Toast) says when a challenge paid: "DAILY DONE! +35 Scrap".
@@ -14,6 +13,7 @@ local DailyText = require(Shared.Daily.DailyText)
 local MatchPhase = require(Shared.MatchPhase)
 local Types = require(Shared.Types)
 local Net = require(script.Parent.Parent.Core.Net)
+local Look = require(script.Parent.Parent.Ui.Look)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
@@ -22,10 +22,23 @@ local DailyUiSystem = {}
 DailyUiSystem.order = 225
 
 local MODAL = "daily"
-local WHITE = Color3.new(1, 1, 1)
-local DARK = Color3.fromRGB(30, 42, 74)
-local GREEN = Color3.fromRGB(124, 227, 139)
-local BAR = Color3.fromRGB(63, 169, 255)
+local INK = Look.color("ink")
+local PANEL = Look.color("panel")
+local PANEL_ALT = Look.color("panelAlt")
+local GREEN = Look.color("good")
+local BAR = Look.color("info")
+
+-- Street Sticker+: round corners and a thick navy outline.
+local function sticker(obj: GuiObject, radius: number?)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(radius or 0.14, 0)
+	corner.Parent = obj
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Look.color("outline")
+	stroke.Thickness = 3
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = obj
+end
 
 type Card = { frame: Frame, line: TextLabel, count: TextLabel, fill: Frame, reward: TextLabel }
 
@@ -33,8 +46,8 @@ local function label(parent: Instance, name: string, maxSize: number): TextLabel
 	local l = Instance.new("TextLabel")
 	l.Name = name
 	l.BackgroundTransparency = 1
-	l.TextColor3 = WHITE
-	l.Font = Enum.Font.GothamBold
+	l.TextColor3 = INK
+	l.Font = Look.font("body")
 	l.TextScaled = true
 	l.Text = ""
 	local cap = Instance.new("UITextSizeConstraint")
@@ -62,11 +75,12 @@ function DailyUiSystem.start()
 	openButton.Name = "Daily"
 	openButton.Size = UDim2.fromScale(1, 1)
 	openButton.Text = "DAILY"
-	openButton.Font = Enum.Font.GothamBold
+	openButton.Font = Look.font("body")
 	openButton.TextScaled = true
-	openButton.TextColor3 = WHITE
-	openButton.BackgroundColor3 = DARK
+	openButton.TextColor3 = INK
+	openButton.BackgroundColor3 = PANEL
 	openButton.Parent = LobbyMenu.slot("daily")
+	sticker(openButton, 0.3)
 	local dot = Instance.new("Frame")
 	dot.Name = "NewDot"
 	dot.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -84,8 +98,8 @@ function DailyUiSystem.start()
 	dim.Text = ""
 	dim.AutoButtonColor = false
 	dim.Size = UDim2.fromScale(1, 1)
-	dim.BackgroundColor3 = Color3.new(0, 0, 0)
-	dim.BackgroundTransparency = 0.5
+	dim.BackgroundColor3 = Look.color("backdrop")
+	dim.BackgroundTransparency = 0.4
 	dim.Visible = false
 	dim.Parent = gui
 
@@ -94,12 +108,14 @@ function DailyUiSystem.start()
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.Size = UDim2.fromScale(0.6, 0.75)
-	panel.BackgroundColor3 = DARK
+	panel.BackgroundColor3 = PANEL
 	panel.Visible = false
 	panel.Parent = gui
+	sticker(panel, 0.06)
 
 	local title = label(panel, "Title", 40)
 	title.Text = "DAILY"
+	title.Font = Look.font("display")
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Position = UDim2.fromScale(0.04, 0.02)
 	title.Size = UDim2.fromScale(0.4, 0.12)
@@ -112,21 +128,22 @@ function DailyUiSystem.start()
 	local close = Instance.new("TextButton")
 	close.Name = "Close"
 	close.Text = "X"
-	close.Font = Enum.Font.GothamBold
+	close.Font = Look.font("display")
 	close.TextScaled = true
-	close.TextColor3 = WHITE
-	close.BackgroundColor3 = Color3.fromRGB(255, 77, 94)
+	close.TextColor3 = Look.color("inkOnAccent")
+	close.BackgroundColor3 = Look.color("danger")
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(0.98, 0.02)
 	close.Size = UDim2.fromScale(0.14, 0.14)
 	close.SizeConstraint = Enum.SizeConstraint.RelativeYY
 	close.Parent = panel
+	sticker(close, 0.3)
 	local minSize = Instance.new("UISizeConstraint")
 	minSize.MinSize = Vector2.new(Config.Settings.minTouchTarget, Config.Settings.minTouchTarget)
 	minSize.Parent = close
 
 	local status = label(panel, "Status", 20)
-	status.TextColor3 = Color3.fromRGB(255, 200, 80)
+	status.TextColor3 = Look.color("inkSoft")
 	status.AnchorPoint = Vector2.new(0.5, 1)
 	status.Position = UDim2.fromScale(0.5, 0.99)
 	status.Size = UDim2.fromScale(0.9, 0.06)
@@ -135,10 +152,11 @@ function DailyUiSystem.start()
 	for i = 1, 3 do
 		local f = Instance.new("Frame")
 		f.Name = "Card" .. i
-		f.BackgroundColor3 = Color3.fromRGB(43, 58, 103)
+		f.BackgroundColor3 = PANEL_ALT
 		f.Position = UDim2.fromScale(0.04, 0.18 + (i - 1) * 0.25)
 		f.Size = UDim2.fromScale(0.92, 0.22)
 		f.Parent = panel
+		sticker(f, 0.12)
 
 		local line = label(f, "Line", 28)
 		line.TextXAlignment = Enum.TextXAlignment.Left
@@ -147,7 +165,7 @@ function DailyUiSystem.start()
 
 		local back = Instance.new("Frame")
 		back.Name = "Bar"
-		back.BackgroundColor3 = Color3.fromRGB(14, 21, 48)
+		back.BackgroundColor3 = Look.color("dim")
 		back.Position = UDim2.fromScale(0.04, 0.6)
 		back.Size = UDim2.fromScale(0.5, 0.14)
 		back.Parent = f
@@ -164,7 +182,8 @@ function DailyUiSystem.start()
 		count.Size = UDim2.fromScale(0.14, 0.3)
 
 		local reward = label(f, "Reward", 28)
-		reward.TextColor3 = Color3.fromRGB(255, 201, 60)
+		reward.TextColor3 = INK
+		reward.Font = Look.font("display")
 		reward.Position = UDim2.fromScale(0.72, 0.15)
 		reward.Size = UDim2.fromScale(0.26, 0.7)
 
@@ -179,7 +198,9 @@ function DailyUiSystem.start()
 	toast.Size = UDim2.fromScale(0.5, 0.08)
 	toast.BackgroundTransparency = 0
 	toast.BackgroundColor3 = GREEN
-	toast.TextColor3 = DARK
+	toast.TextColor3 = Look.color("inkOnAccent")
+	toast.Font = Look.font("display")
+	sticker(toast, 0.3)
 	toast.Visible = false
 
 	-- ===== state =====
@@ -219,7 +240,7 @@ function DailyUiSystem.start()
 					UDim2.fromScale(math.clamp(c.progress / math.max(1, c.goal), 0, 1), 1)
 				card.fill.BackgroundColor3 = if c.paid then GREEN else BAR
 				card.reward.Text = if c.paid then "DONE" else `+{c.reward} {coinName}`
-				card.reward.TextColor3 = if c.paid then GREEN else Color3.fromRGB(255, 201, 60)
+				card.reward.TextColor3 = INK
 			end
 		end
 		local words: { [string]: string } = {

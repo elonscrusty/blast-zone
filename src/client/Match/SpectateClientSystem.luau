@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent.Core.Net)
 local Components = require(script.Parent.Parent.Ui.Components)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local SpectateClientSystem = {}
 SpectateClientSystem.order = 200
@@ -52,7 +53,6 @@ local function follow()
 end
 
 -- Bottom centre bar (design phone 780 x 360): [<]  WATCHING name  [>]. Only shown once you are out.
-local RECT = { x = 240, y = 288, w = 300, h = 56 }
 
 local function makeButton(parent: Instance, root: GuiObject, text: string, step: number)
 	local button =
@@ -72,7 +72,7 @@ function SpectateClientSystem.start()
 	local screen, root = Components.screen("Spectate", "Spectate")
 	screen.Enabled = false
 
-	local piece = Components.piece(root, "Bar", RECT)
+	local piece = Components.piece(root, "Bar", ScreenMap.spectate)
 	local panel = Components.panel(piece, root, "Panel", "panel")
 	panel.Size = UDim2.fromScale(1, 1)
 	makeButton(panel, root, "<", -1)

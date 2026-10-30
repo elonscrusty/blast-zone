@@ -9,18 +9,19 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
+local Look = require(script.Parent.Parent.Ui.Look)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local IntroSteps = require(script.Parent.IntroSteps)
 
 local IntroView = {}
 
 local ASPECT = 2.1 -- panel width / height
-local CYAN = "#36D9E8"
-local GOLD = "#FFC44D"
-local CORAL = "#F15B64"
-local NAVY = "#14243A"
-local NAVY_LIGHT = "#1D3552"
-local CREAM = "#FFF4D6"
+local CYAN = Look.hex("info")
+local GOLD = Look.hex("accent")
+local CORAL = Look.hex("danger")
+local NAVY = Look.hex("outline")
+local NAVY_LIGHT = Look.hex("minimap") -- the dark picture wells
+local CREAM = Look.hex("panel")
 
 local gui: ScreenGui? = nil
 local panel: Frame
@@ -221,11 +222,13 @@ local function build()
 	local shadow
 	panel, shadow = UiKit.sticker(root, root, "Panel", nil, 0.06)
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
-	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromScale(0.8, 0.8)
+	-- below the save-message strip (top 16%), and fitted inside the screen however short and wide it is
+	panel.Position = UDim2.fromScale(0.5, 0.59)
+	panel.Size = UDim2.fromScale(0.9, 0.76)
 	panel.Active = true
 	local ratio = Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = ASPECT
+	ratio.AspectType = Enum.AspectType.FitWithinMaxSize
 	ratio.DominantAxis = Enum.DominantAxis.Width
 	ratio.Parent = panel
 	UiKit.followShadow(panel, shadow, root)

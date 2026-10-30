@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local Emotes = require(Shared.Character.Emotes)
 local MatchPhase = require(Shared.MatchPhase)
 local Pose = require(Shared.Character.Pose)
@@ -21,9 +22,9 @@ local WinnerBannerSystem = {}
 WinnerBannerSystem.order = 215
 
 local tuning = Config.Emotes
-local GOLD = Color3.fromHex(Config.Palette.RewardGold)
-local NAVY = Color3.fromHex(Config.Palette.Navy)
-local WHITE = Color3.fromRGB(243, 241, 234)
+local GOLD = Look.color("accent")
+local NAVY = Look.color("outline")
+local WHITE = Look.color("panel")
 
 local function findBody(participantId: string): Model?
 	for _, d in Workspace:GetDescendants() do
@@ -88,8 +89,8 @@ function WinnerBannerSystem.start()
 	frame.Size = UDim2.fromScale(0.16, 0.25)
 	frame.BackgroundColor3 = GOLD
 	frame.BackgroundTransparency = 0
-	frame.Ambient = Color3.fromRGB(170, 170, 170)
-	frame.LightColor = Color3.fromRGB(255, 255, 255)
+	frame.Ambient = Color3.fromHSV(0, 0, 0.667)
+	frame.LightColor = Color3.fromHSV(0, 0, 1)
 	frame.LightDirection = Vector3.new(-1, -2, -1)
 	frame.Parent = gui
 	local aspect = Instance.new("UIAspectRatioConstraint")
@@ -112,7 +113,7 @@ function WinnerBannerSystem.start()
 	tag.Rotation = -3
 	tag.BackgroundColor3 = NAVY
 	tag.TextColor3 = GOLD
-	tag.Font = Enum.Font.GothamBlack
+	tag.Font = Look.font("display")
 	tag.TextScaled = true
 	tag.Text = "WINNER"
 	tag.ZIndex = 2

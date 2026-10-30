@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local LoadoutView = require(Shared.LoadoutView)
 
 local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
@@ -16,12 +16,11 @@ local Controller = require(script.Parent.LoadoutController)
 
 local LoadoutPanel = {}
 
-local PAL = Config.Palette
-local CREAM = Color3.fromHex("#FFF4D6")
-local NAVY = Color3.fromHex(PAL.Navy)
-local GOLD = Color3.fromHex(PAL.RewardGold)
-local CYAN = Color3.fromHex(PAL.Cyan)
-local GREY = Color3.fromHex("#A9A193")
+local CREAM = Look.color("panel")
+local NAVY = Look.color("outline")
+local GOLD = Look.color("accent")
+local CYAN = Look.color("info")
+local GREY = Look.color("dim")
 local MIN_TOUCH = 44 -- pixels: nothing you tap is smaller than this
 
 local gui: ScreenGui? = nil
@@ -51,7 +50,7 @@ local function label(parent: Instance, text: string, size: UDim2, pos: UDim2): T
 	l.Size = size
 	l.Position = pos
 	l.Text = text
-	l.Font = Enum.Font.FredokaOne
+	l.Font = Look.font("display")
 	l.TextScaled = true
 	l.TextColor3 = NAVY
 	l.Parent = parent
@@ -61,7 +60,7 @@ end
 local function button(parent: Instance, text: string, fill: Color3): TextButton
 	local b = Instance.new("TextButton")
 	b.Text = text
-	b.Font = Enum.Font.FredokaOne
+	b.Font = Look.font("display")
 	b.TextScaled = true
 	b.TextColor3 = NAVY
 	b.AutoButtonColor = true
@@ -115,7 +114,7 @@ local function redraw()
 			UDim2.fromScale(0.9, if detail then 0.5 else 0.32),
 			UDim2.fromScale(0.05, if detail then 0.26 else 0.44)
 		)
-		desc.Font = Enum.Font.GothamBold
+		desc.Font = Look.font("body")
 		desc.TextTransparency = 0.25
 		label(b, card.status, UDim2.fromScale(0.9, 0.2), UDim2.fromScale(0.05, 0.78))
 		b.Activated:Connect(function()
@@ -159,7 +158,7 @@ local function build()
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.Size = UDim2.fromScale(0.86, 0.8)
-	style(panel, Color3.fromHex("#1D3552"), 0.04)
+	style(panel, Look.color("panelAlt"), 0.04)
 	panel.Parent = g
 	root = panel
 

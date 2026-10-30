@@ -9,6 +9,7 @@
 --
 -- Never place a lobby button with your own numbers or in your own ScreenGui.
 
+local Layout = require(script.Parent.Parent.Hud.Layout)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
 local LobbyLayout = require(script.Parent.LobbyLayout)
 
@@ -31,7 +32,7 @@ local function build(): Frame
 		g.BackgroundTransparency = 1
 		g.Active = false
 		g.Parent = h
-		UiKit.place(g, rect)
+		UiKit.place(g, rect, nil, Layout.LOBBY_MIN_ASPECT)
 		groups[name] = g
 	end
 	for name, slot in LobbyLayout.slots do

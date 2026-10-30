@@ -1,69 +1,62 @@
 --!strict
--- PLACEHOLDER map vote buttons (piece 33). Claude Design makes the real look; this is only enough to test the logic.
--- One big button per map, each with its vote count. Tapping asks the server; the server decides and sends back the truth.
--- Phone first: every button is at least Config.Settings.minTouchTarget tall and works by tap or click.
+-- Map vote buttons (piece 33). One big button per map, each with its vote count. Tapping asks the server;
+-- the server decides and sends back the truth. Phone first: the row sits in its own band under the bots
+-- banner (Ui/ScreenMap.mapVote) and the buttons share its width, so any number of maps fits and nothing
+-- covers the banner or the lobby menu. Built from Ui/Components.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local VoteFlow = require(Shared.MapVote.VoteFlow)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local Components = require(script.Parent.Parent.Ui.Components)
+local Layout = require(script.Parent.Parent.Hud.Layout)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local MapVoteClientSystem = {}
 MapVoteClientSystem.order = 200
 
-local MIN_TOUCH = Config.Settings.minTouchTarget
+local GAP = 6 -- points between buttons
 
 function MapVoteClientSystem.start()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "MapVote"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = UiLayers.MatchFlowExtra
+	local gui, root = Components.screen("MapVote", "MatchFlowExtra")
 	gui.Enabled = false
-	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
-	local row = Instance.new("Frame")
-	row.Name = "Row"
-	row.BackgroundTransparency = 1
-	row.AnchorPoint = Vector2.new(0.5, 0)
-	row.Position = UDim2.fromScale(0.5, 0.18)
-	row.Size = UDim2.fromScale(0.9, 0)
-	row.AutomaticSize = Enum.AutomaticSize.Y
-	row.Parent = gui
+	local row = Components.piece(root, "Row", ScreenMap.mapVote, nil, Layout.LOBBY_MIN_ASPECT)
 
-	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, 8)
-	layout.Parent = row
+	local phase: string? = nil
+	local last: VoteFlow.State? = nil
 
 	local function render(state: VoteFlow.State)
-		gui.Enabled = state.open and #state.maps > 1
-		for _, child in row:GetChildren() do
-			if child:IsA("TextButton") then
-				child:Destroy()
-			end
-		end
-		for _, entry in state.maps do
-			local button = Instance.new("TextButton")
-			button.Name = entry.id
-			button.Size = UDim2.new(0, math.max(MIN_TOUCH * 2.2, 120), 0, MIN_TOUCH)
-			button.Font = Enum.Font.FredokaOne
-			button.TextScaled = true
-			button.Text = `{entry.name}  {entry.votes}`
-				.. (if state.yourVote == entry.id then "  ✓" else "")
-			button.Parent = row
-			button.Activated:Connect(function()
-				Net.send("MapVoteRequest", entry.id)
-			end)
+		last = state
+		gui.Enabled = state.open and #state.maps > 1 and VoteFlow.buttonsShown(phase)
+		row:ClearAllChildren()
+		local count = math.max(1, #state.maps)
+		for i, entry in state.maps do
+			local voted = state.yourVote == entry.id
+			local button = Components.button(row, root, entry.id, {
+				text = `{entry.name}  {entry.votes}` .. (if voted then "  ✓" else ""),
+				style = if voted then "good" else "secondary",
+				onPress = function()
+					Net.send("MapVoteRequest", entry.id)
+				end,
+			})
+			-- placed by hand (no list layout): each button brings a shadow frame that must not take a slot
+			button.Position = UDim2.new((i - 1) / count, 0, 0, 0)
+			button.Size = UDim2.new(1 / count, -GAP, 1, 0)
 		end
 	end
 
 	Net.on("MapVoteState", render)
+	Net.on("MatchState", function(match: any)
+		if type(match) == "table" and type(match.phase) == "string" then
+			phase = match.phase
+			if last then
+				render(last)
+			end
+		end
+	end)
 	Net.send("MapVoteStateRequest")
 end
 

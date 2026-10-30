@@ -99,20 +99,7 @@ local WORLD_ART = {
 	"src/client/Progression/CoinView.luau",
 	"src/client/Zone/ZoneBoundary.luau",
 }
-local LEGACY = {
-	"src/client/Daily/DailyUiSystem.luau",
-	"src/client/Emotes/EmoteWheelSystem.luau",
-	"src/client/Emotes/WinnerBannerSystem.luau",
-	"src/client/Lobby/LoadoutPanel.luau",
-	"src/client/MapVote/MapVoteClientSystem.luau",
-	"src/client/Match/ResultsClientSystem.luau",
-	"src/client/Onboarding/IntroView.luau",
-	"src/client/Progression/ClaimUiSystem.luau",
-	"src/client/Progression/ProgressUi.luau",
-	"src/client/Progression/TrackPanel.luau",
-	"src/client/Social/InviteButtonSystem.luau",
-	"src/client/Stats/StatsClientSystem.luau",
-}
+local LEGACY = {}
 
 local LOOK_PATTERNS = {
 	"Color3%.fromRGB%(",

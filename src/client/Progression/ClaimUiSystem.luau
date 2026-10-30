@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CoinLooks = require(Shared.Progression.CoinLooks)
+local Look = require(script.Parent.Parent.Ui.Look)
 local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
@@ -68,7 +69,7 @@ function ClaimUiSystem.start()
 
 	local amount = Ui.label(strip, "Amount", "", 40)
 	amount.TextXAlignment = Enum.TextXAlignment.Left
-	amount.TextColor3 = Ui.hex("#C98400") -- darker gold: readable on cream
+	amount.TextColor3 = Look.color("ink") -- gold text on cream is unreadable (1.4:1), so ink
 	amount.Position = UDim2.fromScale(0.19, 0.04)
 	amount.Size = UDim2.fromScale(0.45, 0.4)
 
@@ -101,7 +102,7 @@ function ClaimUiSystem.start()
 	note.AnchorPoint = Vector2.new(0.5, 1)
 	note.Position = UDim2.fromScale(0.5, 0.775)
 	note.Size = UDim2.fromScale(0.64, 0.04)
-	note.TextColor3 = Color3.new(1, 1, 1)
+	note.TextColor3 = Look.color("inkOnDark")
 	Ui.outline(gui, note, 0.5)
 	note.Visible = false
 

@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 
 local ProgressUi = {}
 
@@ -30,22 +31,21 @@ local function loadLook(): Look
 			return theme.get(nil)
 		end
 	end
-	local p = Config.Palette
 	return {
-		panel = "#FFF4D6",
-		ink = p.Navy,
-		outline = p.Navy,
-		accent = p.RewardGold,
-		danger = p.DangerCoral,
-		info = p.Cyan,
-		dim = "#B9AE92",
+		panel = Look.hex("panel"),
+		ink = Look.hex("ink"),
+		outline = Look.hex("outline"),
+		accent = Look.hex("accent"),
+		danger = Look.hex("danger"),
+		info = Look.hex("info"),
+		dim = Look.hex("dim"),
 		strokeScale = 0.0085,
 		shadowOffset = 0.011,
 	}
 end
 
 ProgressUi.look = loadLook()
-ProgressUi.font = Enum.Font.FredokaOne
+ProgressUi.font = Look.font("display")
 ProgressUi.minTouch = Config.Settings.minTouchTarget
 
 function ProgressUi.hex(h: string): Color3

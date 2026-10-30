@@ -76,15 +76,10 @@ function FriendInvite.friendLine(hostName: string, matchRunning: boolean): strin
 	return `You joined {hostName}!`
 end
 
--- The INVITE button shows when you are not fighting: lobby, countdown, or watching a match you are not in.
-function FriendInvite.showButton(phase: string, inMatch: boolean): boolean
-	if phase == "Waiting" or phase == "Countdown" or phase == "Resetting" then
-		return true
-	end
-	if phase == "Spawning" or phase == "Active" or phase == "FinalPressure" then
-		return not inMatch
-	end
-	return false -- Finished / Results: the results screen owns the bottom of the screen
+-- The INVITE button shows in the lobby only (waiting, countdown, resetting). Never in a match, not even
+-- while watching: the spectate bar owns the screen then, and the results screen owns the end.
+function FriendInvite.showButton(phase: string, _inMatch: boolean): boolean
+	return phase == "Waiting" or phase == "Countdown" or phase == "Resetting"
 end
 
 return FriendInvite
