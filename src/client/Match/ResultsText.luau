@@ -103,6 +103,25 @@ local CAUSES: { [string]: string } = {
 	bullet = "a shot",
 }
 
+-- "Hit by Volt for 40 · Ohm for 20" from piece 03's DefeatSummary ({ hitters = { { name, damage } } }).
+function ResultsText.hitsLine(summary: any): string?
+	local hitters = summary.hitters
+	if type(hitters) ~= "table" or #hitters == 0 then
+		return nil
+	end
+	local parts: { string } = {}
+	for i, h in hitters do
+		if i <= 3 then
+			table.insert(parts, `{h.name} for {h.damage}`)
+		end
+	end
+	local line = "Hit by " .. table.concat(parts, " · ")
+	if #hitters > 3 then
+		line ..= ` · +{#hitters - 3} more`
+	end
+	return line
+end
+
 -- The line under ELIMINATED, from an Eliminated payload about the local player.
 function ResultsText.defeatLine(payload: any, localId: string): string?
 	if payload.victimId ~= localId then
