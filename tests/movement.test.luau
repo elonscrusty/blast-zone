@@ -312,3 +312,23 @@ test("starting numbers match the brief", function()
 	eq(Config.Slide.cooldown, 5)
 	eq(Config.Slide.invulnerable, false)
 end)
+
+-- ===== spectate camera =====
+
+test("spectate view: play camera normally, chosen style while watching, safe fallback", function()
+	local pitch, dist = CameraRules.viewFor(Config.Camera, Config.Spectate, false)
+	eq(pitch, Config.Camera.pitchDegrees)
+	eq(dist, Config.Camera.distance)
+	local wide = { style = "wide", styles = Config.Spectate.styles }
+	pitch, dist = CameraRules.viewFor(Config.Camera, wide, true)
+	eq(dist, Config.Spectate.styles.wide.distance)
+	pitch, dist = CameraRules.viewFor(Config.Camera, { style = "typo", styles = {} }, true)
+	eq(pitch, Config.Camera.pitchDegrees)
+	eq(dist, Config.Camera.distance)
+end)
+
+test("default spectate style is the same view as play", function()
+	local style = Config.Spectate.styles[Config.Spectate.style]
+	eq(style.pitchDegrees, Config.Camera.pitchDegrees)
+	eq(style.distance, Config.Camera.distance)
+end)

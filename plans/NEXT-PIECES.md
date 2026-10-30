@@ -42,3 +42,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 28 | Second map (D Neon Plaza: default, awaiting carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | #34 |
 | 37 | Gun sounds: Breaker, Hornet, Longline shots, gun drop and gun swap cues (box hit/break already existed); ids left empty | 9, 13 | PR up | gun sounds PR |
 | 36 | Kill streak rewards (heal, speed boost) | - | PR up | see PR |
+| 32 | Spectate after you die: killer first, camera style (A same / B wide / C close), server-checked targets | PR up | see handoff 32 |
