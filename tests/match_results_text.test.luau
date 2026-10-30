@@ -113,3 +113,24 @@ Harness.test("defeat line: who got you, or what, and your place; ignores other p
 		"by the arena · 5th place"
 	)
 end)
+
+Harness.test("hits line: who hit you and for how much, capped at three", function()
+	Harness.eq(ResultsText.hitsLine({ hitters = {} }), nil)
+	Harness.eq(ResultsText.hitsLine({}), nil)
+	Harness.eq(
+		ResultsText.hitsLine({
+			hitters = { { name = "Volt", damage = 40 }, { name = "Ohm", damage = 20 } },
+		}),
+		"Hit by Volt for 40 · Ohm for 20"
+	)
+	local many = {
+		{ name = "A", damage = 1 },
+		{ name = "B", damage = 2 },
+		{ name = "C", damage = 3 },
+		{ name = "D", damage = 4 },
+	}
+	Harness.eq(
+		ResultsText.hitsLine({ hitters = many }),
+		"Hit by A for 1 · B for 2 · C for 3 · +1 more"
+	)
+end)

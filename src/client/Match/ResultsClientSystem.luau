@@ -269,19 +269,24 @@ function ResultsClientSystem.start()
 	defeat.Name = "Defeat"
 	defeat.AnchorPoint = Vector2.new(0.5, 0.5)
 	defeat.Position = UDim2.fromScale(0.5, 0.4)
-	defeat.Size = UDim2.fromScale(0.5, 0.26)
+	defeat.Size = UDim2.fromScale(0.5, 0.32)
 	defeat.BackgroundColor3 = hex(look.danger)
 	defeat.Visible = false
 	defeat.Parent = gui
 	round(defeat, 0.15)
 	outline(defeat, 1.2)
 	local defeatTitle = text(defeat, "Title", "ELIMINATED", 64)
-	defeatTitle.Size = UDim2.fromScale(0.9, 0.55)
-	defeatTitle.Position = UDim2.fromScale(0.05, 0.08)
+	defeatTitle.Size = UDim2.fromScale(0.9, 0.44)
+	defeatTitle.Position = UDim2.fromScale(0.05, 0.06)
 	local defeatLine = text(defeat, "Line", "", 30)
-	defeatLine.Size = UDim2.fromScale(0.9, 0.25)
-	defeatLine.Position = UDim2.fromScale(0.05, 0.66)
+	defeatLine.Size = UDim2.fromScale(0.9, 0.2)
+	defeatLine.Position = UDim2.fromScale(0.05, 0.52)
+	local defeatHits = text(defeat, "Hits", "", 26)
+	defeatHits.Size = UDim2.fromScale(0.9, 0.18)
+	defeatHits.Position = UDim2.fromScale(0.05, 0.76)
+	defeatHits.TextTransparency = 0.1
 	local defeatToken = 0
+	local pendingHits = "" -- DefeatSummary can land just before or after Eliminated
 
 	-- ===== results (Finished / Results) =====
 	local results = Instance.new("Frame")
@@ -460,6 +465,7 @@ function ResultsClientSystem.start()
 			end
 			if phase == MatchPhase.Spawning then
 				queued = false
+				pendingHits = ""
 			end
 		end
 		setStatus(state.note)
@@ -480,6 +486,7 @@ function ResultsClientSystem.start()
 			return
 		end
 		defeatLine.Text = line
+		defeatHits.Text = pendingHits
 		defeat.Visible = true
 		pop(defeat)
 		defeatToken += 1
@@ -487,6 +494,17 @@ function ResultsClientSystem.start()
 		task.delay(3.5, function()
 			if defeatToken == mine then
 				defeat.Visible = false
+				pendingHits = ""
+			end
+		end)
+	end)
+
+	-- Piece 03 sends who hit you and for how much. Its remote only exists once piece 03 is in, so ask carefully.
+	pcall(function()
+		Net.on("DefeatSummary", function(summary: any)
+			pendingHits = ResultsText.hitsLine(summary) or ""
+			if defeat.Visible then
+				defeatHits.Text = pendingHits
 			end
 		end)
 	end)
