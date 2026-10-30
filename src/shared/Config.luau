@@ -56,6 +56,22 @@ Config.Match = {
 	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw
 }
 
+-- Piece 33. Players vote on the next map in the lobby between matches. The server counts.
+Config.MapVote = {
+	-- The vote is open from the results screen until the match countdown ends. A vote after that is dropped.
+	maxMapIdLength = 24,
+	stateRepeatSeconds = 1, -- the server sends the running count at most this often
+	-- Display names for map ids (a map missing here shows its id). The arena piece owns the maps themselves.
+	names = {
+		A = "Crossroads Park",
+		B = "Offset Avenues",
+		C = "Arcade Row",
+		D = "Neon Plaza",
+		E = "Market Hall",
+		F = "Canal Docks",
+	} :: { [string]: string },
+}
+
 -- Written-down answers to the brief's "define a policy" questions. Code reads these names.
 Config.Policies = {
 	joinDuringActiveMatch = "spectate-until-next-match",

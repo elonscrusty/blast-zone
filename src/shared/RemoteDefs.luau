@@ -160,6 +160,17 @@ local Defs: { Def } = {
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 
+	-- ===== 33 map vote =====
+	ask(
+		"33",
+		"MapVoteRequest",
+		{ { name = "mapId", kind = "id", maxLen = Config.MapVote.maxMapIdLength } },
+		2,
+		3
+	),
+	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====

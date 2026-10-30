@@ -138,3 +138,10 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
 - Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;
   #17 coin strip `55` -> `UiLayers.MatchFlowExtra`, track panel `60` -> `UiLayers.Modal` (+ `ModalGate`),
   lobby TRACK button -> `LobbyMenu.slot("track")`; #20 look picker `15` -> `UiLayers.Calm` (or `LobbyMenu.slot("looks")`).
+
+## Map vote (piece 33)
+
+`MapVoteSystem.setPool({ { id, name } })` sets the maps that can be picked (the rotation). The arena builder calls
+`MapVoteSystem.takeWinner()` once per match, right before it builds the next map (end of Countdown): it locks the vote and
+returns the winner's id, or nil if nobody voted (keep the normal rotation). Calling it again gives the same answer.
+Remotes: `MapVoteRequest(mapId)` (server checks the window and the pool), `MapVoteState` (server tells everyone).
