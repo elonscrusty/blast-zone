@@ -24,3 +24,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | own PR |
 | 18 | Coins + unlock track (looks only) + combined claim strip on the results screen | 19 | PR up | own PR |
 | 29 | Emotes in the lobby (12, all free: carter said "all of them") + pick-your-own winner pose on the results screen | - | PR up | own PR |
+| 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |

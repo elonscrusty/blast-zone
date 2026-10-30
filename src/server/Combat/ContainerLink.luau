@@ -4,8 +4,14 @@
 
 local cached: any? = nil
 local looked = false
+local brokenListeners: { (pos: Vector3, breakerId: string, matchId: number) -> () } = {}
 
 local ContainerLink = {}
+
+-- Called after a hit from combat breaks a container (gun drops listen here).
+function ContainerLink.onBroken(fn: (pos: Vector3, breakerId: string, matchId: number) -> ())
+	table.insert(brokenListeners, fn)
+end
 
 function ContainerLink.damage(
 	part: Instance,
@@ -30,7 +36,16 @@ function ContainerLink.damage(
 	if system == nil then
 		return false
 	end
-	return system.damage(part, amount, sourceId, matchId) == true
+	local wasContainer = part:IsA("BasePart") and system.isContainer(part) == true
+	local pos = if part:IsA("BasePart") then part.Position else Vector3.zero
+	local hit = system.damage(part, amount, sourceId, matchId) == true
+	-- A container leaves the crate piece's tables the moment it breaks.
+	if wasContainer and system.isContainer(part) ~= true then
+		for _, fn in brokenListeners do
+			task.spawn(fn, pos, sourceId, matchId)
+		end
+	end
+	return hit
 end
 
 return ContainerLink
