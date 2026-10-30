@@ -17,19 +17,21 @@ local Layout = require(script.Parent.Parent.Hud.Layout)
 
 local Components = {}
 
-export type ButtonStyle = "primary" | "secondary" | "danger" | "quiet"
+export type ButtonStyle = "primary" | "secondary" | "danger" | "quiet" | "good"
 
 local BUTTON_FILL: { [string]: string } = {
 	primary = "accent",
 	secondary = "panel",
 	danger = "danger",
 	quiet = "panelAlt",
+	good = "good",
 }
 local BUTTON_INK: { [string]: string } = {
 	primary = "inkOnAccent",
 	secondary = "ink",
 	danger = "inkOnAccent",
 	quiet = "ink",
+	good = "inkOnAccent",
 }
 
 local function color(role: string): Color3
@@ -70,6 +72,23 @@ function Components.screen(name: string, layer: string): (ScreenGui, Frame)
 		gui.Parent = player:WaitForChild("PlayerGui")
 	end
 	return gui, root
+end
+
+-- An invisible frame placed from a rect of the 780 x 360 design phone (it hugs its nearest edge,
+-- see Hud/Layout). Put a panel or button inside it with Size = UDim2.fromScale(1, 1).
+function Components.piece(
+	root: GuiObject,
+	name: string,
+	rect: Layout.Rect,
+	leftHanded: boolean?
+): Frame
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BackgroundTransparency = 1
+	f.Active = false
+	f.Parent = root
+	UiKit.place(f, rect, leftHanded)
+	return f
 end
 
 export type TextOptions = {

@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
@@ -23,12 +24,12 @@ local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local UpgradeCardsSystem = {}
 UpgradeCardsSystem.order = 200 -- after the HUD
 
-local CREAM = Color3.fromHex("FFF4D6")
-local NAVY = Color3.fromHex("14243A")
-local GOLD = Color3.fromHex("FFC44D")
-local CYAN = Color3.fromHex("36D9E8")
-local CORAL = Color3.fromHex("F15B64")
-local FONT = Enum.Font.FredokaOne
+local CREAM = Look.color("panel")
+local NAVY = Look.color("outline")
+local GOLD = Look.color("accent")
+local CYAN = Look.color("info")
+local CORAL = Look.color("danger")
+local FONT = Look.font("body")
 
 -- Placeholder labels for the icon tile until the original icon art exists (no asset ids invented).
 local ICON_TEXT: { [string]: string } = {

@@ -68,6 +68,14 @@ Tokens.COLOR_KEYS = {
 	"drawTop",
 	"drawBottom",
 }
+-- Colours a skin MAY add. Without them the values below are used (from the Street Sticker+ design).
+Tokens.EXTRA_COLORS = {
+	inkSoft = "#3D4B61", -- second-line text on panel / panelAlt
+	abandonTop = "#56657D", -- MATCH ENDED banner
+	abandonBottom = "#2C3A52",
+	minimap = "#0F1B2D", -- minimap disc and look wells
+	enemyTrack = "#3B465A", -- empty part of an enemy's head bar
+}
 Tokens.TEXT_KEYS = { "display", "title", "body", "caption" }
 Tokens.SHAPE_KEYS = { "strokeScale", "cornerScale", "shadowOffset", "backdropAlpha" }
 Tokens.MOTION_KEYS = { "pop", "slide", "fade" }
@@ -125,7 +133,7 @@ end
 
 function Tokens.color(role: ColorRole, skin: Skin?): string
 	local colors = (skin or Tokens.get(nil)).colors :: any
-	local value = colors[role]
+	local value = colors[role] or (Tokens.EXTRA_COLORS :: any)[role]
 	assert(type(value) == "string", "unknown colour role " .. role)
 	return value
 end
@@ -182,6 +190,12 @@ function Tokens.check(skin: any): { string }
 	for _, key in Tokens.COLOR_KEYS do
 		if not isHex(colors[key]) then
 			bad(`colors.{key} must be "#RRGGBB"`)
+		end
+	end
+	for key, fallback in Tokens.EXTRA_COLORS do
+		local v = colors[key]
+		if v ~= nil and not isHex(v) then
+			bad(`colors.{key} must be "#RRGGBB" or left out (default {fallback})`)
 		end
 	end
 	local fonts = if type(skin.fonts) == "table" then skin.fonts else {}

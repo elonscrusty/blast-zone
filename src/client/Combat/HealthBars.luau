@@ -10,11 +10,12 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Look = require(script.Parent.Parent.Ui.Look)
 
 local HealthBars = {}
 
-local CORAL = Color3.fromHex(Config.Palette.DangerCoral)
-local NAVY = Color3.fromHex(Config.Palette.Navy)
+local CORAL = Look.color("danger")
+local NAVY = Look.color("outline")
 
 -- Every fighter's model by participant id, so a hit can find who it landed on without scanning the map.
 local models: { [string]: Model } = {}

@@ -100,25 +100,18 @@ local WORLD_ART = {
 	"src/client/Zone/ZoneBoundary.luau",
 }
 local LEGACY = {
-	"src/client/Bots/BotBannerSystem.luau",
-	"src/client/Character/LookPickerSystem.luau",
-	"src/client/Combat/HealthBars.luau",
 	"src/client/Daily/DailyUiSystem.luau",
 	"src/client/Emotes/EmoteWheelSystem.luau",
 	"src/client/Emotes/WinnerBannerSystem.luau",
 	"src/client/Lobby/LoadoutPanel.luau",
-	"src/client/Lobby/LobbyClientSystem.luau",
 	"src/client/MapVote/MapVoteClientSystem.luau",
 	"src/client/Match/ResultsClientSystem.luau",
-	"src/client/Match/SpectateClientSystem.luau",
 	"src/client/Onboarding/IntroView.luau",
 	"src/client/Progression/ClaimUiSystem.luau",
 	"src/client/Progression/ProgressUi.luau",
 	"src/client/Progression/TrackPanel.luau",
 	"src/client/Social/InviteButtonSystem.luau",
 	"src/client/Stats/StatsClientSystem.luau",
-	"src/client/Upgrades/UpgradeCardsSystem.luau",
-	"src/client/Zone/ZoneHud.luau",
 }
 
 local LOOK_PATTERNS = {
@@ -171,12 +164,15 @@ Harness.test("ui look/logic: only the look layer writes colours and fonts", func
 end)
 
 Harness.test("ui look/logic: the legacy list only shrinks", function()
+	local clean = {}
 	for _, path in LEGACY do
-		if fs.isFile(path) then
-			Harness.truthy(
-				writesLooks(fs.readFile(path)) ~= nil,
-				`{path} is clean now; delete its line from LEGACY in tests/ui_tokens.test.luau`
-			)
+		if fs.isFile(path) and writesLooks(fs.readFile(path)) == nil then
+			table.insert(clean, path)
 		end
 	end
+	Harness.eq(
+		#clean,
+		0,
+		`clean now, delete from LEGACY in tests/ui_tokens.test.luau: {table.concat(clean, ", ")}`
+	)
 end)

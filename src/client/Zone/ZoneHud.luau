@@ -5,11 +5,12 @@
 local Players = game:GetService("Players")
 
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local Look = require(script.Parent.Parent.Ui.Look)
 
 local Hud = {}
 Hud.__index = Hud
 
-local CORAL = Color3.fromRGB(241, 91, 100)
+local CORAL = Look.color("danger")
 
 export type Hud = typeof(setmetatable(
 	{} :: {
@@ -71,7 +72,7 @@ function Hud.new(): Hud
 	arrow.Text = "▲"
 	arrow.TextColor3 = CORAL
 	arrow.TextStrokeTransparency = 0.3
-	arrow.Font = Enum.Font.GothamBlack
+	arrow.Font = Look.font("display")
 	arrow.TextSize = 32
 	arrow.Visible = false
 	arrow.Active = false
