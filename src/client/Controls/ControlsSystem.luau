@@ -1,6 +1,9 @@
 --!strict
 -- Hooks the real devices into Controls: keyboard and mouse, gamepad, touch (via TouchControls),
 -- and sends ReloadRequest / SwitchWeaponRequest / UseHealRequest. Starts itself (any "...System" module does).
+-- Turning the camera: hold the right mouse button and drag; on a gamepad hold L2 and push the
+-- right stick sideways; on a phone drag the free side of the screen (TouchControls). All of it goes
+-- through Controls.addLook / setPadLookHold, and the camera takes it.
 -- Slide direction needs the camera, so piece 02 listens to Controls.Action and sends SlideRequest.
 -- Firing is polled by piece 03 (Controls.isFiring / getAim); this module never sends FireRequest.
 
@@ -19,6 +22,20 @@ ControlsSystem.order = 50 -- before the HUD
 -- Set by HudSystem so the swap button knows which weapon comes next.
 local weaponSlot = 1
 local weaponCount = 1
+
+-- The right mouse button is down and turning the camera. The pointer is held still meanwhile, so
+-- the mouse aim stays where it was and the cursor cannot wander off the window.
+local mouseLooking = false
+
+local function setMouseLooking(on: boolean)
+	if mouseLooking == on then
+		return
+	end
+	mouseLooking = on
+	UserInputService.MouseBehavior = if on
+		then Enum.MouseBehavior.LockCurrentPosition
+		else Enum.MouseBehavior.Default
+end
 
 function ControlsSystem.setWeapons(slot: number, count: number)
 	weaponSlot = slot
@@ -101,6 +118,10 @@ function ControlsSystem.start()
 			if not processed then
 				Controls.setMouseDown(true)
 			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			if not processed and Controls.isEnabled() and not Controls.isModal() then
+				setMouseLooking(true)
+			end
 		elseif device == "gamepad" then
 			Controls.keyDown(input.KeyCode.Name)
 		end
@@ -109,6 +130,8 @@ function ControlsSystem.start()
 	UserInputService.InputEnded:Connect(function(input: InputObject, _processed: boolean)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			Controls.setMouseDown(false)
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			setMouseLooking(false)
 		elseif
 			input.UserInputType == Enum.UserInputType.Keyboard or deviceOf(input) == "gamepad"
 		then
@@ -125,6 +148,9 @@ function ControlsSystem.start()
 		local device = deviceOf(input)
 		if device == "keyboard" then
 			Controls.noteDevice("keyboard")
+			if mouseLooking and input.UserInputType == Enum.UserInputType.MouseMovement then
+				Controls.addLook(input.Delta.X)
+			end
 		elseif device == "gamepad" then
 			if input.KeyCode == Enum.KeyCode.Thumbstick1 then
 				Controls.setPadMove(input.Position.X, input.Position.Y)
@@ -132,6 +158,8 @@ function ControlsSystem.start()
 				Controls.setPadAim(input.Position.X, input.Position.Y)
 			elseif input.KeyCode == Enum.KeyCode.ButtonR2 then
 				Controls.setPadTrigger(input.Position.Z)
+			elseif input.KeyCode == Enum.KeyCode.ButtonL2 then
+				Controls.setPadLookHold(input.Position.Z > 0.5)
 			end
 		end
 	end)
@@ -157,6 +185,11 @@ function ControlsSystem.start()
 			local nextSlot = if weaponSlot >= weaponCount then 1 else weaponSlot + 1
 			Net.send("SwitchWeaponRequest", nextSlot)
 		end
+	end)
+
+	-- Controls turned off, a menu opened, focus lost: let go of the mouse.
+	Controls.Cleared:connect(function()
+		setMouseLooking(false)
 	end)
 
 	TouchControls.start()

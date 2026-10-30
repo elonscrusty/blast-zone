@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 
 local Net = require(script.Parent.Parent.Core.Net)
+local CameraHeading = require(script.Parent.Parent.Movement.CameraHeading)
 local Controls = require(script.Parent.Parent.Controls.Controls)
 local ControlsSystem = require(script.Parent.Parent.Controls.ControlsSystem)
 local TouchControls = require(script.Parent.Parent.Controls.TouchControls)
@@ -171,7 +172,7 @@ function HudSystem.start()
 				zone.centerZ,
 				derived.zoneRadius,
 				MINIMAP_RANGE,
-				Config.Camera.yawDegrees
+				CameraHeading.get()
 			)
 		end
 

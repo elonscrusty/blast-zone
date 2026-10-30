@@ -115,7 +115,11 @@ Config.Camera = {
 	pitchDegrees = 55,
 	distance = 46,
 	fieldOfView = 55,
-	yawDegrees = 0, -- stable heading (0 = looking toward -Z)
+	yawDegrees = 0, -- starting heading (0 = looking toward -Z); the player can turn it (see below)
+	-- Turning the view. The heading is only a client look; the server never uses it.
+	lookDegreesPerPixel = 0.3, -- mouse (right-button drag) and touch (drag on the free right side)
+	padTurnDegreesPerSecond = 150, -- gamepad: hold L2 and push the right stick sideways
+	maxTurnPerFrame = 40, -- one hitch or a huge swipe can never whip the view around
 	followSmoothingSeconds = 0.06, -- small on purpose: avoid "disconnected" feel
 	aimLookAheadStuds = 0, -- optional framing from aim, off until it proves useful
 	snapDistance = 30, -- farther than this (respawn, spectate swap) the view jumps instead of gliding

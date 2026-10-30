@@ -48,6 +48,10 @@ Layout.regions = {
 Layout.zones = {
 	moveZone = { x = 8, y = 150, w = 192, h = 196 } :: Rect,
 	fireZone = { x = 580, y = 150, w = 192, h = 196 } :: Rect,
+	-- The free side of the screen turns the camera when dragged (right-hand play; mirrored for
+	-- left-hand play). It sits under the fire zone and every button, so only a touch that lands on
+	-- neither one turns the view. It stops above the card band and starts right of the player.
+	lookZone = { x = 452, y = 0, w = 328, h = 270 } :: Rect,
 }
 
 -- Circles keep their shape on any screen; everything else scales by height too.
