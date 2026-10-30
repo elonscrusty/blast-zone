@@ -170,17 +170,24 @@ function MatchController.new(deps: Deps): Controller
 
 	local function publish()
 		local endsAt: number? = ctx:getPhaseEndsAt()
+		-- While PLAY is pressed and the lobby waits for friends: when the countdown will begin at the latest.
+		local fillEndsAt: number? = if phase() == phases.Waiting
+				and gatherStart ~= nil
+				and not blocked
+			then (gatherStart :: number) + M.fillWaitSeconds
+			else nil
 		local state = {
 			matchId = ctx:getMatchId(),
 			phase = phase(),
 			phaseEndsAt = if endsAt then world.toServerTime(endsAt) else nil,
+			fillEndsAt = if fillEndsAt then world.toServerTime(fillEndsAt) else nil,
 			aliveCount = registry:aliveCount(),
 			totalCount = totalNow(),
 			serverNow = world.toServerTime(clock()),
 			note = note,
 		}
 		local key =
-			`{state.matchId}|{state.phase}|{endsAt or 0}|{state.aliveCount}|{state.totalCount}|{note}`
+			`{state.matchId}|{state.phase}|{endsAt or 0}|{fillEndsAt or 0}|{state.aliveCount}|{state.totalCount}|{note}`
 		if key == lastKey then
 			return
 		end
@@ -646,15 +653,14 @@ function MatchController.new(deps: Deps): Controller
 		if #ready == 0 then
 			gatherStart = nil
 			blocked = false
-			if note ~= "press_play" then
-				note = "press_play"
-				publish()
-			end
+			note = "press_play"
+			publish() -- skipped when nothing changed
 			return
 		end
 		local now = clock()
 		if gatherStart == nil then
 			gatherStart = now
+			publish() -- clients show the wait for friends as a countdown
 		end
 		local everyoneReady = #ready == #humanOrder
 		local full = #ready + botsRequested >= M.maxParticipants

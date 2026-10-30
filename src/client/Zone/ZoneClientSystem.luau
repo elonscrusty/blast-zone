@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent.Core.Net)
@@ -22,7 +23,8 @@ local GROUND_Y = 0 -- floor height; the arena builder (piece 04) keeps the floor
 
 local function localRoot(): (BasePart?, boolean)
 	local character = Players.LocalPlayer.Character
-	if character == nil then
+	-- A lobby body (out of the match, watching someone) is not in the fight: no red edges for it.
+	if character == nil or character:GetAttribute(Config.Attributes.ParticipantId) == nil then
 		return nil, false
 	end
 	local root = character:FindFirstChild("HumanoidRootPart")

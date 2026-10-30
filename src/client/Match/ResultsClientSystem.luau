@@ -376,6 +376,7 @@ function ResultsClientSystem.start()
 	-- ===== state =====
 	local phase = MatchPhase.Waiting
 	local phaseEndsAt: number? = nil
+	local fillEndsAt: number? = nil -- Waiting with PLAY pressed: the lobby waits for friends until then
 	local matchId = 0
 	local queued = false -- I pressed PLAY / PLAY AGAIN for the next match
 	local shownResults: any = nil
@@ -406,6 +407,7 @@ function ResultsClientSystem.start()
 		local inLobby = phase == MatchPhase.Waiting or phase == MatchPhase.Countdown
 		lobby.Visible = inLobby
 		countdown.Visible = phase == MatchPhase.Countdown
+			or (phase == MatchPhase.Waiting and fillEndsAt ~= nil)
 		if inLobby then
 			playButton.Text = if queued then "READY" else "PLAY"
 			settingsSlot.Visible = phase == MatchPhase.Waiting
@@ -465,6 +467,7 @@ function ResultsClientSystem.start()
 		matchId = state.matchId
 		phase = state.phase
 		phaseEndsAt = state.phaseEndsAt
+		fillEndsAt = if type(state.fillEndsAt) == "number" then state.fillEndsAt else nil
 		if previous ~= phase then
 			if phase == MatchPhase.Spawning or phase == MatchPhase.Waiting then
 				dismissed = false
@@ -571,6 +574,11 @@ function ResultsClientSystem.start()
 			if endsAt and phase == MatchPhase.Countdown then
 				local left = math.max(0, math.ceil(endsAt - now))
 				countdown.Text = if left > 0 then tostring(left) else "GO!"
+			elseif fillEndsAt and phase == MatchPhase.Waiting then
+				-- Waiting for friends: the real countdown follows, so this one never says GO.
+				countdown.Text = tostring(
+					math.max(1, math.ceil(fillEndsAt + Config.Match.countdownSeconds - now))
+				)
 			end
 			if results.Visible and shownResults and shownResults.endsAt then
 				closing.Text = `Next match in {math.max(0, math.ceil(shownResults.endsAt - now))}s`

@@ -319,6 +319,31 @@ Harness.test(
 	end
 )
 
+Harness.test(
+	"waiting for friends shows when the countdown starts, and clears if nobody is ready",
+	function()
+		local rig = newRig()
+		local a, b = rig.join(1), rig.join(2)
+		rig.join(3)
+		rig.step(1)
+		Harness.eq(rig.published[#rig.published].fillEndsAt, nil, "nobody pressed Play")
+		rig.ready(a)
+		rig.ready(b)
+		rig.step(1)
+		local s = rig.published[#rig.published]
+		Harness.eq(s.phase, "Waiting")
+		Harness.truthy(type(s.fillEndsAt) == "number", "the wait has an end time")
+		rig.ctl.setReady(a, false)
+		rig.ctl.setReady(b, false)
+		rig.step(1)
+		Harness.eq(rig.published[#rig.published].fillEndsAt, nil, "nobody is ready any more")
+		rig.ready(a)
+		rig.ready(b)
+		rig.untilPhase("Countdown", Config.Match.fillWaitSeconds + 2)
+		Harness.eq(rig.published[#rig.published].fillEndsAt, nil, "the real countdown takes over")
+	end
+)
+
 Harness.test("countdown with bots aborts when the last human leaves", function()
 	local rig = newRig()
 	local a = rig.join(1)

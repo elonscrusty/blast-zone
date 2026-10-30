@@ -3,8 +3,8 @@
 --   * In a fight: fighters who neither move (a real walk, not jitter) nor shoot, reload, slide, switch guns,
 --     grab pickups or choose upgrades get a warning, then are removed from the match (no reward), and
 --     go back to the lobby off the queue. Last place among those still standing is decided by the match.
---   * In the lobby: a queued player with no input at all for a long time is taken off the queue, so a
---     match never waits for someone who walked away.
+--   * In the lobby (only with Config.Idle.lobbyCheck, off for now): a queued player with no input at all for a
+--     long time is taken off the queue. Spectators are never watched: only living fighters are.
 -- The numbers live in Config.Idle. The bookkeeping is IdleWatch (tested in Lune). No looks here:
 -- warnings use the existing Notice remote.
 
@@ -186,7 +186,9 @@ function IdleSystem.start()
 			if MatchPhase.isCombat(MatchContext:getPhase()) then
 				sweepFight(now)
 			end
-			sweepLobby(now)
+			if cfg.lobbyCheck then
+				sweepLobby(now)
+			end
 		end)
 		if not ok then
 			warn(`[idle] sweep failed: {err}`)
