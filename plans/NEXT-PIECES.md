@@ -44,3 +44,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 36 | Kill streak rewards (heal, speed boost) | - | PR up | see PR |
 | 32 | Spectate after you die: killer first, camera style (A same / B wide / C close), server-checked targets | PR up | see handoff 32 |
 | 33 | Map voting between matches: server counts votes in the lobby, winner picked right before the arena builds (placeholder buttons; look comes from the UI system) | - | PR up | map vote PR |
+| 34 | Account level from run XP + free gifts at milestone levels (Scrap or looks; saved with the profile). Server only: the look of the level screen waits for carter | - | PR up | level PR |

@@ -146,6 +146,7 @@ local function rig(store: ProgressService.Store?): Rig
 	r.service = ProgressService.new({
 		store = counting,
 		maxGrant = MAX,
+		xpCap = Config.Level.maxXpPerMatch,
 		receiptKey = function(matchId: number): string
 			return "job:" .. tostring(matchId)
 		end,
@@ -345,6 +346,7 @@ Harness.test(
 		local service = ProgressService.new({
 			store = r.store,
 			maxGrant = MAX,
+			xpCap = Config.Level.maxXpPerMatch,
 			receiptKey = function(matchId: number): string
 				return "k" .. tostring(matchId)
 			end,

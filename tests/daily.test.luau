@@ -329,6 +329,7 @@ Harness.test("daily coins: ProgressService.grant pays once per key and respects 
 	local svc = ProgressService.new({
 		store = store,
 		maxGrant = Config.Progression.maxMatchGrant,
+		xpCap = Config.Level.maxXpPerMatch,
 		receiptKey = function(matchId: number): string
 			return "m:" .. matchId
 		end,

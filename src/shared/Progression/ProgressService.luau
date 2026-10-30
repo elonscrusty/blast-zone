@@ -7,6 +7,7 @@
 --   equip      puts an owned item on.
 -- After every change it tells the player (`send`) and tells the world which look to show (`applyLook`).
 
+local LevelRules = require("../Level/LevelRules")
 local ProgressRules = require("./ProgressRules")
 local TrackDefs = require("./TrackDefs")
 local Types = require("../Types")
@@ -27,6 +28,7 @@ export type Store = {
 export type Deps = {
 	store: Store,
 	maxGrant: number,
+	xpCap: number, -- most run XP one match may add (Config.Level.maxXpPerMatch)
 	receiptKey: (matchId: number) -> string,
 	send: (player: any, state: Types.ProgressState) -> (),
 	applyLook: (player: any, trailId: string, tracerId: string) -> (),
@@ -36,6 +38,7 @@ export type Deps = {
 export type Service = {
 	onReward: (player: any, amount: number, matchId: number) -> boolean,
 	grant: (player: any, amount: number, key: string) -> (boolean, string?),
+	onXp: (player: any, xp: number, matchId: number) -> boolean,
 	unlock: (player: any, itemId: string) -> boolean,
 	equip: (player: any, itemId: string) -> boolean,
 	push: (player: any) -> (),
@@ -47,14 +50,23 @@ local function stateOf(
 	store: Store,
 	player: any,
 	gained: { matchId: number, amount: number }?,
-	denied: string?
+	denied: string?,
+	levelUp: Types.LevelUp?
 )
 	local status = store.status(player)
 	local p = store.read(player)
 	local unlocked: { string } = {}
 	local equipped: { [string]: string } = {}
 	local coins, total = 0, 0
+	local gifts: { string } = {}
+	local info = LevelRules.info(0)
 	if p ~= nil then
+		info = LevelRules.info(p.accountXp)
+		for _, gift in TrackDefs.gifts do
+			if p.unlocked[gift.id] then
+				table.insert(gifts, gift.id)
+			end
+		end
 		coins, total = p.coins, p.totalEarned
 		for _, tier in TrackDefs.tiers do
 			if p.unlocked[tier.id] then
@@ -73,6 +85,11 @@ local function stateOf(
 		equipped = equipped,
 		gained = gained,
 		denied = denied,
+		level = info.level,
+		intoLevel = info.intoLevel,
+		forNext = info.forNext,
+		gifts = gifts,
+		levelUp = levelUp,
 	}
 	return state
 end
@@ -93,8 +110,13 @@ function ProgressService.new(deps: Deps): Service
 		)
 	end
 
-	local function push(player: any, gained: { matchId: number, amount: number }?, denied: string?)
-		deps.send(player, stateOf(store, player, gained, denied))
+	local function push(
+		player: any,
+		gained: { matchId: number, amount: number }?,
+		denied: string?,
+		levelUp: Types.LevelUp?
+	)
+		deps.send(player, stateOf(store, player, gained, denied, levelUp))
 		if deps.changed ~= nil then
 			deps.changed(player)
 		end
@@ -131,6 +153,30 @@ function ProgressService.new(deps: Deps): Service
 			push(player, nil, nil)
 		end
 		return ok, reason
+	end
+
+	-- Run XP from a finished match: adds to the account level and gives any gifts reached. Once per match (its own
+	-- receipt, so it never blocks or repeats the Scrap payout). The XP comes from the server's run ledger.
+	function service.onXp(player: any, xp: number, matchId: number): boolean
+		local result: LevelRules.Result? = nil
+		local ok, reason = store.grantOnce(player, deps.receiptKey(matchId) .. ":xp", function(p)
+			local r = LevelRules.addXp(p, xp, deps.xpCap)
+			result = r
+			return r.ok
+		end)
+		if ok and result ~= nil then
+			store.saveNow(player)
+			look(player)
+			push(player, nil, nil, {
+				matchId = matchId,
+				fromLevel = result.fromLevel,
+				toLevel = result.toLevel,
+				rewards = result.rewards,
+			})
+		elseif reason ~= "duplicate" then
+			push(player, nil, reason, nil)
+		end
+		return ok
 	end
 
 	function service.unlock(player: any, itemId: string): boolean

@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
+local LevelRules = require(Shared.Level.LevelRules)
 local MemoryStore = require(Shared.Progression.MemoryStore)
 local ProgressRules = require(Shared.Progression.ProgressRules)
 local ProgressService = require(Shared.Progression.ProgressService)
@@ -82,6 +83,7 @@ local function profileStore(Profiles: any): ProgressService.Store
 		copy.unlocked = table.clone(copy.unlocked or {})
 		copy.equipped = table.clone(copy.equipped or {})
 		copy.grantedKeys = table.clone(copy.grantedKeys or {})
+		copy.claimedLevels = table.clone(copy.claimedLevels or {})
 		return ProgressRules.fill(copy)
 	end
 	function store.update(
@@ -143,6 +145,17 @@ function ProgressionSystem.grant(player: Player, amount: number, key: string): (
 	return service.grant(player, amount, key)
 end
 
+-- The run XP a player earned in a finished match (LevelSystem calls this). Once per match; false + nothing paid otherwise.
+function ProgressionSystem.onXp(player: Player, xp: number, matchId: number): boolean
+	return (service :: any) ~= nil and service.onXp(player, xp, matchId)
+end
+
+-- The account level (1 up), or 1 when the profile is not loaded.
+function ProgressionSystem.getAccountLevel(player: Player): number
+	local p = if theStore then theStore.read(player) else nil
+	return if p then LevelRules.levelOf(p) else 1
+end
+
 function ProgressionSystem.start()
 	local Profiles = findProfiles()
 	local store: ProgressService.Store
@@ -162,6 +175,7 @@ function ProgressionSystem.start()
 	service = ProgressService.new({
 		store = store,
 		maxGrant = Config.Progression.maxMatchGrant,
+		xpCap = Config.Level.maxXpPerMatch,
 		receiptKey = function(matchId: number): string
 			if Profiles ~= nil then
 				return Profiles.matchReceiptKey(matchId)

@@ -169,7 +169,21 @@ export type ProgressState = {
 	equipped: { [string]: string }, -- slot -> item id
 	gained: { matchId: number, amount: number }?, -- set once, right after a match reward was paid
 	denied: string?, -- why the last unlock/equip request was refused
+	-- Piece 34 (account level)
+	level: number,
+	intoLevel: number, -- XP earned toward the next level
+	forNext: number?, -- XP the next level needs (nil at the top)
+	gifts: { string }, -- level gifts owned (looks from TrackDefs.gifts); kept apart from `unlocked`
+	levelUp: LevelUp?, -- set once, right after a match's XP was added
 }
+
+export type LevelUp = {
+	matchId: number,
+	fromLevel: number,
+	toLevel: number,
+	rewards: { LevelReward },
+}
+export type LevelReward = { level: number, kind: string, amount: number?, itemId: string? }
 
 -- Piece 24: a player's own lifetime stats. saved = false while some of them are not written yet.
 export type StatsPayload = {
