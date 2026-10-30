@@ -6,6 +6,8 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local Controls = require(script.Parent.Parent.Controls.Controls)
 local Layout = require(script.Parent.Parent.Hud.Layout)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
@@ -30,6 +32,11 @@ local function setOpen(open: boolean)
 	dimButton.Visible = open
 	if open then
 		Controls.reset()
+		ModalGate.opened("settings", function()
+			setOpen(false)
+		end)
+	else
+		ModalGate.closed("settings")
 	end
 end
 
@@ -197,7 +204,7 @@ local function build()
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.ScreenInsets = Enum.ScreenInsets.None
-	gui.DisplayOrder = 40
+	gui.DisplayOrder = UiLayers.Modal -- over the lobby buttons (MatchFlow) so they cannot show through
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	-- Dim layer behind the panel; tapping it closes the settings.

@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local SpectateClientSystem = {}
 SpectateClientSystem.order = 200
@@ -76,6 +77,7 @@ function SpectateClientSystem.start()
 	local screen = Instance.new("ScreenGui")
 	screen.Name = "Spectate"
 	screen.ResetOnSpawn = false
+	screen.DisplayOrder = UiLayers.Spectate -- was unset (0), so the HUD and thumbs drew over the arrows
 	screen.IgnoreGuiInset = false
 	screen.Enabled = false
 	screen.Parent = player:WaitForChild("PlayerGui")
