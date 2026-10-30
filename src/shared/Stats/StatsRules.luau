@@ -57,9 +57,12 @@ function StatsRules.equal(a: Stats, b: Stats): boolean
 	return a.wins == b.wins and a.eliminations == b.eliminations and a.matches == b.matches
 end
 
--- The delta for one finished match.
-function StatsRules.matchDelta(place: any): Stats
-	local won = type(place) == "number" and place == 1
+-- The delta for one finished match. `won` comes from the match (MatchSystem.RewardGranted): a draw
+-- shares place 1 but is not a win. Without it, place 1 counts as a win.
+function StatsRules.matchDelta(place: any, won: boolean?): Stats
+	if won == nil then
+		won = type(place) == "number" and place == 1
+	end
 	return { wins = if won then 1 else 0, eliminations = 0, matches = 1 }
 end
 

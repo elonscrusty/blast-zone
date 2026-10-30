@@ -31,6 +31,12 @@ test("stats: 1st place is a win, every match counts once", function()
 	eq(StatsRules.matchDelta(nil).wins, 0)
 end)
 
+test("stats: a draw shares 1st place but is not a win", function()
+	eq(StatsRules.matchDelta(1, false).wins, 0)
+	eq(StatsRules.matchDelta(1, false).matches, 1)
+	eq(StatsRules.matchDelta(1, true).wins, 1)
+end)
+
 test("stats: eliminations go to real players only", function()
 	eq(StatsRules.eliminationCredit({ victimId = "p2", killerId = "p77", cause = "bullet" }), 77)
 	eq(

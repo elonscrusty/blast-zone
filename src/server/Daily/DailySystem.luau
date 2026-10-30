@@ -124,7 +124,13 @@ function DailySystem.start()
 	-- A finished match: once per player per match (piece 05).
 	local Match = require(Server.Match.MatchSystem)
 	Match.RewardGranted:connect(
-		function(participantId: string, _amount: number, place: number, _matchId: number)
+		function(
+			participantId: string,
+			_amount: number,
+			place: number,
+			_matchId: number,
+			won: boolean?
+		)
 			local player = playerOf(participantId)
 			if player == nil then
 				return
@@ -133,7 +139,7 @@ function DailySystem.start()
 			if place >= 1 and place <= 3 then
 				service.count(player, "top3", 1)
 			end
-			if place == 1 then
+			if won == true then -- a draw shares place 1 but is not a win
 				service.count(player, "wins", 1)
 			end
 		end
