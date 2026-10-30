@@ -8,7 +8,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 
 local Net = require(script.Parent.Parent.Core.Net)
