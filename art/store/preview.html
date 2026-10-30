@@ -7,7 +7,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-ap
 main{max-width:760px;margin:0 auto;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1{font-size:22px;margin:4px 0 2px}
 p.sub{margin:0 0 12px;color:var(--muted);font-size:14px}
-.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .tab{flex:1;padding:10px 6px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);font-weight:700;font-size:15px;cursor:pointer}
 .tab[aria-selected="true"]{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(54,217,232,.25)}
 .tab small{display:block;font-weight:500;color:var(--muted);font-size:12px}
@@ -29,7 +29,7 @@ body.shot #shot{display:block;width:100vw;height:100vh}
 </style>
 <main>
   <h1>Pick your game picture</h1>
-  <p class="sub">All 3D. Drag a picture to spin it.</p>
+  <p class="sub">All 3D. Drag a picture to spin it. New: C1, C2, C3.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
   <p class="blurb" id="blurb"></p>
   <div class="label">Icon (square)</div>
@@ -1055,10 +1055,18 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     box(head, 0.36, 0.07, 0.04, mat(0x6b2a22), 0.02, -0.28, front, 0, 0, 0.06);
   }
   // Hero: the default player look (navy tactical jacket, cyan headset, pads, backpack with vents).
-  function makeHero(pose) {
-    const root = new THREE.Group();
-    const jacket = mat(0x22344f), pants = mat(0x1d2738), rig = mat(0x141a23, { roughness: 0.85 }), skin = mat(0xd9a47c);
-    const boot = mat(0x101216, { roughness: 0.9 }), pad = mat(0x2c323c), cyanG = glow(P.cyan, 2.6), brass = mat(0xc9a24a, { metalness: 0.8, roughness: 0.3 });
+  // Other players: same body, their own outfits (no BOT tags; carter wants real players on the store art).
+  const RIVALS = [
+    { jacket: 0xb8323c, pants: 0x1a1a1f, skin: 0x8d5a3b, accent: P.coral, head: "cap", hat: 0xd8323c, pack: 0x5a1a20 },
+    { jacket: 0xc99a2e, pants: 0x3a2a1c, skin: 0xe8c09a, accent: P.gold, head: "helmet", hat: 0x2a2d33, pack: 0x5a4518 },
+    { jacket: 0x5a3aa0, pants: 0x3c3f48, skin: 0xc68a62, accent: 0xb26bff, head: "beanie", hat: 0x8a5cd8, pack: 0x2e1e55 },
+    { jacket: 0x55703f, pants: 0xa08a64, skin: 0x6b4430, accent: 0x9be15d, head: "cap", hat: 0x2e3a24, pack: 0x2e3a24 },
+  ];
+  function makeRival(i, pose) { return makeHero(pose || "aim", RIVALS[i % RIVALS.length]); }
+  function makeHero(pose, look) {
+    const root = new THREE.Group(), L = look || {};
+    const jacket = mat(L.jacket || 0x22344f), pants = mat(L.pants || 0x1d2738), rig = mat(0x141a23, { roughness: 0.85 }), skin = mat(L.skin || 0xd9a47c);
+    const boot = mat(0x101216, { roughness: 0.9 }), pad = mat(0x2c323c), cyanG = glow(L.accent || P.cyan, 2.6), brass = mat(0xc9a24a, { metalness: 0.8, roughness: 0.3 });
     // legs
     [-0.5, 0.5].forEach((x) => {
       const leg = new THREE.Group(); leg.position.set(x, 2, 0); root.add(leg);
@@ -1078,19 +1086,27 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     box(torso, 2.02, 0.12, 1.02, cyanG, 0, 0.94, 0); // collar strip
     box(torso, 0.18, 2.0, 0.08, rig, -0.62, 0, 0.5); box(torso, 0.18, 2.0, 0.08, rig, 0.62, 0, 0.5);
     // backpack with vents and a power cell
-    box(torso, 1.5, 1.6, 0.6, mat(0x2a3446), 0, 0, -0.8);
+    box(torso, 1.5, 1.6, 0.6, mat(L.pack || 0x2a3446), 0, 0, -0.8);
     for (let i = 0; i < 4; i++) box(torso, 1.1, 0.08, 0.05, mat(0x0b0e13), 0, 0.45 - i * 0.2, -1.12);
     box(torso, 0.3, 0.9, 0.3, cyanG, 0.55, -0.15, -1.05);
-    halo(torso, P.cyan, 1.6, 0.55, -0.15, -1.3, 0.5);
+    halo(torso, L.accent || P.cyan, 1.6, 0.55, -0.15, -1.3, 0.5);
     // head
     const head = new THREE.Group(); head.position.y = 4.65; root.add(head);
     box(head, 1.2, 1.2, 1.2, skin, 0, 0, 0);
     face(head, 0.61);
+    if (!L.head) {
     box(head, 1.26, 0.38, 1.26, mat(0x3b2a20), 0, 0.5, -0.02); box(head, 1.26, 0.6, 0.3, mat(0x3b2a20), 0, 0.25, -0.5);
     box(head, 1.32, 0.12, 0.2, mat(0x1b2028), 0, 0.72, 0); // headset band
     [-0.68, 0.68].forEach((x) => { box(head, 0.18, 0.5, 0.5, mat(0x1b2028), x, 0.02, 0); box(head, 0.05, 0.2, 0.2, cyanG, x * 1.08, 0.02, 0); });
     box(head, 0.06, 0.06, 0.6, mat(0x1b2028), 0.66, -0.25, 0.35, 0.4); box(head, 0.12, 0.12, 0.12, mat(0x1b2028), 0.6, -0.4, 0.62);
     box(head, 1.1, 0.3, 0.14, mat(0x1b2028), 0, 0.52, 0.6); box(head, 0.42, 0.22, 0.1, cyanG, -0.25, 0.52, 0.68); box(head, 0.42, 0.22, 0.1, cyanG, 0.25, 0.52, 0.68);
+    } else {
+      const hat = mat(L.hat), ac = glow(L.accent, 2.4);
+      box(head, 1.26, 0.3, 1.26, mat(0x24180f), 0, 0.42, -0.04); box(head, 1.26, 0.5, 0.25, mat(0x24180f), 0, 0.2, -0.52);
+      if (L.head === "cap") { box(head, 1.3, 0.36, 1.3, hat, 0, 0.62, 0); box(head, 1.1, 0.08, 0.6, hat, 0, 0.46, 0.85); box(head, 0.3, 0.12, 0.05, ac, 0, 0.66, 0.66); }
+      else if (L.head === "helmet") { box(head, 1.4, 0.62, 1.4, hat, 0, 0.5, -0.02); box(head, 1.16, 0.26, 0.08, ac, 0, 0.12, 0.66); box(head, 0.2, 0.5, 1.42, mat(0x1a1c20), 0, 0.55, -0.02); }
+      else { box(head, 1.32, 0.48, 1.32, hat, 0, 0.56, 0); box(head, 1.36, 0.16, 1.36, mat(0x2a2a30), 0, 0.36, 0); box(head, 0.3, 0.3, 0.3, ac, 0, 0.9, 0); }
+    }
     // arms (shoulder pivots)
     const arms = [];
     [-1, 1].forEach((s) => {
@@ -1210,8 +1226,9 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), mat(0x14161c, { roughness: 0.55, metalness: 0.2 }));
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; g.add(ground);
     // sidewalks (pavement) and lane dashes along the main street (runs along z)
-    box(g, 6, 0.3, 400, mat(0x7d6a4f, { roughness: 0.9 }), -13, 0.15, 0); box(g, 6, 0.3, 400, mat(0x7d6a4f, { roughness: 0.9 }), 13, 0.15, 0);
-    box(g, 400, 0.3, 6, mat(0x7d6a4f, { roughness: 0.9 }), 0, 0.14, -40);
+    const pv = mat(opts && opts.night ? 0x3b342c : 0x7d6a4f, { roughness: 0.9 });
+    box(g, 6, 0.3, 400, pv, -13, 0.15, 0); box(g, 6, 0.3, 400, pv, 13, 0.15, 0);
+    box(g, 400, 0.3, 6, pv, 0, 0.14, -40);
     for (let i = -20; i < 20; i++) box(g, 0.35, 0.05, 3, glow(0xf2e3b0, 0.4), 0, 0.03, i * 8);
     // puddles with a cyan sheen
     [[-4, 6], [5, -14], [-6, -30]].forEach((p) => {
@@ -1232,7 +1249,7 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     if (opts && opts.trees) { tree(g, -14, 18); tree(g, 14, -8); tree(g, -14, -52); }
     return g;
   }
-  function zoneWall(g, r, cx, cz, h) {
+  function zoneWall(g, r, cx, cz, h, op) {
     const tex = canvasTex(512, 128, (x, w, hh) => {
       const gr = x.createLinearGradient(0, hh, 0, 0); gr.addColorStop(0, "rgba(241,91,100,0.95)"); gr.addColorStop(1, "rgba(241,91,100,0)");
       x.fillStyle = gr; x.fillRect(0, 0, w, hh);
@@ -1240,7 +1257,7 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     });
     tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = Math.round(r / 3);
     const wall = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 96, 1, true),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.4 }));
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: op ? THREE.BackSide : THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, opacity: op || 0.4 }));
     wall.position.set(cx, h / 2, cz); g.add(wall);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.35, 8, 128), glow(P.coral, 3));
     ring.rotation.x = Math.PI / 2; ring.position.set(cx, 0.2, cz); g.add(ring);
@@ -1301,11 +1318,173 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     const rim2 = new THREE.DirectionalLight(P.coral, 0.6); rim2.position.set(35, 10, -30); scene.add(rim2);
   }
 
+  // ---------- action helpers (cooler C) ----------
+  function darkNight(scene, mid) {
+    sky(scene, 0x050a18, mid || 0x2a1450, 0xff5a6a); scene.fog = new THREE.Fog(0x1a1030, 60, 220);
+    lights(scene, { keyI: 0.75, kx: 20, ky: 45, kz: 25, hemi: 0.22, rimI: 1.3 });
+  }
+  function tracer(scene, a, b, color, r) {
+    const len = a.distanceTo(b), mid = a.clone().lerp(b, 0.5);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.3, len, 8), glow(color, 5)); t.position.copy(mid);
+    t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), a.clone().sub(b).normalize()); scene.add(t);
+    halo(scene, color, 1.4, b.x, b.y, b.z, 0.8);
+  }
+  function muzzle(scene, p, s) {
+    halo(scene, 0xfff3c4, 1.6 * s, p.x, p.y, p.z, 0.9); halo(scene, 0xffb24d, 3 * s, p.x, p.y, p.z, 0.35);
+    const l = new THREE.PointLight(0xffc070, 0.7 * s, 10); l.position.copy(p); scene.add(l);
+  }
+  function sparksAt(scene, c, n, spread, color) {
+    for (let i = 0; i < n; i++) {
+      const d = new THREE.Vector3(rand() - 0.5, rand() * 0.9, rand() - 0.5).normalize(), r = spread * (0.3 + rand());
+      const s = box(scene, 0.06, 0.06, 0.5 + rand() * 0.6, glow(color, 4), c.x + d.x * r, c.y + d.y * r, c.z + d.z * r);
+      s.lookAt(c); s.castShadow = false;
+    }
+  }
+  function sparksRing(scene, r, cx, cz, n) {
+    for (let i = 0; i < n; i++) {
+      const a = rand() * Math.PI * 2, h = rand() * 3;
+      const s = box(scene, 0.07, 0.07, 0.45, glow(rand() < 0.7 ? P.coral : 0xffd27a, 4), cx + Math.cos(a) * r, 0.3 + h, cz + Math.sin(a) * r, rand() * 3, rand() * 3, 0);
+      s.castShadow = false;
+    }
+  }
+  function burst(scene, c, k, look) {
+    // a knocked-out player blown into blocks, with a shockwave ring and sparks
+    const y = mat(look.jacket), dk = mat(look.pants);
+    [[1.2, 1.2, 1.2, mat(look.skin), 0.8, 2.6, -0.4], [2, 2, 1, y, -0.2, 0.4, 0.3], [0.95, 2, 0.95, y, -1.9, 0.9, 0.5], [0.95, 2, 0.95, y, 1.9, -0.2, -0.6], [0.95, 2, 0.95, dk, -0.6, -1.9, 0.8], [0.95, 2, 0.95, dk, 0.9, -2.1, 1.5]].forEach((p) => {
+      box(scene, p[0], p[1], p[2], p[3], c.x + p[4] * 1.6 * k, Math.max(0.8, c.y + p[5] * 1.1 * k), c.z + p[6] * 1.6 * k, rand() * 3, rand() * 3, rand() * 3);
+    });
+    halo(scene, 0xffffff, 3 * k, c.x, c.y, c.z, 0.9); halo(scene, P.gold, 6 * k, c.x, c.y, c.z, 0.4); halo(scene, P.coral, 10 * k, c.x, c.y, c.z, 0.15);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(4.5 * k, 0.18, 8, 64), glow(0xffe2a0, 3)); ring.rotation.x = Math.PI / 2; ring.position.set(c.x, 0.3, c.z); scene.add(ring);
+    sparksAt(scene, c, 50, 4 * k, 0xffd27a);
+    const l = new THREE.PointLight(0xffb060, 1.4, 18); l.position.copy(c); scene.add(l);
+  }
+  function lootBeam(scene, x, z, color, h) {
+    h = h || 24;
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.6, h, 24, 1, true), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    b.position.set(x, h / 2, z); scene.add(b);
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, h, 8), glow(color, 3)); core.position.set(x, h / 2, z); scene.add(core);
+    const l = new THREE.PointLight(color, 0.9, 14); l.position.set(x, 4, z); scene.add(l);
+  }
+  function orbs(scene, list) {
+    list.forEach((p) => { const o = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), glow(P.cyan, 3)); o.position.set(p[0], 1, p[1]); scene.add(o); halo(scene, P.cyan, 2.6, p[0], 1, p[1], 0.7); });
+  }
+  function slidePose(hero) {
+    // leaning back into a Slide, legs out front
+    hero.rotation.order = "YXZ"; hero.userData.slide = true;
+    hero.children.forEach((c) => { if (c.position.y === 2 && Math.abs(c.position.x) === 0.5) c.rotation.x = -1.0; });
+  }
+  function slideTrail(scene, x, z, yaw) {
+    const back = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+    for (let i = 1; i <= 5; i++) {
+      const s = box(scene, 0.12, 0.05, 2.2, glow(P.cyan, 2.5 - i * 0.4), x + back.x * i * 1.6 + (i % 2 ? 0.5 : -0.5), 0.12, z + back.z * i * 1.6, 0, yaw, 0);
+      s.castShadow = false;
+      const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5 + i * 0.12, 0), new THREE.MeshStandardMaterial({ color: 0x9aa5b8, transparent: true, opacity: 0.35 - i * 0.05 }));
+      p.position.set(x + back.x * i * 1.4, 0.5, z + back.z * i * 1.4); scene.add(p);
+    }
+  }
+
   // ---------- the three ideas ----------
   // Each builds a scene and returns cameras for "icon" (1:1) and "thumb" (16:9).
   const IDEAS = {
+    C1: {
+      name: "Showdown", star: true,
+      blurb: "Game view, closer: you slide and fire, a player gets knocked out, the wall closes in.",
+      build(scene, mode, title) {
+        rng = 41; let rivalN = 0;
+        darkNight(scene);
+        scene.add(makeCity({ trees: false, night: true }));
+        zoneWall(scene, 21, 0, 0, 16, 0.55);
+        sparksRing(scene, 21, 0, 0, 90);
+        const hero = makeHero("aim"); slidePose(hero); hero.position.set(-1, -0.4, 4); hero.rotation.y = Math.PI * 0.78; scene.add(hero);
+        slideTrail(scene, -1, 4, Math.PI * 0.78);
+        const tip = new THREE.Vector3(); hero.userData.gun.updateWorldMatrix(true, true);
+        hero.userData.gun.localToWorld(tip.set(2.6, 0.38, 0));
+        muzzle(scene, tip, 1.4);
+        const blast = new THREE.Vector3(7.5, 3, -7);
+        tracer(scene, tip, blast, 0xffd27a, 0.14);
+        burst(scene, blast, 1.0, RIVALS[1]);
+        [[-8, -6, 0.9, true], [9, 6, -2.2, true], [-6, 12, 2.6, false]].forEach((p) => {
+          const d = makeRival(rivalN++); d.position.set(p[0], 0.3, p[1]); d.rotation.y = p[2]; scene.add(d);
+          if (p[3]) { const f = new THREE.Vector3(p[0], 3.7, p[1]); const to = new THREE.Vector3(-1 + (rand() - 0.5) * 3, 3.2, 4 + (rand() - 0.5) * 3);
+            const dir = to.clone().sub(f).normalize(); const m = f.clone().addScaledVector(dir, 1.6); muzzle(scene, m, 0.8); tracer(scene, m, f.clone().lerp(to, 0.75), P.cyan, 0.1); }
+        });
+        const c1 = makeCrate(2); c1.position.set(-9, 0.3, 4); c1.rotation.y = 0.4; scene.add(c1); lootBeam(scene, -9, 4, P.gold);
+        orbs(scene, [[2, 9], [4, 7], [-4, -2], [1, -5]]);
+        const cam = new THREE.PerspectiveCamera(mode === "icon" ? 40 : 38, mode === "icon" ? 1 : 16 / 9, 0.1, 2000);
+        if (mode === "icon") { cam.position.set(-3, 21, 21); cam.lookAt(1.5, 1.5, 0.5); }
+        else {
+          cam.position.set(-9, 20, 25); cam.lookAt(-4, 1.5, 1);
+          if (title) addTitle(scene, cam, title, { x: -3.3, y: 2.1, dist: 12, width: 4.4 });
+        }
+        return { cam: cam, target: new THREE.Vector3(1, 1.5, 0) };
+      },
+    },
+    C2: {
+      name: "Last Two",
+      blurb: "Sudden death: you vs the last player, red wall almost shut, sparks everywhere.",
+      build(scene, mode, title) {
+        rng = 77;
+        darkNight(scene, 0x2a0d1c);
+        scene.add(makeCity({ trees: false, night: true }));
+        zoneWall(scene, 12, 0, 0, 16, 0.6);
+        sparksRing(scene, 11, 0, 0, 120);
+        const redL = new THREE.PointLight(P.coral, 0.8, 30); redL.position.set(0, 10, 0); scene.add(redL);
+        const hero = makeHero("aim"); hero.position.set(-4, 0.3, 2.5); hero.rotation.y = Math.PI / 2 + 0.35; scene.add(hero);
+        const d = makeRival(0); d.position.set(4.5, 0.3, -2); d.rotation.y = -Math.PI / 2 + 0.35; scene.add(d);
+        const a = new THREE.Vector3(), b = new THREE.Vector3();
+        hero.userData.gun.updateWorldMatrix(true, true); hero.userData.gun.localToWorld(a.set(2.6, 0.38, 0));
+        d.userData.gun.updateWorldMatrix(true, true); d.userData.gun.localToWorld(b.set(2.6, 0.38, 0));
+        muzzle(scene, a, 1.3); muzzle(scene, b, 1.0);
+        tracer(scene, a, b.clone().lerp(a, 0.25), 0xffd27a, 0.13); tracer(scene, b, a.clone().lerp(b, 0.3), P.cyan, 0.11);
+        const clash = a.clone().lerp(b, 0.5); halo(scene, 0xffffff, 2, clash.x, clash.y, clash.z, 0.8);
+        sparksAt(scene, clash, 40, 2.2, 0xffe2a0);
+        orbs(scene, [[0, 6], [-2, -5], [6, 4]]);
+        const cam = new THREE.PerspectiveCamera(mode === "icon" ? 38 : 34, mode === "icon" ? 1 : 16 / 9, 0.1, 2000);
+        if (mode === "icon") { cam.position.set(0, 17, 17); cam.lookAt(0, 2, 0); }
+        else {
+          cam.position.set(-4, 15, 21); cam.lookAt(0.5, 3, 0);
+          if (title) addTitle(scene, cam, title, { x: -3.2, y: 2.0, dist: 12, width: 4.4 });
+        }
+        return { cam: cam, target: new THREE.Vector3(0, 2, 0) };
+      },
+    },
+    C3: {
+      name: "Loot Rush",
+      blurb: "Game view: gold crate bursts open, you dash for it, other players chase, wall behind.",
+      build(scene, mode, title) {
+        rng = 19; let rivalN = 0;
+        darkNight(scene);
+        scene.add(makeCity({ trees: false, night: true }));
+        zoneWall(scene, 26, 0, 0, 16, 0.55);
+        sparksRing(scene, 26, 0, 0, 90);
+        const cr = makeCrate(2); cr.position.set(2, 0.3, -3); cr.rotation.y = 0.5; scene.add(cr);
+        // lid blown off, loot fountain
+        const lid = box(scene, 3.2, 0.4, 3.2, mat(0x5b34c9), 3.2, 6.5, -4.5, 0.6, 0.3, 0.5);
+        lootBeam(scene, 2, -3, P.gold, 30);
+        sparksAt(scene, new THREE.Vector3(2, 4, -3), 60, 4, P.gold);
+        [[-0.5, 6, -1.5], [4.5, 5, -1.2], [1, 7.5, -5.5], [3.5, 8, -2]].forEach((p) => {
+          const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), glow([P.cyan, P.gold, 0xb26bff, P.cyan][Math.floor(rand() * 4)], 2.5));
+          gem.position.set(p[0], p[1], p[2]); gem.rotation.set(rand(), rand(), rand()); scene.add(gem);
+        });
+        const hero = makeHero("aim"); slidePose(hero); hero.position.set(-4, -0.4, 6); hero.rotation.y = Math.PI * 0.75; scene.add(hero);
+        slideTrail(scene, -4, 6, Math.PI * 0.75);
+        [[8, 8, -2.4], [10, -6, -1.2], [-9, -8, 0.8]].forEach((p) => {
+          const d = makeRival(rivalN++); d.position.set(p[0], 0.3, p[1]); d.rotation.y = p[2]; scene.add(d);
+          const f = new THREE.Vector3(p[0], 3.7, p[1]), to = new THREE.Vector3(-4, 3, 6), dir = to.clone().sub(f).normalize();
+          const m = f.clone().addScaledVector(dir, 1.6); muzzle(scene, m, 0.7); tracer(scene, m, f.clone().lerp(to, 0.6), P.cyan, 0.09);
+        });
+        orbs(scene, [[-1, 2], [-6, 0], [5, 9]]);
+        const cam = new THREE.PerspectiveCamera(mode === "icon" ? 40 : 38, mode === "icon" ? 1 : 16 / 9, 0.1, 2000);
+        if (mode === "icon") { cam.position.set(-2, 20, 20); cam.lookAt(0, 3, 0.5); }
+        else {
+          cam.position.set(-9, 19, 25); cam.lookAt(-3, 3, 1);
+          if (title) addTitle(scene, cam, title, { x: -3.3, y: 2.1, dist: 12, width: 4.4 });
+        }
+        return { cam: cam, target: new THREE.Vector3(0, 2, 0) };
+      },
+    },
     A: {
-      name: "Hero Shot", star: true,
+      name: "Hero Shot",
       blurb: "Your fighter, gun up, neon city and red zone wall behind.",
       build(scene, mode, title) {
         rng = 11;
@@ -1315,8 +1494,8 @@ body.shot #shot{display:block;width:100vw;height:100vh}
         zoneWall(scene, 70, 0, -10, 26);
         const hero = makeHero("aim"); hero.position.set(0, 0.3, 30); hero.rotation.y = 0.6; hero.userData.head.rotation.y = -0.55; scene.add(hero);
         const fill = new THREE.PointLight(0xbfe6ff, 0.55, 30); fill.position.set(-6, 9, 40); scene.add(fill);
-        const d1 = makeDummy(); d1.position.set(7, 0.3, 12); d1.rotation.y = -0.5; scene.add(d1);
-        const d2 = makeDummy(); d2.position.set(-6, 0.3, 2); d2.rotation.y = 0.6; scene.add(d2);
+        const d1 = makeRival(0); d1.position.set(7, 0.3, 12); d1.rotation.y = -0.5; scene.add(d1);
+        const d2 = makeRival(2); d2.position.set(-6, 0.3, 2); d2.rotation.y = 0.6; scene.add(d2);
         const cr = makeCrate(2); cr.position.set(-7.5, 0.3, 19); cr.rotation.y = 0.4; scene.add(cr);
         halo(scene, P.cyan, 3.5, 1.4 + 0, 0, 0, 0); // placeholder (unused)
         const cam = new THREE.PerspectiveCamera(mode === "icon" ? 27 : 30, mode === "icon" ? 1 : 16 / 9, 0.1, 2000);
@@ -1354,7 +1533,7 @@ body.shot #shot{display:block;width:100vw;height:100vh}
         const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 30, 8), glow(P.cyan, 2.5)); trail.rotation.z = Math.PI / 2; trail.position.set(18.5, 0.38, 0); gun.add(trail);
         const shell = cyl(gun, 0.12, 0.38, mat(0xc9a24a, { metalness: 0.9, roughness: 0.25 }), 0.2, 1.3, 0.9, 0.8, 0, 0.6, 12);
         halo(scene, P.cyan, 2.2, 0, 0, 0, 0);
-        const d = makeDummy(); d.position.set(10, -6, -6); d.rotation.y = -0.8; d.scale.setScalar(1.6); scene.add(d);
+        const d = makeRival(0); d.position.set(10, -6, -6); d.rotation.y = -0.8; d.scale.setScalar(1.6); scene.add(d);
         const cam = new THREE.PerspectiveCamera(mode === "icon" ? 34 : 34, mode === "icon" ? 1 : 16 / 9, 0.1, 2000);
         if (mode === "icon") { cam.position.set(-1.0, 6.0, 31); cam.lookAt(1.6, 4.0, 18); }
         else {
@@ -1366,15 +1545,15 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     },
     C: {
       name: "Zone Closing",
-      blurb: "Game camera: you vs 3 Crash Dummies, red wall closing in.",
+      blurb: "Game camera: you vs 3 players, red wall closing in.",
       build(scene, mode, title) {
-        rng = 5;
+        rng = 5; let rivalN = 0;
         sky(scene, 0x0d1830, 0x5a2a5e, 0xff9a52); scene.fog = new THREE.Fog(0x3a2550, 80, 300);
         lights(scene, { keyI: 1.3, kx: 25, ky: 50, kz: 20, hemi: 0.7 });
         scene.add(makeCity({ trees: true }));
         zoneWall(scene, 24, 0, 0, 14);
         const hero = makeHero("aim"); hero.position.set(0, 0.3, 4); hero.rotation.y = Math.PI + 0.5; scene.add(hero);
-        [[-9, -9, 0.6], [8, -11, -0.5], [10, 9, -2.4]].forEach((p) => { const d = makeDummy(); d.position.set(p[0], 0.3, p[1]); d.rotation.y = p[2]; scene.add(d); });
+        [[-9, -9, 0.6], [8, -11, -0.5], [10, 9, -2.4]].forEach((p) => { const d = makeRival(rivalN++); d.position.set(p[0], 0.3, p[1]); d.rotation.y = p[2]; scene.add(d); });
         const c1 = makeCrate(1); c1.position.set(-8, 0.3, 10); scene.add(c1);
         const c2 = makeCrate(0); c2.position.set(3, 0.3, -12); c2.rotation.y = 0.5; scene.add(c2);
         // shots flying both ways
@@ -1451,7 +1630,7 @@ body.shot #shot{display:block;width:100vw;height:100vh}
     const v = A.makeView(document.getElementById("shot"), q.get("shot"), q.get("mode"), q.get("title") || "", w, h, 1);
     v.draw(); window.__done = true; return;
   }
-  let idea = "A", name = A.NAMES[0], views = [];
+  let idea = "C1", name = A.NAMES[0], views = [];
   const tabs = document.getElementById("tabs"), chips = document.getElementById("names");
   Object.keys(A.IDEAS).forEach((k) => {
     const b = document.createElement("button"); b.className = "tab"; b.setAttribute("role", "tab");
