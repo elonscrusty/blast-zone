@@ -1,4 +1,4 @@
-# 43 Turn the camera (carter: "i need to be able to turn my camera in the game")
+# 44 Turn the camera (carter: "i need to be able to turn my camera in the game")
 - Why it was locked: the camera read `Config.Camera.yawDegrees` (a constant 0) and walking and the minimap did too. Nothing could change it. Aim, slide, hit arrows and the zone arrow already used the real camera, so they follow a turn.
 - Now: the heading lives in `src/client/Movement/CameraHeading.luau` (starts at `yawDegrees`). `CameraSystem` turns it each frame from `Controls.takeLook(dt)`; `MoveSystem` (walk, slide) and the minimap zone circle read it, so stick-up always walks away from the camera.
 - PC: hold the right mouse button and drag. The pointer is held still meanwhile so mouse aim stays put (`ControlsSystem`).

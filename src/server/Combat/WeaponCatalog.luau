@@ -14,6 +14,7 @@ export type GunStats = {
 	range: number,
 	pellets: number,
 	spreadDegrees: number,
+	pierce: number,
 }
 
 local MAX_EXTRA_PELLETS = 4
@@ -62,6 +63,7 @@ function WeaponCatalog.stats(cfg: any, id: string, upgradedPistol: GunStats): Gu
 			0,
 			gun.spreadDegrees + (upgradedPistol.spreadDegrees - pistol.spreadDegrees)
 		),
+		pierce = upgradedPistol.pierce, -- the power belongs to the fighter, whichever gun is in hand
 	}
 end
 

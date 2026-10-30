@@ -18,6 +18,7 @@ export type Sheet = {
 		range: number,
 		pellets: number,
 		spreadDegrees: number,
+		pierce: number,
 	},
 	explosive: {
 		damage: number,
@@ -27,6 +28,7 @@ export type Sheet = {
 		reloadSeconds: number,
 		range: number,
 		projectileSpeed: number,
+		aftershock: number,
 	},
 }
 
@@ -49,6 +51,7 @@ function StatBook.base(cfg: any): Sheet
 			range = f.range,
 			pellets = f.pellets,
 			spreadDegrees = f.spreadDegrees,
+			pierce = f.pierce,
 		},
 		explosive = {
 			damage = e.damage,
@@ -58,6 +61,7 @@ function StatBook.base(cfg: any): Sheet
 			reloadSeconds = e.reloadSeconds,
 			range = e.range,
 			projectileSpeed = e.projectileSpeed,
+			aftershock = e.aftershock,
 		},
 	}
 end
