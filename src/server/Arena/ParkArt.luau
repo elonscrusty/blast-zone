@@ -115,6 +115,43 @@ local function flowerBeds(plan: ArtKit.Plan, map: ArtMap.Map)
 	end
 end
 
+-- A faceted (low-poly) blob, the toy-tree look from video 3: two cubes turned against each other
+-- read as flat-shaded facets, where a Ball would be smooth. `size` is the cube side.
+local function facets(
+	plan: ArtKit.Plan,
+	cx: number,
+	cy: number,
+	cz: number,
+	size: number,
+	color: string,
+	shadow: boolean
+)
+	ArtKit.box(
+		plan,
+		G,
+		cx,
+		cy,
+		cz,
+		size,
+		size,
+		size,
+		color,
+		{ material = "Plastic", shadow = shadow, rx = 35, ry = 45 }
+	)
+	ArtKit.box(
+		plan,
+		G,
+		cx,
+		cy,
+		cz,
+		size * 0.92,
+		size * 0.92,
+		size * 0.92,
+		ArtKit.mix(color, "#FFFFFF", 0.1),
+		{ material = "Plastic", rx = 0, ry = 20, rz = 45 }
+	)
+end
+
 local function tree(plan: ArtKit.Plan, s: Layout.Solid)
 	local cx, cz = (s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2
 	local height = math.max(s.h, 8)
@@ -122,9 +159,9 @@ local function tree(plan: ArtKit.Plan, s: Layout.Solid)
 	ArtKit.vcyl(plan, G, cx, 0, cz, 1.1, 0.6, P.trunk, { material = "Wood" })
 	local c1, c2 = ArtKit.pick(plan, P.tree), ArtKit.pick(plan, P.tree)
 	-- canopy starts above head height so it can never hide a player standing at the trunk
-	ArtKit.ball(plan, G, cx, 7.6, cz, 2.6, c1, { shadow = true })
-	ArtKit.ball(plan, G, cx + 0.5, height + 0.4, cz - 0.3, 2.0, c2, { shadow = true })
-	ArtKit.ball(plan, G, cx - 0.7, 6.9, cz + 0.8, 1.7, c2)
+	facets(plan, cx, 7.6, cz, 3.5, c1, true)
+	facets(plan, cx + 0.5, height + 0.4, cz - 0.3, 2.7, c2, true)
+	facets(plan, cx - 0.7, 7.2, cz + 0.8, 2.3, c2, false)
 end
 
 local function hedge(plan: ArtKit.Plan, s: Layout.Solid)
@@ -397,6 +434,26 @@ local function fenceLamps(plan: ArtKit.Plan, map: ArtMap.Map)
 			ArtKit.box(plan, G, cx, 3.5, cz, 0.3, 0.18, len, "#59616D", { material = "Metal" })
 			ArtKit.box(plan, G, cx, 1.2, cz, 0.3, 0.18, len, "#59616D", { material = "Metal" })
 		end
+		-- chunky brick pillars with stone caps at both ends of the run and every 12 studs
+		local pillars = math.max(1, math.floor(len / 12))
+		for i = 0, pillars do
+			local u = -len / 2 + i * len / pillars
+			local px = if horiz then cx + u else cx
+			local pz = if horiz then cz else cz + u
+			ArtKit.box(
+				plan,
+				G,
+				px,
+				2.3,
+				pz,
+				1.5,
+				4.6,
+				1.5,
+				P.wall[1],
+				{ material = "Brick", shadow = true }
+			)
+			ArtKit.box(plan, G, px, 4.85, pz, 2.0, 0.5, 2.0, P.trim, { material = "Concrete" })
+		end
 		-- a lamp near each end of a long fence run
 		if len >= 24 then
 			for _, u in { -len / 2 + 6, len / 2 - 6 } do
@@ -420,6 +477,31 @@ local function fenceLamps(plan: ArtKit.Plan, map: ArtMap.Map)
 					lamp.light = { color = P.coolLamp, range = 26, brightness = 1.6 }
 				end
 				ArtKit.ball(plan, G, px, 7.6, pz, 0.7, P.coolLamp, lamp)
+				-- a second bulb on a short arm, like the double lamps in video 3 (no extra light)
+				local arm = if horiz then 1.5 else 0
+				local armZ = if horiz then 0 else 1.5
+				ArtKit.box(
+					plan,
+					G,
+					px + arm / 2,
+					7.2,
+					pz + armZ / 2,
+					math.max(arm, 0.25),
+					0.25,
+					math.max(armZ, 0.25),
+					"#3B4658",
+					{ material = "Metal" }
+				)
+				ArtKit.ball(
+					plan,
+					G,
+					px + arm,
+					7.6,
+					pz + armZ,
+					0.6,
+					P.coolLamp,
+					{ material = "Neon", neon = ArtKit.glow(P.coolLamp, "#6C7C93", 0.2, true) }
+				)
 			end
 		end
 	end

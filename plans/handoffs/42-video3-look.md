@@ -6,4 +6,5 @@
 - Fighters get a thin dark outline (Highlight, no fill) and you get a green ring under your feet: `client/Character/CharacterOutlineSystem.luau`, knobs in `Config.Art.outline`. Fighters plus the hit-flash pool stay under Roblox's 31 Highlights (tests/outline.test.luau).
 - Preview board and plan: project files `previews/video3-look/` (look-board.html, LOOK-PLAN.md).
 - Not tested: how it looks in Roblox (no Play tests). selene did not run here (needs the Roblox std download); CI runs it.
-- Left for later steps: chunky props pass (faceted trees, brick-pillar fences, fat bins), lobby cyan grid backdrop, thicker shot effects. Tune brightness and colors after carter plays.
+- Step 2 (chunky props): trees are faceted (two turned cubes per blob, flat-shaded) instead of smooth balls; park fences get brick pillars with stone caps; fence lamps get a second bulb on an arm (no extra light). About 100 more parts per map (map C 4,086, limit 9,000). All in `ParkArt.luau`.
+- Left for later steps: lobby cyan grid backdrop, fat bins and street props in `StreetArt`, thicker shot effects. Tune brightness and colors after carter plays.
