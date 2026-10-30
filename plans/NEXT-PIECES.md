@@ -28,3 +28,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 15 | Phone refinement (floating sticks, pick chips) + full controller support | 20 | PR up | #18 |
 | N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | this PR |
 | 21 | Fair spawns: spawn shield + bots calm start | 18 | PR up | #21 |
+| 26 | Invite friends: INVITE button (SocialService prompt), friends queued into the host's next match, people take bot seats | - | PR up | #22 |
