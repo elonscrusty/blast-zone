@@ -14,7 +14,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 03 | Aiming, firearm, health, elimination (explosive weapon later) | 9, 11 | not started | |
 | 04 | Graybox arena + interior/roof visibility | 12, 8 | not started | |
 | 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | not started | |
-| 06 | Safe zone + sudden death | 15 | not started | |
+| 06 | Safe zone + sudden death | 15 | PR up | this PR |
 | 07 | Supply containers, pickups, run XP | 13, 14 | not started | |
 | 08 | Upgrade catalogue + offers (server) | 14 | not started | |
 | 09 | Test bots | 18 | not started | |
