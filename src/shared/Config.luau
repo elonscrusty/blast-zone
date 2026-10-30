@@ -686,6 +686,18 @@ Config.Daily = {
 	rewards = { easy = 20, medium = 35, hard = 50 },
 }
 
+-- Piece G17 (video 3 gap 17): the top counter bar. Scrap stays the main coin (Config.Rewards). Sparks are a second,
+-- rarer counter that is only EARNED by playing (no Robux, no energy gate, no combat power). The list of counters is
+-- in shared/Wallet/WalletDefs; a new counter is one line there plus its earn rule here.
+Config.Wallet = {
+	sparks = {
+		win = 3, -- for winning a match (not a shared draw)
+		podium = 1, -- for finishing 2nd or 3rd, or sharing 1st in a draw
+	},
+	maxBalance = 999999, -- per counter; earning stops at this, nothing is lost or wrapped
+	maxGrant = 50, -- sanity cap for one grant, like Config.Progression.maxMatchGrant
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,

@@ -173,6 +173,10 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== G17 top bar counters =====
+	ask("G17", "WalletRequest", {}, 1, 2), -- a client that joined late asks for its counters
+	tell("G17", "WalletState", "WalletState"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 

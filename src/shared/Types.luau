@@ -223,6 +223,13 @@ export type LoadoutState = {
 	saved: boolean, -- false = picks last this visit only
 }
 
+-- Piece G17: the counters for the top bar (server to client only). The server lists only the counters to draw.
+export type WalletItem = { id: string, name: string, short: string, amount: number }
+export type WalletState = {
+	status: string, -- "ready" | "loading" | "failed" | "lost" | "temporary" (same words as ProgressState)
+	items: { WalletItem },
+}
+
 -- Piece 38: the weather the server picked for this match. level "clear" means no rain.
 export type WeatherState = {
 	matchId: MatchId,
