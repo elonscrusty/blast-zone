@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local LobbyLayout = require(Shared.LobbyLayout)
+local Look = require(script.Parent.Parent.Ui.Look)
 local MatchPhase = require(Shared.MatchPhase)
 local Signal = require(Shared.Signal)
 
@@ -81,17 +82,17 @@ local function makeButton()
 	local b = Instance.new("TextButton")
 	b.Name = "Loadout"
 	b.Text = "LOADOUT"
-	b.Font = Enum.Font.FredokaOne
+	b.Font = Look.font("body")
 	b.TextScaled = true
-	b.TextColor3 = Color3.fromHex("#14243A")
-	b.BackgroundColor3 = Color3.fromHex("#FFF4D6")
+	b.TextColor3 = Look.color("ink")
+	b.BackgroundColor3 = Look.color("panel")
 	b.Size = UDim2.fromScale(1, 1)
 	b.Parent = LobbyMenu.slot("loadout")
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0.25, 0)
 	corner.Parent = b
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromHex("#14243A")
+	stroke.Color = Look.color("outline")
 	stroke.Thickness = 3
 	stroke.Parent = b
 	b.Activated:Connect(function()

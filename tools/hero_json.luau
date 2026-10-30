@@ -7,7 +7,11 @@ local GunCards = require("../src/shared/GunCards")
 local Heroes = require("../src/shared/Heroes")
 local WeaponModels = require("../src/client/Combat/WeaponModels")
 
-local spreads = { { key = "A", name = "Small", spread = 0.5 }, { key = "B", name = "Medium", spread = 1 }, { key = "C", name = "Big", spread = 1.5 } }
+local spreads = {
+	{ key = "A", name = "Small", spread = 0.5 },
+	{ key = "B", name = "Medium", spread = 1 },
+	{ key = "C", name = "Big", spread = 1.5 },
+}
 local out: any = { spreads = {}, guns = WeaponModels.models, order = {} }
 for _, hero in Heroes.list do
 	table.insert(out.order, hero.id)

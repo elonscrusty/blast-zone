@@ -11,7 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent.Core.Net)
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local Components = require(script.Parent.Parent.Ui.Components)
 
 local SpectateClientSystem = {}
 SpectateClientSystem.order = 200
@@ -51,55 +51,37 @@ local function follow()
 	camera.CameraSubject = humanoid or ownHumanoid()
 end
 
-local function makeButton(parent: Instance, text: string, x: number, step: number)
-	local button = Instance.new("TextButton")
-	button.Name = if step < 0 then "SpectatePrev" else "SpectateNext"
-	button.Text = text
-	button.AnchorPoint = Vector2.new(0.5, 0)
-	button.Position = UDim2.new(0.5, x, 0, 12)
-	button.Size =
-		UDim2.fromOffset(Config.Settings.minTouchTarget + 16, Config.Settings.minTouchTarget)
-	button.BackgroundColor3 = Color3.fromHex(Config.Palette.Navy)
-	button.BackgroundTransparency = 0.15
-	button.TextColor3 = Color3.fromHex(Config.Palette.Cyan)
-	button.TextScaled = true
-	button.Font = Enum.Font.GothamBold
-	button.Parent = parent
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = button
+-- Bottom centre bar (design phone 780 x 360): [<]  WATCHING name  [>]. Only shown once you are out.
+local RECT = { x = 240, y = 288, w = 300, h = 56 }
+
+local function makeButton(parent: Instance, root: GuiObject, text: string, step: number)
+	local button =
+		Components.button(parent, root, if step < 0 then "SpectatePrev" else "SpectateNext", {
+			text = text,
+			style = "primary",
+		})
+	button.AnchorPoint = Vector2.new(if step < 0 then 0 else 1, 0.5)
+	button.Position = UDim2.fromScale(if step < 0 then 0.02 else 0.98, 0.5)
+	button.Size = UDim2.fromScale(0.2, 0.86)
 	button.Activated:Connect(function()
 		Net.send("SpectateCycle", step)
 	end)
 end
 
--- Placeholder look; Claude Design replaces it. Shows who you are watching, under the arrows.
-local function makeLabel(parent: Instance): TextLabel
-	local label = Instance.new("TextLabel")
-	label.Name = "SpectateName"
-	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, 0, 12 + Config.Settings.minTouchTarget + 6)
-	label.Size = UDim2.fromOffset(200, 24)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromHex(Config.Palette.Cyan)
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.Text = ""
-	label.Parent = parent
-	return label
-end
-
 function SpectateClientSystem.start()
-	local screen = Instance.new("ScreenGui")
-	screen.Name = "Spectate"
-	screen.ResetOnSpawn = false
-	screen.DisplayOrder = UiLayers.Spectate -- was unset (0), so the HUD and thumbs drew over the arrows
-	screen.IgnoreGuiInset = false
+	local screen, root = Components.screen("Spectate", "Spectate")
 	screen.Enabled = false
-	screen.Parent = player:WaitForChild("PlayerGui")
-	makeButton(screen, "<", -48, -1)
-	makeButton(screen, ">", 48, 1)
-	local label = makeLabel(screen)
+
+	local piece = Components.piece(root, "Bar", RECT)
+	local panel = Components.panel(piece, root, "Panel", "panel")
+	panel.Size = UDim2.fromScale(1, 1)
+	makeButton(panel, root, "<", -1)
+	makeButton(panel, root, ">", 1)
+	local label = Components.text(panel, root, "SpectateName", "body", {
+		size = UDim2.fromScale(0.52, 0.7),
+		position = UDim2.fromScale(0.5, 0.5),
+		anchor = Vector2.new(0.5, 0.5),
+	})
 
 	Net.on("SpectateTarget", function(payload: { participantId: string?, name: string? })
 		targetId = payload.participantId
