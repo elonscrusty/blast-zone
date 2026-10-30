@@ -153,6 +153,14 @@ function ProgressionSystem.grant(player: Player, amount: number, key: string): (
 	return service.grant(player, amount, key)
 end
 
+-- Sends a player's coins, looks and level again. Other server systems call this after they changed the progression
+-- table themselves (chests pay Scrap and looks in their own change), so the screens catch up.
+function ProgressionSystem.refresh(player: Player)
+	if (service :: any) ~= nil then
+		service.push(player)
+	end
+end
+
 -- A season pass look (piece G20): once per key; a look already owned pays Scrap instead. False + reason when not given.
 function ProgressionSystem.giveItem(
 	player: Player,

@@ -182,6 +182,11 @@ local Defs: { Def } = {
 	ask("G17", "WalletRequest", {}, 1, 2), -- a client that joined late asks for its counters
 	tell("G17", "WalletState", "WalletState"),
 
+	-- ===== G19 chests with a reveal =====
+	ask("G19", "ChestRequest", {}, 1, 2), -- a client asks for its chests (the server also sends them unasked)
+	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
+	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
+
 	-- ===== video 3 gap 18: Scrap Shop =====
 	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
 	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
@@ -296,6 +301,11 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== G23 ranked ladder =====
+	ask("G23", "RankedRequest", {}, 1, 2), -- a client that just started asks for its standing
+	ask("G23", "RankedToggle", { { name = "on", kind = "boolean" } }, 2, 3), -- the ranked switch
+	tell("G23", "RankedUpdate", "RankedPayload"),
 
 	-- ===== V16 power rating (video 3 gap #16) =====
 	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating
