@@ -45,7 +45,8 @@ local TRACER_POOL = 8
 local HIGHLIGHT_POOL = 6
 local REFERENCE_RADIUS = 4.4 -- the radius the blast recipe's puff sizes were made for
 local TRACER_SPEED = 200 -- studs per second, how fast the streak flies (look only)
-local TRACER_TAIL = 3.2
+local shots = Config.Art.shots
+local TRACER_TAIL = Config.Art.shots.tail
 local BUSY_FRACTION = 0.7 -- above this share of the particle cap, bursts shrink to half
 
 local caps = Config.Effects.caps
@@ -595,8 +596,8 @@ local function playBar(kind: string, a: Vector3, b: Vector3, innerColor: Color3,
 	t.gen += 1
 	local gen = t.gen
 	local dir = (b - a).Unit
-	t.outer.Size = Vector3.new(0.9 * widthScale, 0.9 * widthScale, 1)
-	t.inner.Size = Vector3.new(0.45 * widthScale, 0.45 * widthScale, 1)
+	t.outer.Size = Vector3.new(shots.outer * widthScale, shots.outer * widthScale, 1)
+	t.inner.Size = Vector3.new(shots.inner * widthScale, shots.inner * widthScale, 1)
 	t.inner.Color = innerColor
 	local showHead = kind == "shot"
 	animate(life, function(k)

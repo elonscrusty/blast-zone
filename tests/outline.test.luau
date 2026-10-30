@@ -47,3 +47,10 @@ Harness.test("lobby grid: even lines, none on the edge, a small count", function
 	Harness.eq(#GridLines.offsets(100, 0), 0)
 	Harness.eq(#GridLines.offsets(10, 50), 1, "one line through the middle")
 end)
+
+Harness.test("shot streaks: thicker than before, still slim next to a 5 stud fighter", function()
+	local s = Config.Art.shots
+	Harness.truthy(s.outer >= 0.9 and s.outer <= 2, "outer glow 0.9 to 2 studs")
+	Harness.truthy(s.inner > 0 and s.inner < s.outer, "bright core inside the glow")
+	Harness.truthy(s.tail >= 3.2 and s.tail <= 8, "tail 3.2 to 8 studs")
+end)
