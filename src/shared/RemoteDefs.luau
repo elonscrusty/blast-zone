@@ -139,6 +139,12 @@ local Defs: { Def } = {
 		"{ state: 'loading'|'ready'|'failed'|'lost', isNew: boolean, flags: {[string]: boolean} }"
 	),
 
+	-- ===== 18 coins + unlock track =====
+	ask("18", "ProgressRequest", {}, 1, 2), -- a client that joined late asks for its coins
+	ask("18", "UnlockRequest", { { name = "itemId", kind = "id" } }, 2, 3),
+	ask("18", "EquipRequest", { { name = "itemId", kind = "id" } }, 3, 4),
+	tell("18", "ProgressState", "ProgressState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 }
 
