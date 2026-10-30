@@ -281,6 +281,15 @@ local Defs: { Def } = {
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
 
+	-- ===== V14 bench: parts, merge, blueprints =====
+	ask("V14", "BenchRequest", {}, 1, 2), -- a client asks for its bench (the server also sends it unasked)
+	ask("V14", "BenchMerge", {
+		{ name = "kind", kind = "id", maxLen = 12 },
+		{ name = "tier", kind = "integer", min = 1, max = 4 },
+	}, 4, 6),
+	ask("V14", "BenchBuild", { { name = "blueprintId", kind = "id", maxLen = 24 } }, 3, 4),
+	tell("V14", "BenchState", "BenchState"),
+
 	-- ===== G20 season pass =====
 	ask("G20", "SeasonRequest", {}, 1, 2), -- a client asks for its pass (the server also sends it unasked)
 	ask("G20", "SeasonClaimRequest", {
