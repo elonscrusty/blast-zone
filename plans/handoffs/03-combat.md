@@ -7,4 +7,4 @@
 - Input is piece 10's `Controls`. I read `Controls.isFiring` and `getAimWorld` and send FireRequest only; piece 10 sends reload and switch. I turn the body to the aim with a torque-only constraint.
 - Piece 05: set `Players.CharacterAutoLoads = false`, or an eliminated player (humanoid killed) respawns mid-match. Call Damage only from combat phases.
 - Tested: `lune run tests/run` (fire rate, ammo, reload, switch, walls, blasts, health, damage door), luau type check, rojo build. Not tested: Roblox-side raycasts, remotes, visuals (only when carter plays).
-- Left: no lag compensation (hits use current positions, body circle 1.8 studs); sounds; the mortar has no held model (its shell is drawn); the pistol model is the picked look built from blocks, no art pass.
+- Left: no lag compensation (hits use current positions, body circle 1.8 studs); sounds; the mortar has no held model (its shell is drawn); the pistol model is carter's picked A++ look built from about 50 welded parts (no mesh art pass).
