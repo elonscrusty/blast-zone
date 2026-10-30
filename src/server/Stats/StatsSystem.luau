@@ -121,13 +121,11 @@ local function startBoard()
 			local ok, rows = TopWinsStore.readTop()
 			if ok then
 				wall.setRows(rows)
+			elseif TopWinsStore.isOff() then
+				wall.setStatus("Board works in the real game")
+				return -- API access is off (Studio): asking again only fills the output with 403s
 			else
-				local err = TopWinsStore.lastError() or ""
-				wall.setStatus(
-					if string.find(err, "403", 1, true)
-						then "Board works in the real game"
-						else "Board is busy, back soon"
-				)
+				wall.setStatus("Board is busy, back soon")
 			end
 			local waited = 0
 			while waited < cfg.board.refreshSeconds do

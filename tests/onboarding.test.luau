@@ -105,6 +105,16 @@ Harness.test("failed load: intro still shows once, and nothing is asked of the s
 	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg), false)
 end)
 
+Harness.test("studio with saving off: the intro is skipped, a ready save still shows it", function()
+	local m = OnboardingModel.new(true, 0)
+	OnboardingModel.setPhase(m, "Waiting")
+	OnboardingModel.applyStatus(m, { state = "failed" }, 3)
+	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg, true), false) -- every Play would show it again
+	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg, false), true) -- a live failed load still shows it
+	OnboardingModel.applyStatus(m, { state = "ready" }, 4)
+	Harness.eq(OnboardingModel.shouldShowIntro(m, cfg, true), true) -- saving works: a new player sees it
+end)
+
 Harness.test("save arrives while the intro is open: a late flag does not close it", function()
 	local m = OnboardingModel.new(true, 0)
 	OnboardingModel.setPhase(m, "Waiting")

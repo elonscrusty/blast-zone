@@ -7,3 +7,4 @@
 - New pieces (airdrop, chests, missions, crafting, big map, street life, currency bar): when this test fails after you merge main, plug in the missing half; do not loosen the test.
 - Proof: Lune all pass, full-match tests pass, StyLua clean, rojo build ok. Selene in CI.
 - Not proven: a real Roblox boot. In Studio Output, look for "[server] ... up (N systems)" and no "could not load" / "failed to start" lines.
+- Playtest follow-up: the top-wins board stops asking the store after its first 403 (Studio API access off) instead of every few seconds; in Studio with a failed save the intro is skipped (it would show on every Play). Live games are unchanged.

@@ -6,7 +6,8 @@
 --   * The intro shows only in the lobby (phase Waiting), only once per join, and only when the
 --     save has said "introSeen" is not set. While loading we wait (the notice covers slow loads).
 --   * If the save failed or was lost we still show the intro once (we cannot tell who is new).
---     It is skippable. Nothing is written.
+--     It is skippable. Nothing is written. Except in Studio: there a failed save means API access is
+--     off, so it would show on every Play to the person building the game. Studio skips it then.
 --   * Done or Skip both mean "seen". The flag is asked for only when the save is ready.
 --   * With no save system installed ("none") the intro shows once per join and nothing is saved.
 
@@ -79,8 +80,11 @@ function OnboardingModel.notice(m: Model, cfg: Config, now: number): DataNotice.
 	return DataNotice.forStatus(m.status, OnboardingModel.isSlow(m, cfg, now))
 end
 
-function OnboardingModel.shouldShowIntro(m: Model, cfg: Config): boolean
+function OnboardingModel.shouldShowIntro(m: Model, cfg: Config, inStudio: boolean?): boolean
 	if m.introDone or m.phase ~= "Waiting" or m.status == "loading" then
+		return false
+	end
+	if inStudio and m.status == "failed" then
 		return false
 	end
 	if m.status == "ready" and m.flags[cfg.introFlag] == true then

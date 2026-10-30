@@ -7,6 +7,7 @@
 --   Phase: the same `MatchState` the match screens read.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -74,7 +75,7 @@ function OnboardingClientSystem.start()
 
 	local function refresh()
 		local now = os.clock()
-		local wantIntro = OnboardingModel.shouldShowIntro(model, cfg)
+		local wantIntro = OnboardingModel.shouldShowIntro(model, cfg, RunService:IsStudio())
 		if wantIntro and not IntroView.isOpen() then
 			IntroView.show(steps(), onIntroDone)
 		elseif not wantIntro and IntroView.isOpen() then
