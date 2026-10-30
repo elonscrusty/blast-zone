@@ -63,12 +63,12 @@ One failing system never stops the others. No need to edit `Main.*.luau`.
 ## Damage (`Core/Damage`)
 
 ```lua
-Damage.apply({ matchId = id, targetId = "p1", amount = 10, cause = "bullet", sourceId = "p2", weaponId = "volt_pistol" })
+Damage:apply({ matchId = id, targetId = "p1", amount = 10, cause = "bullet", sourceId = "p2", weaponId = "volt_pistol" })
 ```
 
 - Everything that hurts someone (bullets, explosions, zone, bots) goes through `apply`. Nothing else changes health.
 - The router already drops: stale match, non-combat phase, bad amounts, dead or unknown targets, and a second elimination of the same target.
-- Piece 03 calls `Damage.bind(backend)` once. `backend(request) -> { applied, reason?, dealt, remaining, eliminated }`. The backend owns health numbers and must not fire events.
+- Piece 03 calls `Damage:bind(backend)` once. `backend(request) -> { applied, reason?, dealt, remaining, eliminated }`. The backend owns health numbers and must not fire events.
 - Listen: `Damage.Damaged:connect(function(e) ... end)`, `Damage.Eliminated:connect(function(e) ... end)` (`EliminationEvent` in Types). The roster flips `alive = false` before listeners run.
 - Zone damage: `cause = "zone"`, `sourceId = nil`. Disconnect: piece 05 removes the participant, not via Damage.
 

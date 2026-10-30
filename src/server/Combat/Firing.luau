@@ -79,7 +79,7 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 		local kind = "none"
 		if hit.kind == "target" and hit.id ~= nil then
 			kind = "target"
-			Damage.apply({
+			Damage:apply({
 				matchId = matchId,
 				targetId = hit.id,
 				amount = stats.damage,

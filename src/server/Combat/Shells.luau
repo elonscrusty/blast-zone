@@ -124,7 +124,7 @@ local function detonate(s: Live, center: Vector3)
 			end
 			amount *= explosive.selfDamageScale
 		end
-		Damage.apply({
+		Damage:apply({
 			matchId = s.matchId,
 			targetId = v.id,
 			amount = amount,

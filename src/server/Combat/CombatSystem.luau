@@ -114,7 +114,7 @@ local function onEliminated(e: any)
 end
 
 function CombatSystem.start()
-	Damage.bind(Combatants.applyDamage)
+	Damage:bind(Combatants.applyDamage)
 	Damage.Damaged:connect(onDamaged)
 	Damage.Eliminated:connect(onEliminated)
 
