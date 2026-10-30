@@ -166,3 +166,10 @@ without touching game code.
 - Every screen and its states, data and remotes: `plans/UI-SCREENS.md`. Brief for Claude Design:
   `plans/UI-DESIGN-BRIEF.md`. Bringing it back: `plans/UI-BRING-BACK.md`.
 
+
+## Map vote (piece 33)
+
+`MapVoteSystem.setPool({ { id, name } })` sets the maps that can be picked (the rotation). The arena builder calls
+`MapVoteSystem.takeWinner()` once per match, right before it builds the next map (end of Countdown): it locks the vote and
+returns the winner's id, or nil if nobody voted (keep the normal rotation). Calling it again gives the same answer.
+Remotes: `MapVoteRequest(mapId)` (server checks the window and the pool), `MapVoteState` (server tells everyone).

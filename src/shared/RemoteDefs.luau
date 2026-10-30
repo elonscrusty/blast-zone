@@ -168,6 +168,17 @@ local Defs: { Def } = {
 	ask("19", "LoadoutSync", {}, 1, 2),
 	tell("19", "LoadoutState", "LoadoutState"),
 
+	-- ===== 33 map vote =====
+	ask(
+		"33",
+		"MapVoteRequest",
+		{ { name = "mapId", kind = "id", maxLen = Config.MapVote.maxMapIdLength } },
+		2,
+		3
+	),
+	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
