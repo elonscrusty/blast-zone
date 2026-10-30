@@ -66,6 +66,7 @@ function StatBook.new(cfg: any): any
 	return setmetatable({
 		_cfg = cfg,
 		_provider = nil :: ((string) -> Sheet?)?,
+		_modifiers = {} :: { (string, Sheet) -> () },
 		Changed = Signal.new(), -- (participantId)
 	}, StatBook)
 end
@@ -74,15 +75,27 @@ function StatBook.setProvider(self: any, fn: ((string) -> Sheet?)?)
 	self._provider = fn
 end
 
+-- Modifiers run after the provider, on a copy, in the order they were added (piece 19: the Slide sidegrade).
+-- They may change the plain numbers on the sheet; they must not touch its `firearm` / `explosive` tables.
+function StatBook.addModifier(self: any, fn: (string, Sheet) -> ())
+	table.insert(self._modifiers, fn)
+end
+
 function StatBook.get(self: any, id: string): Sheet
+	local sheet: Sheet? = nil
 	local provider: ((string) -> Sheet?)? = self._provider
 	if provider then
-		local sheet = provider(id)
-		if sheet then
-			return sheet
-		end
+		sheet = provider(id)
 	end
-	return StatBook.base(self._cfg)
+	local modifiers: { (string, Sheet) -> () } = self._modifiers
+	if #modifiers == 0 then
+		return sheet or StatBook.base(self._cfg)
+	end
+	local copy: Sheet = table.clone(sheet or StatBook.base(self._cfg))
+	for _, fn in modifiers do
+		fn(id, copy)
+	end
+	return copy
 end
 
 -- Provider owners call this after an upgrade lands or a match resets.

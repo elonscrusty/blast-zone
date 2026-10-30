@@ -198,4 +198,13 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
+export type LoadoutState = {
+	selection: { [string]: string }, -- slot -> item id
+	unlocked: { [string]: { string } }, -- slot -> ids this player can wear
+	level: number, -- rewards bought (0..6), from piece 18
+	coins: number?, -- Scrap, from piece 18 (nil until saved data is loaded)
+	saved: boolean, -- false = picks last this visit only
+}
+
 return {}
