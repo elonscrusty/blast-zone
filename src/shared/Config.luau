@@ -686,6 +686,16 @@ Config.Daily = {
 	rewards = { easy = 20, medium = 35, hard = 50 },
 }
 
+-- Piece 48: weekly missions, achievements and login days. All pay Scrap (Config.Rewards.currencyName), claimed
+-- with a button. Weeks start on Monday at Config.Daily.resetHourUtc. Lists: shared/Missions/MissionDefs.
+Config.Missions = {
+	weeklyRewards = { easy = 60, medium = 90, hard = 120 }, -- the three weekly missions
+	weeklyBonus = 100, -- extra Scrap after all three weekly missions are claimed
+	-- The login row: one reward per day you come and claim. Missing days never reset it. After the last
+	-- one the row starts again. Every number stays under Config.Progression.maxMatchGrant.
+	loginRewards = { 10, 15, 20, 25, 30, 40, 100 },
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,
