@@ -18,6 +18,8 @@ local function copy(p: ProgressRules.Progression): ProgressRules.Progression
 		unlocked = table.clone(p.unlocked),
 		equipped = table.clone(p.equipped),
 		grantedKeys = table.clone(p.grantedKeys),
+		accountXp = p.accountXp,
+		claimedLevels = table.clone(p.claimedLevels),
 	}
 end
 

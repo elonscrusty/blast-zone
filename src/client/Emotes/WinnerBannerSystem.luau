@@ -16,6 +16,7 @@ local Net = require(script.Parent.Parent.Core.Net)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local CharacterRig = require(script.Parent.Parent.Character.CharacterRig)
 local WinPose = require(script.Parent.WinPose)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local WinnerBannerSystem = {}
 WinnerBannerSystem.order = 215
@@ -77,7 +78,7 @@ function WinnerBannerSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "WinnerPose"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = UiLayers.MatchFlowBanner
+	gui.DisplayOrder = UiLayers.MatchFlowExtra -- above the results screen; the claim strip shares the layer in its own band
 	gui.Enabled = false
 
 	-- Bottom-left corner: the results column ends at y 74% and the claim strip spans x 18-82%, so this is free.

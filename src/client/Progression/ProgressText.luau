@@ -40,7 +40,13 @@ function ProgressText.strip(state: State, coinName: string, next: Item?): Strip
 		else `{state.coins} {coinName}`
 	local note = ProgressText.noteFor(state.status)
 	if next == nil then
-		return { amount = amount, fill = 1, hint = "Track complete!", action = "track", note = note }
+		return {
+			amount = amount,
+			fill = 1,
+			hint = "All rewards unlocked!",
+			action = "track",
+			note = note,
+		}
 	end
 	if state.coins >= next.cost then
 		return {
@@ -72,7 +78,7 @@ function ProgressText.denied(reason: string?, coinName: string): string?
 	elseif reason == "notLoaded" then
 		return "Progress not loaded"
 	elseif reason == "trackDone" then
-		return "Track complete!"
+		return "All rewards unlocked!"
 	end
 	return "Could not do that. Try again."
 end

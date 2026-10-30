@@ -1,0 +1,9 @@
+# 38 Weather (rain only)
+- carter picked "A Neon Rain", then said "rain only": no fog or haze weather. Each match gets light, steady or heavy rain (odds 30/45/25, never the same level twice in a row). 3D preview: previews/weather/weather-board.html.
+- Server decides: `src/server/Weather/WeatherSystem.luau` picks on `MatchStarted`, sends `WeatherState` to all, clears when the phase returns to Waiting. Late joiners ask with `WeatherRequest` (1/s, no arguments). Rain changes nothing about shots, damage or the zone.
+- Pure rules: `src/shared/Weather/WeatherPlan.luau` (weighted pick, fade in/out, drop rate with phone scale and cap, haze). Numbers: `Config.Weather`.
+- Client: `src/client/Weather/WeatherClientSystem.luau`. One invisible part follows the camera with ONE ParticleEmitter. Cheap on phones: touch-only devices get half the drops, hard cap 300 drops alive. No UI, so no DisplayOrder.
+- Neon Night: the city's `DayNightSystem` (#42) adds the Lighting attributes `WeatherFogAdd` / `WeatherHazeAdd` to its own `NeonAtmosphere` every frame. `Config.Weather.applyAtmosphere = false`, so rain never touches the Atmosphere itself.
+- Tests: `tests/weather.test.luau` (8 tests: odds, no repeat, odd rolls, fade, phone scale and cap, haze, remotes). 622 pass, StyLua clean, rojo builds. selene did not run here (CI runs it).
+- Not tested in Studio (rules: no Play tests): the streak look (`Squash` / `VelocityParallel` on the emitter may need a nudge) and rain still falls through roofs (indoor rain). Drop texture is the plain square; no asset ids made up.
+- Left: rain sound (needs a real audio id from carter), wet-street shine and puddle glints (art pass), hide rain indoors.

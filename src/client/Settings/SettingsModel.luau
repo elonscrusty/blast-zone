@@ -95,6 +95,16 @@ SettingsModel.defs = {
 		group = "Controls",
 	},
 	{
+		key = "floatingSticks",
+		label = "Floating sticks",
+		kind = "toggle",
+		min = 0,
+		max = 1,
+		step = 1,
+		default = true,
+		group = "Controls",
+	},
+	{
 		key = "leftHanded",
 		label = "Left-handed",
 		kind = "toggle",
@@ -201,6 +211,17 @@ function SettingsModel.fromFraction(key: string, fraction: number): number?
 		return nil
 	end
 	return snap(def, def.min + math.clamp(fraction, 0, 1) * (def.max - def.min))
+end
+
+-- One step up (+1) or down (-1) on a slider, for the gamepad. nil for a toggle or unknown key.
+-- Stops at the ends instead of wrapping.
+function SettingsModel.nudge(key: string, current: number, direction: number): number?
+	local def = byKey[key]
+	if def == nil or def.kind ~= "slider" or not finite(current) or not finite(direction) then
+		return nil
+	end
+	local sign = if direction > 0 then 1 elseif direction < 0 then -1 else 0
+	return snap(def, current + sign * def.step)
 end
 
 function SettingsModel.def(key: string): Def?

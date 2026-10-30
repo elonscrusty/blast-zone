@@ -81,3 +81,13 @@ Harness.test("slider fractions round-trip and stay in range", function()
 	end
 	Harness.eq(SettingsModel.fromFraction("musicVolume", 0 / 0), nil)
 end)
+
+Harness.test("gamepad nudges a slider one step and stops at the ends", function()
+	Harness.near(SettingsModel.nudge("musicVolume", 0.5, 1) :: number, 0.55)
+	Harness.near(SettingsModel.nudge("musicVolume", 0.5, -1) :: number, 0.45)
+	Harness.eq(SettingsModel.nudge("musicVolume", 1, 1), 1)
+	Harness.eq(SettingsModel.nudge("musicVolume", 0, -1), 0)
+	Harness.eq(SettingsModel.nudge("leftHanded", 0, 1), nil) -- toggles are not sliders
+	Harness.eq(SettingsModel.nudge("nope", 0.5, 1), nil)
+	Harness.eq(SettingsModel.nudge("musicVolume", 0 / 0, 1), nil)
+end)

@@ -82,7 +82,7 @@ function EmoteWheelSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "EmoteWheel"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = UiLayers.Popups
+	gui.DisplayOrder = UiLayers.Calm -- with the look picker, under panels and results
 	gui.Enabled = false
 
 	-- Bottom right, inside a 16 point gutter. Everything else is placed from the button's centre.

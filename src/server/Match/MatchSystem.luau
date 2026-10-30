@@ -5,7 +5,12 @@
 -- For other pieces:
 --   MatchSystem.requestBots(n)       piece 09: ask for n bots in Waiting/Countdown. Returns how many were accepted.
 --   MatchSystem.SpawnAssigned        Signal(participant, point, lookAt): fired at Spawning for everyone, bots included.
---   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId): once per player per match.
+--   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId, won): once per player per match.
+--                                    won is true only for the one winner; a draw shares place 1 but nobody won.
+--   MatchSystem.queuePlayer(player)  piece 26: queue a player for the next match, same as pressing PLAY.
+--   MatchSystem.isQueued(player)     piece 26: true when the player pressed PLAY / PLAY AGAIN (or was queued).
+--   MatchSystem.kickIdle(player)     piece 39: take an idle player out of the fight (no reward) or off the queue.
+--   MatchSystem.shutdown()           piece 39: the server is closing; stop matches, pay what is owed. Runs once.
 -- Phase and matchId live in Core/MatchContext; the roster in Core/Participants; hurting goes through Core/Damage.
 
 local CollectionService = game:GetService("CollectionService")
@@ -26,6 +31,7 @@ local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 
+local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local MatchController = require(script.Parent.MatchController)
 local MatchRules = require(script.Parent.MatchRules)
 
@@ -65,9 +71,8 @@ local function loadCharacter(player: Player, at: CFrame?)
 		return
 	end
 	player:LoadCharacter()
-	local character = player.Character
-	if character and at then
-		character:PivotTo(at)
+	if at then
+		MoveGuard.place(player, at) -- tells the move watch this jump is the server's own
 	end
 end
 
@@ -154,20 +159,27 @@ local world: MatchController.World = {
 		end
 	end,
 
-	sendSpectate = function(id, targetId)
+	benchPlayer = function(id)
 		local player = playerById[id]
 		if player then
-			Net.fire("SpectateTarget", player, { participantId = targetId })
+			task.spawn(sendLobbyCharacter, player) -- a fresh body in the lobby; the old one is gone
 		end
 	end,
 
-	grantReward = function(id, amount, place, matchId)
+	sendSpectate = function(id, targetId, targetName)
+		local player = playerById[id]
+		if player then
+			Net.fire("SpectateTarget", player, { participantId = targetId, name = targetName })
+		end
+	end,
+
+	grantReward = function(id, amount, place, matchId, won)
 		local player = playerById[id]
 		if player then
 			-- In-game Credits only for now (Config.Rewards.persist = false). Saving comes later and must use SaveRetry.
 			player:SetAttribute("Credits", (player:GetAttribute("Credits") or 0) + amount)
 		end
-		MatchSystem.RewardGranted:fire(id, amount, place, matchId)
+		MatchSystem.RewardGranted:fire(id, amount, place, matchId, won)
 	end,
 
 	toServerTime = serverTime,
@@ -183,6 +195,31 @@ end
 
 local function idOf(player: Player): string
 	return Ids.player(player.UserId)
+end
+
+function MatchSystem.queuePlayer(player: Player): boolean
+	local id = idOf(player)
+	controller.setReady(id, true)
+	return controller.isReady(id)
+end
+
+function MatchSystem.isQueued(player: Player): boolean
+	return controller ~= nil and controller.isReady(idOf(player))
+end
+
+function MatchSystem.kickIdle(player: Player): boolean
+	return controller.forfeitIdle(idOf(player))
+end
+
+local shutdownDone = false
+
+function MatchSystem.shutdown()
+	if shutdownDone or controller == nil then
+		return
+	end
+	shutdownDone = true
+	controller.beginShutdown()
+	Net.fireAll("Notice", { kind = "info", text = "Server is closing. Your progress is saving." })
 end
 
 local function onPlayerAdded(player: Player)
@@ -227,6 +264,13 @@ function MatchSystem.start()
 	-- Requests: Net already rate-limited and shape-checked them. The controller checks phase and who is asking.
 	Net.onRequest("PlayRequest", function(player)
 		controller.setReady(idOf(player), true)
+		-- Counting only: a failure here must never touch the match.
+		pcall(function()
+			require(script.Parent.Parent.Analytics.AnalyticsSystem).funnelStep(
+				player,
+				"pressedPlay"
+			)
+		end)
 	end)
 	Net.onRequest("ReplayRequest", function(player)
 		controller.setReady(idOf(player), true)
@@ -252,6 +296,21 @@ function MatchSystem.start()
 			end)
 		end
 	end
+
+	-- Server closing: stop matches and pay out first, then let the saves run. The profile saver calls this
+	-- before its final writes (so late rewards are in them); our own BindToClose covers a missing saver.
+	local profileFolder = script.Parent.Parent:FindFirstChild("Profile")
+	local profileModule = if profileFolder then profileFolder:FindFirstChild("Profiles") else nil
+	if profileModule and profileModule:IsA("ModuleScript") then
+		local ok, profiles = pcall(require, profileModule)
+		if ok and type(profiles.beforeShutdown) == "function" then
+			profiles.beforeShutdown(MatchSystem.shutdown)
+		end
+	end
+	game:BindToClose(function()
+		MatchSystem.shutdown()
+		task.wait(Config.Idle.shutdownGraceSeconds) -- time for the last rewards to reach the saves
+	end)
 
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)

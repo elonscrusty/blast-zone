@@ -43,8 +43,11 @@ export type World = {
 	announce: (kind: string, text: string) -> (),
 	sendEliminated: (payload: any) -> (), -- everyone sees who fell (public info)
 	sendResults: (id: string, payload: any) -> (),
-	sendSpectate: (id: string, targetId: string?) -> (),
-	grantReward: (id: string, amount: number, place: number, matchId: number) -> (),
+	sendSpectate: (id: string, targetId: string?, targetName: string?) -> (),
+	-- Idle removal: take this player's body out of the fight and put them in the lobby (piece 39).
+	benchPlayer: ((id: string) -> ())?,
+	-- won: this id is the one winner (a draw shares place 1 but nobody won).
+	grantReward: (id: string, amount: number, place: number, matchId: number, won: boolean) -> (),
 	toServerTime: (t: number) -> number, -- clock time -> workspace:GetServerTimeNow() time
 	random: ((n: number) -> number)?,
 	log: ((message: string) -> ())?,
@@ -65,6 +68,9 @@ export type Controller = {
 	update: () -> (),
 	addHuman: (player: any, userId: number, name: string) -> (),
 	removeHuman: (id: string) -> (),
+	forfeitIdle: (id: string) -> boolean,
+	beginShutdown: () -> (),
+	isClosing: () -> boolean,
 	setReady: (id: string, ready: boolean) -> (),
 	requestBots: (count: number) -> number,
 	onEliminated: (event: any) -> (),
@@ -102,6 +108,7 @@ function MatchController.new(deps: Deps): Controller
 	local gatherStart: number? = nil
 	local note = "press_play"
 	local blocked = false
+	local closing = false -- the server is shutting down: nothing new starts
 
 	-- Per-match record (cleared in Resetting)
 	local kills: { [string]: number } = {}
@@ -112,8 +119,9 @@ function MatchController.new(deps: Deps): Controller
 	local settleUntil: number? = nil
 	local resultsStartedAt: number? = nil
 	local result: Result? = nil
-	local pendingRewards: { [string]: { amount: number, place: number } } = {}
+	local pendingRewards: { [string]: { amount: number, place: number, won: boolean } } = {}
 	local spectateTarget: { [string]: string } = {}
+	local killedBy: { [string]: string } = {} -- victim id -> killer id; a spectator first watches who got them
 	local ledger = rules.newLedger()
 	local lastKey = ""
 
@@ -208,29 +216,28 @@ function MatchController.new(deps: Deps): Controller
 		return mine == nil or not mine.alive
 	end
 
+	local function aliveIdList(): { string }
+		local out: { string } = {}
+		for _, p in registry:aliveList() do
+			table.insert(out, p.id)
+		end
+		return out
+	end
+
 	local function setTarget(id: string, target: string?)
 		if spectateTarget[id] == target then
 			return
 		end
 		spectateTarget[id] = target :: any
-		world.sendSpectate(id, target)
+		local entry = if target then registry:get(target) else nil
+		world.sendSpectate(id, target, if entry then entry.displayName else nil)
 	end
 
 	local function refreshSpectators()
-		local alive = registry:aliveList()
+		local alive = aliveIdList()
 		for _, id in humanOrder do
 			if canSpectate(id) then
-				local current = spectateTarget[id]
-				local ok = false
-				for _, p in alive do
-					if p.id == current then
-						ok = true
-					end
-				end
-				if not ok then
-					local first = alive[1]
-					setTarget(id, if first then first.id else nil)
-				end
+				setTarget(id, rules.pickWatchTarget(alive, spectateTarget[id], killedBy[id]))
 			elseif spectateTarget[id] ~= nil then
 				setTarget(id, nil)
 			end
@@ -241,11 +248,7 @@ function MatchController.new(deps: Deps): Controller
 		if not canSpectate(id) then
 			return
 		end
-		local aliveIds: { string } = {}
-		for _, p in registry:aliveList() do
-			table.insert(aliveIds, p.id)
-		end
-		setTarget(id, rules.cycleTarget(aliveIds, spectateTarget[id], step))
+		setTarget(id, rules.cycleTarget(aliveIdList(), spectateTarget[id], step))
 	end
 
 	-- ===== end of match =====
@@ -310,6 +313,7 @@ function MatchController.new(deps: Deps): Controller
 				pendingRewards[row.participantId] = {
 					amount = rules.rewardFor(row.placement, row.eliminations, cfg.Rewards),
 					place = row.placement,
+					won = res.outcome == "win" and res.winnerId == row.participantId,
 				}
 			end
 		end
@@ -373,7 +377,7 @@ function MatchController.new(deps: Deps): Controller
 		if not ledger:commit(matchId, id, pending.amount) then
 			return false
 		end
-		world.grantReward(id, pending.amount, pending.place, matchId)
+		world.grantReward(id, pending.amount, pending.place, matchId, pending.won)
 		return true
 	end
 
@@ -415,6 +419,7 @@ function MatchController.new(deps: Deps): Controller
 			end
 		end
 		kills, departed, humanParticipants = {}, {}, {}
+		killedBy = {}
 		pendingIds = {}
 		pendingRewards = {}
 		result = nil
@@ -449,7 +454,11 @@ function MatchController.new(deps: Deps): Controller
 			finish("timeout")
 		elseif
 			p == phases.Active
-			and (alive <= M.finalPressureAliveCount or now - start >= M.finalPressureAtSeconds)
+			-- By count only once someone is out: a two-player match must not open in Final pressure.
+			and (
+				(alive <= M.finalPressureAliveCount and alive < startedTotal)
+				or now - start >= M.finalPressureAtSeconds
+			)
 		then
 			setPhase(phases.FinalPressure, nil, "final_pressure")
 		end
@@ -514,6 +523,9 @@ function MatchController.new(deps: Deps): Controller
 	end
 
 	local function updateWaiting()
+		if closing then
+			return
+		end
 		local ready = readyHumanIds()
 		if #ready == 0 then
 			gatherStart = nil
@@ -547,6 +559,12 @@ function MatchController.new(deps: Deps): Controller
 	end
 
 	local function updateCountdown()
+		if closing then
+			botsRequested, botsPlanned, pendingIds = 0, 0, {}
+			blocked = false
+			setPhase(phases.Waiting, nil, "press_play")
+			return
+		end
 		local keep: { string } = {}
 		for _, id in pendingIds do
 			if humans[id] and humans[id].ready then
@@ -640,7 +658,13 @@ function MatchController.new(deps: Deps): Controller
 		table.remove(humanOrder, table.find(humanOrder, id) :: number)
 		spectateTarget[id] = nil
 		local p = registry:get(id)
-		if p then
+		local over = phase() == phases.Finished or phase() == phases.Results
+		if p and over then
+			-- The match is already decided: leaving now is not a forfeit. Pay what the results screen
+			-- showed while the player is still here (the client may not have claimed yet).
+			grant(id, ctx:getMatchId())
+			registry:remove(id)
+		elseif p then
 			-- Leaving counts as being out at this moment, with no killer credit (Config.Policies.disconnect).
 			local forfeit = p.alive
 			table.insert(departed, {
@@ -668,10 +692,73 @@ function MatchController.new(deps: Deps): Controller
 		end
 	end
 
+	-- Idle (AFK) removal, decided by IdleSystem on the server. In a fight the player is out like someone who
+	-- left: last place of those still standing, no reward, no killer credit. In the lobby they just leave the queue.
+	-- Returns true when someone was taken out of a running fight.
+	function self.forfeitIdle(id: string): boolean
+		local h = humans[id]
+		if not h then
+			return false
+		end
+		local p = phase()
+		local part = registry:get(id)
+		if part and part.alive and (p == phases.Spawning or phases.isCombat(p)) then
+			h.ready = false
+			h.decision = nil
+			table.insert(departed, {
+				id = id,
+				name = part.displayName,
+				eliminatedAt = clock(),
+				forfeit = true,
+			})
+			registry:remove(id)
+			world.announce("kill", `{part.displayName} was removed for being idle`)
+			if world.benchPlayer then
+				world.benchPlayer(id)
+			end
+			publish()
+			refreshSpectators()
+			if phases.isCombat(phase()) then
+				checkEnd()
+			end
+			return true
+		end
+		self.setReady(id, false)
+		return false
+	end
+
+	-- The server is closing (BindToClose). A fight that is still going stops with no result and no reward,
+	-- because nobody can play it out; a finished one pays out now. Nothing new starts after this.
+	function self.beginShutdown()
+		if closing then
+			return
+		end
+		closing = true
+		local p = phase()
+		if
+			p == phases.Spawning
+			or phases.isCombat(p)
+			or p == phases.Finished
+			or p == phases.Results
+		then
+			beginReset("server shutdown")
+		elseif p == phases.Countdown then
+			updateCountdown()
+		end
+		publish()
+	end
+
+	function self.isClosing(): boolean
+		return closing
+	end
+
 	function self.setReady(id: string, ready: boolean)
 		local h = humans[id]
 		if not h then
 			return
+		end
+		if closing and ready then
+			return -- the server is closing: no new queueing
 		end
 		h.ready = ready
 		local p = phase()
@@ -679,6 +766,16 @@ function MatchController.new(deps: Deps): Controller
 			h.decision = if ready then "play" else "loadout"
 		elseif p == phases.Countdown then
 			local at = table.find(pendingIds, id)
+			if
+				ready
+				and not at
+				and #pendingIds + botsPlanned >= M.maxParticipants
+				and botsPlanned > 0
+			then
+				-- Full, but a bot holds a seat: people come first (a friend who just joined gets in).
+				botsPlanned -= 1
+				botsRequested = botsPlanned
+			end
 			if ready and not at and #pendingIds + botsPlanned < M.maxParticipants then
 				table.insert(pendingIds, id)
 				publish()
@@ -692,7 +789,7 @@ function MatchController.new(deps: Deps): Controller
 	-- Piece 09 asks for bots while the lobby waits. Returns how many are now requested.
 	function self.requestBots(count: number): number
 		local p = phase()
-		if p ~= phases.Waiting and p ~= phases.Countdown then
+		if closing or (p ~= phases.Waiting and p ~= phases.Countdown) then
 			return botsRequested
 		end
 		local room = M.maxParticipants
@@ -730,6 +827,9 @@ function MatchController.new(deps: Deps): Controller
 			kills[killerId] = (kills[killerId] or 0) + 1
 		else
 			killerId = nil
+		end
+		if killerId then
+			killedBy[e.victimId] = killerId
 		end
 		local placement = registry:aliveCount() + 1
 		local start = activeStartedAt or clock()

@@ -2,7 +2,7 @@
 -- After a match: one strip under the Big Banner results that shows the coins just earned, the progress bar to the
 -- next unlock, and one button (UNLOCK when you can afford the next tier, otherwise TRACK). Also a TRACK button in
 -- the lobby. The server pays once per match (ClaimResults); this screen only shows the answer (ProgressState).
--- Sits in the free band under the results column (y 77-96%), above the results screen (DisplayOrder 55 > 50).
+-- Sits in the free band under the results column (y 77-96%), above the results screen (UiLayers.MatchFlowExtra > MatchFlow).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,13 +12,13 @@ local CoinLooks = require(Shared.Progression.CoinLooks)
 local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local TrackPanel = require(script.Parent.TrackPanel)
 local Ui = require(script.Parent.ProgressUi)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local ClaimUiSystem = {}
 ClaimUiSystem.order = 220
@@ -35,7 +35,7 @@ function ClaimUiSystem.start()
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 	-- ===== lobby TRACK button (under PLAY and SETTINGS) =====
-	local trackSlot, trackButton = Ui.button(gui, gui, "Track", "TRACK", false)
+	local trackSlot, trackButton = Ui.button(gui, gui, "Track", "REWARDS", false)
 	trackSlot.AnchorPoint = Vector2.zero
 	trackSlot.Position = UDim2.fromScale(0, 0)
 	trackSlot.Size = UDim2.fromScale(1, 1)
@@ -91,7 +91,7 @@ function ClaimUiSystem.start()
 	hint.Position = UDim2.fromScale(0.19, 0.68)
 	hint.Size = UDim2.fromScale(0.45, 0.24)
 
-	local actionSlot, actionButton = Ui.button(gui, strip, "Action", "TRACK", false)
+	local actionSlot, actionButton = Ui.button(gui, strip, "Action", "REWARDS", false)
 	actionSlot.AnchorPoint = Vector2.new(1, 0.5)
 	actionSlot.Position = UDim2.fromScale(0.98, 0.5)
 	actionSlot.Size = UDim2.fromScale(0.31, 0.62)
@@ -147,7 +147,7 @@ function ClaimUiSystem.start()
 		action = words.action
 		hint.Text = words.hint
 		barFill.Size = UDim2.fromScale(words.fill, 1)
-		actionButton.Text = if words.action == "unlock" then "UNLOCK" else "TRACK"
+		actionButton.Text = if words.action == "unlock" then "UNLOCK" else "REWARDS"
 		actionButton.BackgroundColor3 =
 			Ui.hex(if words.action == "unlock" then Ui.look.accent else Ui.look.panel)
 		local line = ProgressText.denied(state.denied, coinName) or words.note

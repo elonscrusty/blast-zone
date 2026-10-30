@@ -1,0 +1,47 @@
+{
+  "id": "street_sticker_copy",
+  "name": "Street Sticker (copy me)",
+  "colors": {
+    "panel": "#FFF4D6",
+    "panelAlt": "#F3E3B8",
+    "ink": "#14243A",
+    "inkOnAccent": "#14243A",
+    "inkOnDark": "#FFF4D6",
+    "outline": "#14243A",
+    "shadow": "#14243A",
+    "accent": "#FFC44D",
+    "good": "#7BD88F",
+    "danger": "#F15B64",
+    "info": "#36D9E8",
+    "dim": "#B9AE92",
+    "backdrop": "#0B1626",
+    "coin": "#C9D3DC",
+    "winTop": "#36D9E8",
+    "winBottom": "#1E8FA0",
+    "loseTop": "#F15B64",
+    "loseBottom": "#A23A42",
+    "drawTop": "#C8A675",
+    "drawBottom": "#8A6D45"
+  },
+  "fonts": {
+    "display": "FredokaOne",
+    "body": "GothamBold"
+  },
+  "text": {
+    "display": 44,
+    "title": 24,
+    "body": 14,
+    "caption": 10
+  },
+  "shape": {
+    "strokeScale": 0.0085,
+    "cornerScale": 0.32,
+    "shadowOffset": 0.011,
+    "backdropAlpha": 0.45
+  },
+  "motion": {
+    "pop": 0.18,
+    "slide": 0.25,
+    "fade": 0.2
+  }
+}

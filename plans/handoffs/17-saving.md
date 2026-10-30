@@ -1,0 +1,11 @@
+# 17 Saving player progress
+- Door: `ServerScriptService.Server.Profile.Profiles` (calls and signals are in the file header). Nobody else calls DataStoreService.
+- Rules live in `src/shared/Profile/` (pure, tested with a fake DataStore in `tests/profile.test.luau`); `Profiles.luau` only wires Players, DataStore, BindToClose and remotes.
+- One record per player (`profile_<userId>`): `{ lock, data, saves }`. Data: `schemaVersion`, `progression` (18), `loadout` (19, free-form), `flags` (20), `receipts` (17).
+- Session lock: another server's fresh lock blocks a load; a lock older than 180 s (crashed server) can be taken; a server that lost its lock writes nothing more and the player is kicked.
+- A failed load gives NO profile (`get` is nil, writes return false). Defaults can never overwrite real data. Newer-version or unreadable records are left untouched.
+- Writes: only on autosave (60 s), `saveNow`, leave, and BindToClose. Never per shot or per update. Every write uses SaveRetry (waits longer each time).
+- Rewards: `Profiles.grantOnce(player, Profiles.matchReceiptKey(matchId), fn)` pays once; the receipt is saved in the same write.
+- Client remotes: `ProfileStatus` (server to client), `ProfileStatusRequest`, `RetryProfileLoadRequest`, `SetFlagRequest`. Flag names: `Config.Profile.flags`.
+- Checked by tools only (stylua, lune 364 tests with a fake DataStore, luau-analyze on `src/shared/Profile`, rojo build). NOT proven in Roblox: needs carter's test in `17-saving-test.md`.
+- Open: item renames (`ProfileSchema.itemRenames`) and migration steps are empty until the first change; no per-item size limit check beyond 20000 values.

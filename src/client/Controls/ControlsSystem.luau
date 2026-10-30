@@ -138,8 +138,14 @@ function ControlsSystem.start()
 
 	-- Anything that takes the keyboard or the window away clears all held input.
 	UserInputService.WindowFocusReleased:Connect(Controls.reset)
+	UserInputService.WindowFocused:Connect(Controls.reset) -- keys let go while away must not come back
 	UserInputService.TextBoxFocused:Connect(Controls.reset)
 	GuiService.MenuOpened:Connect(Controls.reset)
+	GuiService.MenuClosed:Connect(Controls.reset)
+	-- Unplugging a pad mid-fight (a dead battery, a pulled cable) must not leave a stick pushed.
+	UserInputService.GamepadDisconnected:Connect(function()
+		Controls.padDisconnected(UserInputService.TouchEnabled)
+	end)
 
 	-- Reload and weapon swap go straight to the server, which checks everything.
 	Controls.Action:connect(function(action: string)

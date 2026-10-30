@@ -30,6 +30,8 @@ Config.Features = {
 	healPickup = false, -- piece 07, optional
 	bots = true, -- piece 09
 	roofFade = true, -- piece 04
+	cityArt = true, -- piece 14: Neon Night art pass on the arena (visual only; off = plain graybox)
+	dayNight = true, -- piece 14: lighting slides from day to night during a match (client only)
 	spectate = true, -- piece 05
 	devQuickStart = true, -- piece 05: simple way to start a small match; labeled as dev
 }
@@ -54,6 +56,34 @@ Config.Match = {
 	finalPressureAliveCount = 2, -- Final pressure starts when this few are left...
 	finalPressureAtSeconds = 150, -- ...or this long after Active begins (the zone's last warning does it too)
 	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw
+}
+
+-- Piece 33. Players vote on the next map in the lobby between matches. The server counts.
+Config.MapVote = {
+	-- The vote is open from the results screen until the match countdown ends. A vote after that is dropped.
+	maxMapIdLength = 24,
+	stateRepeatSeconds = 1, -- the server sends the running count at most this often
+	-- Display names for map ids (a map missing here shows its id). The arena piece owns the maps themselves.
+	names = {
+		A = "Crossroads Park",
+		B = "Offset Avenues",
+		C = "Arcade Row",
+		D = "Neon Plaza",
+		E = "Market Hall",
+		F = "Canal Docks",
+	} :: { [string]: string },
+}
+
+-- Piece 39: idle (AFK) check. Server only. A fighter is "active" when they move, shoot, reload, slide,
+-- switch guns, grab a pickup or choose an upgrade. Standing still and doing nothing is idle.
+Config.Idle = {
+	warnSeconds = 25, -- in a fight: a warning after this long doing nothing
+	kickSeconds = 40, -- in a fight: removed from the match (no reward) after this long
+	lobbyQueuedSeconds = 90, -- queued in the lobby with no input at all: taken off the queue
+	lobbyWarnSeconds = 60,
+	moveStuds = 3, -- walking farther than this from the last counted spot counts as moving
+	sweepSeconds = 1, -- how often the server looks
+	shutdownGraceSeconds = 3, -- BindToClose: time for last rewards to reach the saves (allowed 30 total)
 }
 
 -- Written-down answers to the brief's "define a policy" questions. Code reads these names.
@@ -92,6 +122,17 @@ Config.Camera = {
 	narrowAspect = 1.6, -- screens narrower than this (phone held upright) see farther
 	narrowAspectFloor = 0.5,
 	maxWiden = 0.35, -- most extra distance (a fraction) for the narrowest screens
+}
+
+-- Camera while watching someone after you are out. `style` picks one entry of `styles`.
+-- A = same (play view), B = wide (far back), C = close (low and near). carter's pick sets `style`.
+Config.Spectate = {
+	style = "same",
+	styles = {
+		same = { pitchDegrees = 55, distance = 46 },
+		wide = { pitchDegrees = 62, distance = 64 },
+		close = { pitchDegrees = 38, distance = 30 },
+	},
 }
 
 Config.Weapons = {
@@ -253,6 +294,9 @@ Config.Arena = {
 	parkEntrancesMin = 2,
 	-- Piece 04. Which graybox layout is built (A, B or C, see src/server/Arena/Layout*.luau).
 	layout = "C", -- carter picked C (Arcade Row); A and B stay as extra maps
+	-- Piece 28. Maps played in this order, one per match, looping. The first one is built at start.
+	-- Any id from src/server/Arena/Layout*.luau works (A-F). One id = no rotation.
+	rotation = { "C", "D" },
 	occluderTag = "ArenaOccluder", -- parts the camera may fade for the local player only
 	-- Local roof / wall fade (piece 04). Transparency targets, 0 = solid, 1 = gone.
 	fade = {
@@ -275,6 +319,8 @@ Config.Tags = {
 	ContainerSpot = "ContainerSpot",
 	SupplyContainer = "SupplyContainer",
 	FinalZoneRegion = "FinalZoneRegion",
+	ArtNeon = "ArtNeon", -- piece 14: art parts whose glow follows the time of day (client)
+	ArtFollower = "ArtFollower", -- piece 14: art parts that copy an occluder's see-through fade
 }
 
 Config.Workspace = {
@@ -378,6 +424,73 @@ Config.Bots = {
 	aimErrorDegrees = 6,
 	maxPathfindsPerSecond = 4,
 	hiddenStatAdvantage = false, -- must stay false: bots use player rules
+	-- Calm start (piece 21): when Active begins bots see less, react slower and miss more, then
+	-- slide to the full numbers above over `seconds`.
+	warmup = {
+		seconds = 30,
+		sightRange = 30,
+		reactionSeconds = 0.9,
+		aimErrorDegrees = 14,
+	},
+	-- Difficulty tiers (piece 35). A tier only changes how well a bot sees, reacts, aims and plays
+	-- (cover, grabbing guns, leaving the zone early). Never health, damage, speed or ammo.
+	-- Scales multiply the full-strength numbers above; the calm start numbers stay as they are.
+	tiers = {
+		easy = {
+			sightScale = 0.75,
+			reactionScale = 1.5,
+			aimErrorScale = 1.8,
+			coverSkill = 0.2, -- chance (0-1) it ducks behind cover when it needs to reload or heal
+			seekGuns = false,
+			zoneExtra = 0, -- extra studs of margin from the zone wall
+		},
+		normal = {
+			sightScale = 1,
+			reactionScale = 1,
+			aimErrorScale = 1,
+			coverSkill = 0.7,
+			seekGuns = true,
+			zoneExtra = 4,
+		},
+		hard = {
+			sightScale = 1.15,
+			reactionScale = 0.7,
+			aimErrorScale = 0.6,
+			coverSkill = 1,
+			seekGuns = true,
+			zoneExtra = 10,
+		},
+	} :: {
+		[string]: {
+			sightScale: number,
+			reactionScale: number,
+			aimErrorScale: number,
+			coverSkill: number,
+			seekGuns: boolean,
+			zoneExtra: number,
+		},
+	},
+	-- Bot number n gets tierCycle[(n - 1) % #tierCycle + 1]: a mixed lobby, same every match.
+	tierCycle = { "normal", "easy", "hard", "normal", "easy", "normal", "hard", "easy" } :: { string },
+}
+
+-- Spawn shield (piece 21): everyone alive gets a short shield when the fight starts.
+-- Firing your own gun ends it at once, so nobody can attack from behind it.
+Config.SpawnShield = {
+	seconds = 3,
+	dropOnFire = true,
+}
+
+-- Kill streaks (piece 36). A kill within windowSeconds of the last one grows the streak.
+-- Tiers pay once each when the streak reaches `at`. Values are placeholders until carter picks.
+Config.Streaks = {
+	enabled = true,
+	windowSeconds = 12,
+	tiers = {
+		{ at = 2, heal = 15, speedMultiplier = 1, speedSeconds = 0, text = "DOUBLE! +15 HP" },
+		{ at = 3, heal = 20, speedMultiplier = 1, speedSeconds = 0, text = "TRIPLE! +20 HP" },
+		{ at = 5, heal = 30, speedMultiplier = 1, speedSeconds = 0, text = "RAMPAGE! +30 HP" },
+	},
 }
 
 Config.Rewards = {
@@ -396,6 +509,23 @@ Config.Progression = {
 	attributes = { trail = "CosmeticTrail", tracer = "CosmeticTracer" },
 }
 
+-- Piece 34: the account level. Run XP from every match (the same XP that fills the in-match upgrade bar) is
+-- added to a saved total; milestone levels hand out free gifts (Scrap or looks, never Robux, never power).
+-- The levels and gifts are in shared/Level/LevelDefs.
+Config.Level = {
+	firstCost = 100, -- XP to leave level 1
+	costStep = 40, -- each later level costs this much more than the one before
+	maxLevel = 50,
+	maxXpPerMatch = 600, -- sanity cap for one match's XP; a real match gives far less
+}
+
+-- Piece 25: daily challenges. Three a day (one easy, one medium, one hard), the same for everyone, new at
+-- midnight UTC. They pay in the game's coin (Config.Rewards.currencyName). The list is in shared/Daily/DailyDefs.
+Config.Daily = {
+	resetHourUtc = 0, -- the new day starts at this hour (UTC)
+	rewards = { easy = 20, medium = 35, hard = 50 },
+}
+
 Config.Settings = {
 	defaults = {
 		musicVolume = 0.6,
@@ -406,10 +536,52 @@ Config.Settings = {
 	minTouchTarget = 48, -- points
 }
 
+-- Piece 20: first-time intro and "your data did not load" messages (client side only).
+Config.Onboarding = {
+	introFlag = "introSeen", -- must be listed in Config.Profile.flags (piece 17)
+	slowLoadSeconds = 12, -- loading longer than this shows "Still loading your save..."
+	retryCooldownSeconds = 5, -- the TRY AGAIN button waits this long between taps
+}
+
 Config.Perf = {
 	maxDamageNumbers = 12,
 	maxLiveEffects = 40,
 	maxDebrisParts = 0, -- containers burst as particles, not physical parts
+}
+
+-- Piece 38: rain. The server picks one level per match; clients only draw it (placeholder look, cheap on phones).
+Config.Weather = {
+	levels = { "light", "steady", "heavy" },
+	odds = { light = 30, steady = 45, heavy = 25 }, -- weights; the level of the match just played is skipped
+	-- dropsPerSecond x dropSeconds = drops alive at once. fogAdd / hazeAdd are added to the sky Atmosphere
+	-- at full rain. Nothing here darkens the sky: the city time-of-day code owns Lighting.
+	look = {
+		light = { dropsPerSecond = 110, fogAdd = 0.03, hazeAdd = 0.6, speed = 70 },
+		steady = { dropsPerSecond = 200, fogAdd = 0.06, hazeAdd = 1.0, speed = 80 },
+		heavy = { dropsPerSecond = 320, fogAdd = 0.1, hazeAdd = 1.5, speed = 95 },
+	},
+	dropSeconds = 0.9, -- how long one drop lives
+	maxLiveDrops = 300, -- hard cap on drops alive at once, after the phone scale
+	phoneScale = 0.5, -- touch-only devices get half the drops
+	rampSeconds = 4, -- rain fades in and out over this long
+	coverStuds = 70, -- the rain sheet above the camera is this wide
+	heightStuds = 45, -- and this high above the camera
+	applyAtmosphere = false, -- the city's DayNightSystem adds the Lighting attributes to its own Atmosphere; true = rain nudges an Atmosphere itself
+	dropColor = "#9FE9FF",
+	attributes = { fog = "WeatherFogAdd", haze = "WeatherHazeAdd" }, -- written on Lighting for the day-night code
+}
+
+-- Piece 17: saving player progress (DataStore). Read by src/server/Profile only.
+Config.Profile = {
+	storeName = "BlastZoneProfiles_v1", -- changing this starts everyone from nothing: never rename
+	autosaveSeconds = 60, -- also refreshes the session lock
+	minSecondsBetweenWrites = 6, -- DataStore allows one write per key about every 6 s
+	lockStaleSeconds = 180, -- a lock older than this belongs to a crashed server
+	loadLockTries = 6, -- how many times a load waits for another server to let go
+	lockRetrySeconds = 3,
+	receiptsKept = 100, -- newest once-only grant keys remembered per player
+	shutdownSeconds = 25, -- BindToClose allows 30
+	flags = { "introSeen" }, -- the only flags a client may set (piece 20)
 }
 
 -- Piece 11. Character poses are drawn from code (no animation assets), so these are the only knobs.
@@ -423,6 +595,45 @@ Config.Character = {
 	slideSeconds = 0.75, -- how long the slide pose is held (the move itself is Config.Slide)
 	smoothing = 20, -- how fast the body follows the pose (higher = snappier)
 	winnerCheerSeconds = 12,
+}
+
+-- Piece 13 (effects polish). The look is "Sticker Punch" (carter's pick): chunky, bright, outlined in navy,
+-- easy to read on a phone. What each effect is made of lives in `src/client/Effects/EffectRecipes.luau`;
+-- the caps and the camera feel live here. Every effect is cosmetic and comes from a fixed pool.
+Config.Effects = {
+	look = "StickerPunch",
+	caps = {
+		particles = 220, -- particles that may be alive at once (counted from what each burst asks for)
+		parts = Config.Perf.maxLiveEffects, -- tracers, streaks and shells in the air
+		numbers = Config.Perf.maxDamageNumbers, -- floating damage and XP numbers
+		banners = 2, -- comic words such as KO! and BOOM!
+		rings = 8, -- flat rings on the ground
+	},
+	-- Camera shake is a "trauma" meter from 0 to 1 that decays; the shake you see is trauma squared.
+	-- Everything is multiplied by the player's Camera shake setting, so 0 turns it all off.
+	shake = { maxOffsetStuds = 0.55, maxRollDegrees = 1.1, frequency = 24, decayPerSecond = 2.2 },
+	trauma = {
+		shot = 0.03, -- your own shot (tiny kick)
+		slide = 0.06,
+		hurt = 0.12, -- you were hit
+		kill = 0.28, -- you knocked someone out
+		crateBreak = 0.2,
+		blast = 0.55, -- a blast at your feet; farther blasts shake less (see falloff)
+	},
+	fovKick = {
+		shot = 0.4,
+		slide = 2.2,
+		kill = 1.0,
+		blast = 3.5,
+		maxDegrees = 5,
+		decayPerSecond = 9,
+	},
+	falloff = { fullStuds = 25, noneStuds = 90 }, -- blasts shake the camera fully inside fullStuds and not at all past noneStuds
+	-- Screen flashes are skipped when the player turns on Fewer flashes.
+	flash = { blast = 0.3, kill = 0.12, seconds = 0.18 },
+	numbers = { riseStuds = 2.6, seconds = 0.9, spreadStuds = 2.0, bigAmount = 25 }, -- bigAmount: a hit this size gets the BAM! look
+	shellStuds = 1.4,
+	scorchSeconds = 2.6, -- how long a blast leaves its dark mark on the ground
 }
 
 -- Piece 29: emotes in the lobby and the winner pose on the results banner (drawn from code, see Character/Emotes).
@@ -442,6 +653,53 @@ Config.Emotes = {
 
 Config.Net = {
 	clientWaitSeconds = 10,
+}
+
+-- Piece 27: the server's watch on where players really are (see server/AntiCheat/MoveCheck).
+Config.AntiCheat = {
+	speedSlack = 0.3, -- a player may move 30% faster than their walk speed (lag, slopes)
+	burstSeconds = 1, -- after standing still, this much walking may arrive in one lump (phone lag)
+	leeway = 3, -- studs always forgiven
+	graceSeconds = 0.5, -- a move that is too far waits this long for a slide to explain it, then snaps back
+	slideCreditSeconds = 1.5, -- a slide's extra distance can be used for this long
+	riseSlope = 1.5, -- going up: at most this many studs up per stud across (ramps)
+	riseLeeway = 4, -- studs of going up always forgiven (steps, curbs)
+	warnEverySeconds = 10,
+}
+
+-- Piece 24: lifetime stats (wins, eliminations, matches) and the global top-wins board.
+Config.Stats = {
+	profileKey = "stats", -- saved inside the player's profile as data.stats (piece 17)
+	board = {
+		storeName = "TopWins_v1", -- OrderedDataStore; key = userId, value = saved wins
+		rows = 10,
+		refreshSeconds = 60, -- read the top list this often
+		writeSeconds = 30, -- send queued win counts this often
+		writesPerFlush = 8,
+		spotTag = "LeaderboardSpot", -- optional part (lobby piece) where the board stands, front facing its LookVector
+		lobbyOffset = 30, -- studs in front of the first LobbySpawn part when there is no spot
+		fallback = { x = 0, z = -40 }, -- used when there is neither (faces +Z)
+		modelName = "TopWinsBoard",
+		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
+	},
+}
+
+-- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
+-- collision, shots, spawns or the zone.
+Config.Art = {
+	seed = 1407, -- same seed = same city, every server and every match
+	maxParts = 9000, -- phone budget for the whole art pass (tests fail above this)
+	maxLights = 30, -- PointLights across the whole city
+	lowestFloatingStuds = 5, -- art lower than this must sit flush against a solid or lie flat on the ground
+	flushStuds = 0.6, -- how far art may stick out of a solid below that height
+	skyline = { towers = 30, innerGap = 8, outerReach = 70 }, -- towers outside the arena wall
+	-- Day to night. t runs 0 (day) to 1 (full night), tied to match time: it reaches 1 when
+	-- sudden death starts. Outside a match the city is back in daylight.
+	dayNight = {
+		lobbyT = 0,
+		maxChangePerSecond = 0.25, -- the sky glides, even when a new match snaps t back to 0
+		glowSteps = 12, -- neon brightness is updated in this many steps, not every frame
+	},
 }
 
 return Config

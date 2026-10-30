@@ -16,13 +16,14 @@ local Net = {}
 
 local limiters: { [string]: any } = {}
 local started = false
-local lastWarn: { [string]: number } = {}
+local lastWarn: { [number]: { [string]: number } } = {} -- by userId, so a leaving player takes theirs along
 
 local function warnThrottled(player: Player, name: string, why: string)
-	local key = tostring(player.UserId) .. name
+	local mine: { [string]: number } = lastWarn[player.UserId] or {}
+	lastWarn[player.UserId] = mine
 	local now = os.clock()
-	if (lastWarn[key] or -10) + 5 < now then
-		lastWarn[key] = now
+	if (mine[name] or -10) + 5 < now then
+		mine[name] = now
 		warn(`[Net] {player.Name} -> {name}: {why}`)
 	end
 end
@@ -33,7 +34,15 @@ function Net.init()
 	end
 	started = true
 	Remotes.build()
+	-- Server-to-client remotes: a client firing one back gets nothing, and the server does not
+	-- keep a queue of its junk (an unheard RemoteEvent stores what it is sent).
+	for _, def in RemoteDefs.list do
+		if def.direction == "toClient" then
+			Remotes.get(def.name).OnServerEvent:Connect(function() end)
+		end
+	end
 	Players.PlayerRemoving:Connect(function(player)
+		lastWarn[player.UserId] = nil
 		for _, limiter in limiters do
 			limiter:forget(player.UserId)
 		end

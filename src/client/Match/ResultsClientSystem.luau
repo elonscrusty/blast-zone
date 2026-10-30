@@ -535,6 +535,17 @@ function ResultsClientSystem.start()
 		refresh()
 	end)
 
+	-- Piece 26: a friend who joined you gets queued by the server, so PLAY reads READY for them too.
+	local function friendQueued()
+		if player:GetAttribute("QueuedByFriend") == true and not queued then
+			queued = true
+			setStatus(nil)
+			refresh()
+		end
+	end
+	player:GetAttributeChangedSignal("QueuedByFriend"):Connect(friendQueued)
+	friendQueued()
+
 	replay.Activated:Connect(function()
 		if queued then
 			return

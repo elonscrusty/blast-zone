@@ -17,6 +17,8 @@ export type CombatState = {
 	magazine: number,
 	reloading: boolean,
 	canFire: boolean, -- the server would accept a shot right now
+	gunId: string?, -- the gun in hand
+	range: number?, -- how far that gun reaches
 }
 
 export type CombatPort = {
@@ -26,6 +28,8 @@ export type CombatPort = {
 	state: (id: string) -> CombatState?, -- nil = dead or unknown
 	registerBotBody: (id: string, model: Model) -> (),
 	shotParams: (() -> RaycastParams)?, -- the params shots use, so sight matches shooting
+	gunDrops: (() -> { { dropId: string, gunId: string, x: number, z: number } })?,
+	claimGun: ((id: string, dropId: string) -> ())?,
 }
 
 export type MovementPort = {

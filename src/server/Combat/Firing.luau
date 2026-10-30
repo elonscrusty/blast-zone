@@ -9,11 +9,14 @@ local Damage = require(script.Parent.Parent.Core.Damage)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local SpawnShields = require(script.Parent.Parent.Core.SpawnShields)
+local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
 local Shells = require("./Shells")
 local ShotCaster = require("./ShotCaster")
+local WeaponState = require("./WeaponState")
 local WeaponCatalog = require("./WeaponCatalog")
 
 local firearm = Config.Weapons.Firearm
@@ -129,6 +132,9 @@ function Firing.fire(id: string, claimedOrigin: Vector3?, dir: Vector3): (boolea
 	if c == nil or root == nil then
 		return false, "no-body"
 	end
+	if MoveGuard.isHeld(id) then
+		return false, "move-check" -- the body just jumped further than it can: no shot from there
+	end
 	local dx, dz = Ballistics.flatten(dir.X, dir.Y, dir.Z)
 	if dx == nil or dz == nil then
 		return false, "bad-aim"
@@ -143,6 +149,10 @@ function Firing.fire(id: string, claimedOrigin: Vector3?, dir: Vector3): (boolea
 			Firing.sendAmmo(id)
 		end
 		return false, result.reason
+	end
+	-- Shooting ends your own spawn shield: no attacking from behind it.
+	if Config.SpawnShield.dropOnFire then
+		SpawnShields:drop(id)
 	end
 	local origin = shotOrigin(root, claimedOrigin, Combatants.bodies())
 	if slot == 2 then
@@ -190,19 +200,26 @@ function Firing.switch(id: string, slot: number): (boolean, string?)
 end
 
 -- Every frame: finish reloads whose time is up, keep health attributes on respawned bodies.
+local function statsOfSlot(id: string): (number) -> WeaponState.Stats
+	return function(slot: number)
+		return Combatants.slotStats(id, slot)
+	end
+end
+
 function Firing.step()
 	local now = os.clock()
-	for _, c in Combatants.all() do
-		local done = c.weapons:update(now, function(slot: number)
-			return Combatants.slotStats(c.id, slot)
-		end)
-		if #done > 0 then
-			Firing.sendAmmo(c.id)
+	Combatants.forEach(function(c)
+		-- A fighter with nothing reloading costs one table read here: no stats sheet, no list.
+		if next(c.weapons.reloadEndsAt) ~= nil then
+			local done = c.weapons:update(now, statsOfSlot(c.id))
+			if #done > 0 then
+				Firing.sendAmmo(c.id)
+			end
 		end
 		if Combatants.model(c.id) ~= c.mirrored then
 			Combatants.mirror(c.id)
 		end
-	end
+	end)
 end
 
 return Firing

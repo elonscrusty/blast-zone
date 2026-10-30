@@ -43,6 +43,8 @@ local ICON_TEXT: { [string]: string } = {
 	damage = "DMG",
 }
 
+local PAD_HINT = { "←", "↑", "→" } -- D-pad left, up, right pick card 1, 2, 3
+
 local GAMEPAD_KEYS: { [Enum.KeyCode]: number } = {
 	[Enum.KeyCode.DPadLeft] = 1,
 	[Enum.KeyCode.DPadUp] = 2,
@@ -228,13 +230,15 @@ local function buildCard(option: Option, index: number, strokeSize: number)
 		outline(pip, 1.5)
 	end
 
-	if UserInputService.KeyboardEnabled then
+	-- A pad in hand shows its D-pad direction (left, up, right) instead of the number key.
+	local padInUse = string.sub(UserInputService:GetLastInputType().Name, 1, 7) == "Gamepad"
+	if UserInputService.KeyboardEnabled or padInUse then
 		local key = make("TextLabel", {
 			Name = "Key",
 			BackgroundColor3 = NAVY,
 			TextColor3 = CREAM,
 			Font = FONT,
-			Text = tostring(index),
+			Text = if padInUse then PAD_HINT[index] else tostring(index),
 			TextScaled = true,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.92, 0.88),
@@ -351,7 +355,9 @@ function UpgradeCardsSystem.start()
 	end)
 
 	Net.on("UpgradeApplied", function(info: { upgradeId: string, stacks: number, text: string? })
-		busy = false
+		-- The server sends nothing more when no offer is waiting, so the picked cards close here;
+		-- a queued next offer arrives right after this message and opens them again.
+		hideAll()
 		showToast(if info.text and info.text ~= "" then info.text else "Upgrade!")
 	end)
 

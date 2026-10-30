@@ -192,7 +192,7 @@ local function build()
 	limit.MaxSize = Vector2.new(760, 460)
 	limit.Parent = panel
 
-	local title = Ui.label(panel, "Title", "UNLOCK TRACK", 40)
+	local title = Ui.label(panel, "Title", "REWARDS", 40)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Position = UDim2.new(0, 16, 0, 8)
 	title.Size = UDim2.new(0.5, 0, 0, 44)

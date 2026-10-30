@@ -7,6 +7,8 @@
 --   state(id) -> { health, maxHealth, ammo, magazine, reloading, canFire, slot }? (nil when dead or unknown)
 --   shotParams() -> RaycastParams           an Include list of every shot-stopping part, so a plain Raycast
 --                                           with it sees exactly what shots see (rebuilt on each call)
+--   gunDrops() -> { { dropId, gunId, x, z } }   found guns lying on the ground
+--   claimGun(id, dropId)                      ask for a swap (same checks as a player's button)
 --   isLineClear(from, to) -> boolean         true when no shot-stopping wall lies between (use for eyesight)
 
 local CollectionService = game:GetService("CollectionService")
@@ -17,6 +19,7 @@ local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local Combatants = require("./Combatants")
 local Firing = require("./Firing")
+local WeaponDrops = require("./WeaponDrops")
 local ShotCaster = require("./ShotCaster")
 
 export type BotState = {
@@ -27,6 +30,8 @@ export type BotState = {
 	reloading: boolean,
 	canFire: boolean,
 	slot: number,
+	gunId: string, -- the slot 1 gun in hand
+	range: number, -- how far that gun reaches, upgrades counted
 }
 
 local BotPort = {}
@@ -70,7 +75,17 @@ function BotPort.state(id: string): BotState?
 		reloading = c.weapons.reloadEndsAt[slot] ~= nil,
 		canFire = MatchContext:isCombat() and c.weapons:canFire(os.clock()),
 		slot = slot,
+		gunId = Combatants.primary(id),
+		range = Combatants.gunStats(id).range,
 	}
+end
+
+function BotPort.gunDrops(): { WeaponDrops.GunOnGround }
+	return WeaponDrops.list()
+end
+
+function BotPort.claimGun(id: string, dropId: string)
+	WeaponDrops.claimFor(id, dropId)
 end
 
 function BotPort.shotParams(): RaycastParams

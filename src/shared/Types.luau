@@ -169,6 +169,63 @@ export type ProgressState = {
 	equipped: { [string]: string }, -- slot -> item id
 	gained: { matchId: number, amount: number }?, -- set once, right after a match reward was paid
 	denied: string?, -- why the last unlock/equip request was refused
+	-- Piece 34 (account level)
+	level: number,
+	intoLevel: number, -- XP earned toward the next level
+	forNext: number?, -- XP the next level needs (nil at the top)
+	gifts: { string }, -- level gifts owned (looks from TrackDefs.gifts); kept apart from `unlocked`
+	levelUp: LevelUp?, -- set once, right after a match's XP was added
+}
+
+export type LevelUp = {
+	matchId: number,
+	fromLevel: number,
+	toLevel: number,
+	rewards: { LevelReward },
+}
+export type LevelReward = { level: number, kind: string, amount: number?, itemId: string? }
+
+-- Piece 24: a player's own lifetime stats. saved = false while some of them are not written yet.
+export type StatsPayload = {
+	wins: number,
+	eliminations: number,
+	matches: number,
+	saved: boolean,
+}
+
+-- Piece 25: today's daily challenges for one player (server to client only).
+export type DailyChallengeView = {
+	id: string,
+	tier: string, -- "easy" | "medium" | "hard"
+	kind: string, -- what counts: "elims" | "crates" | "orbs" | "matches" | "top3" | "wins"
+	goal: number,
+	progress: number,
+	reward: number,
+	paid: boolean,
+}
+
+export type DailyState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	day: number, -- days since 1970 (UTC, moved by Config.Daily.resetHourUtc)
+	secondsLeft: number, -- until the next day starts
+	challenges: { DailyChallengeView },
+	justPaid: string?, -- set once, right after a challenge paid out
+}
+
+-- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
+export type LoadoutState = {
+	selection: { [string]: string }, -- slot -> item id
+	unlocked: { [string]: { string } }, -- slot -> ids this player can wear
+	level: number, -- rewards bought (0..6), from piece 18
+	coins: number?, -- Scrap, from piece 18 (nil until saved data is loaded)
+	saved: boolean, -- false = picks last this visit only
+}
+
+-- Piece 38: the weather the server picked for this match. level "clear" means no rain.
+export type WeatherState = {
+	matchId: MatchId,
+	level: string, -- "clear" | one of Config.Weather.levels
+	serverNow: number,
 }
 
 return {}

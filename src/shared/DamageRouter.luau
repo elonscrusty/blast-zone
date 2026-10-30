@@ -6,6 +6,7 @@
 --   - phase not combat         -> dropped  ("not-combat")   so late hits cannot change results
 --   - amount not finite / <= 0 -> dropped  ("bad-amount")
 --   - target unknown / dead    -> dropped  ("no-target")
+--   - a guard says no          -> dropped  (the guard's reason, e.g. "shielded")
 --   - second elimination of the same target in a match is ignored (no duplicate kill credit)
 -- Backend contract: backend(request) -> DamageResult. It must NOT fire events; the router does.
 
@@ -48,10 +49,16 @@ function Router.new(host: Host): any
 	return setmetatable({
 		_host = host,
 		_backend = nil :: ((Request) -> Result)?,
+		_guards = {} :: { (Request) -> string? },
 		_eliminated = {} :: { [string]: boolean }, -- "<matchId>:<id>"
 		Damaged = Signal.new(), -- ({ request, result })
 		Eliminated = Signal.new(), -- (EliminationEvent)
 	}, Router)
+end
+
+-- A guard returns a reason to drop the hit, or nil to let it through. Used by the spawn shield.
+function Router.addGuard(self: any, guard: (Request) -> string?)
+	table.insert(self._guards, guard)
 end
 
 -- Piece 03 binds the real implementation once at start-up.
@@ -73,6 +80,12 @@ function Router.apply(self: any, req: Request): Result
 	end
 	if not host.isAlive(req.targetId) then
 		return reject("no-target")
+	end
+	for _, guard in self._guards do
+		local ok, reason = pcall(guard, req)
+		if ok and reason ~= nil then
+			return reject(reason)
+		end
 	end
 	local backend = self._backend
 	if backend == nil then
