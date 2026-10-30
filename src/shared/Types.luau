@@ -195,6 +195,39 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Gap 23: a player's ranked ladder standing (server to client only). `last` is set once, right after a match counted.
+export type RankedLast = {
+	matchId: number,
+	place: number,
+	kills: number,
+	delta: number,
+	counted: boolean, -- false = practice (switch was off, too few fighters, or a draw rule said no)
+	promoted: boolean,
+	demoted: boolean,
+	fromLabel: string,
+	toLabel: string,
+}
+
+export type RankedPayload = {
+	enabled: boolean, -- the ranked switch
+	points: number,
+	matches: number, -- counted this season
+	qualified: boolean, -- false while still in the warm-up matches
+	qualifyLeft: number,
+	label: string, -- "Wire II", or "Unranked" during the warm-up
+	tierId: string,
+	tierName: string,
+	step: number, -- 1..divisions (0 for the top tier)
+	intoStep: number, -- points earned inside this step
+	stepSize: number,
+	nextTierName: string?,
+	toNextTier: number?,
+	peakTierName: string,
+	season: number,
+	saved: boolean, -- false while the profile is not loaded or the last change is not written
+	last: RankedLast?,
+}
+
 -- Video 3 gap 18: the Scrap Shop. Coins and what is owned/worn come from ProgressState; this is only what is on sale.
 export type ShopOfferView = {
 	id: string,
@@ -241,6 +274,56 @@ export type DailyState = {
 	secondsLeft: number, -- until the next day starts
 	challenges: { DailyChallengeView },
 	justPaid: string?, -- set once, right after a challenge paid out
+}
+
+-- Gap 14: the bench (server to client only). Looks come from Claude Design; this is only the facts.
+export type BenchPartView = { kind: string, tier: number, count: number, canMerge: boolean }
+export type BenchNeedView = { kind: string, tier: number, count: number, have: number }
+export type BenchBlueprintView = {
+	id: string,
+	name: string,
+	slot: string, -- "head" | "body" | "feet"
+	needs: { BenchNeedView },
+	built: boolean,
+	ready: boolean,
+}
+export type BenchState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	parts: { BenchPartView },
+	blueprints: { BenchBlueprintView },
+	built: number,
+	total: number,
+	justGot: { { kind: string, tier: number } }?, -- parts that just dropped after a match
+	event: string?, -- "merged" | "built" | "dropped" | "denied"
+	reason: string?, -- why a request was denied
+}
+
+-- Gap 19: chests. One prize out of an opened chest (a repeated look turns into Scrap, dupe = true).
+export type ChestPrize = {
+	rowId: string,
+	kind: string, -- "scrap" | "look"
+	rarity: string, -- "common" | "rare" | "epic"
+	name: string,
+	amount: number?,
+	itemId: string?,
+	dupe: boolean,
+}
+
+export type ChestReveal = {
+	id: number, -- goes up with every chest the player opens, so the screen never plays one twice
+	kind: string, -- the chest kind that was opened
+	prizes: { ChestPrize },
+}
+
+export type ChestState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	owned: { [string]: number }, -- chest kind -> how many waiting
+	meter: number, -- finished matches toward the next free Street Chest
+	meterGoal: number,
+	opened: number,
+	justAwarded: { string }?, -- chest kinds earned just now (set once)
+	reveal: ChestReveal?, -- set once, right after an open
+	denied: string?, -- why the last open was refused
 }
 
 -- Piece 48: weekly missions, achievements and login days for one player (server to client only).

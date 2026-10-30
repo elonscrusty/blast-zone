@@ -178,6 +178,11 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== G19 chests with a reveal =====
+	ask("G19", "ChestRequest", {}, 1, 2), -- a client asks for its chests (the server also sends them unasked)
+	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
+	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
+
 	-- ===== video 3 gap 18: Scrap Shop =====
 	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
 	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
@@ -278,6 +283,15 @@ local Defs: { Def } = {
 		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
 
+	-- ===== V14 bench: parts, merge, blueprints =====
+	ask("V14", "BenchRequest", {}, 1, 2), -- a client asks for its bench (the server also sends it unasked)
+	ask("V14", "BenchMerge", {
+		{ name = "kind", kind = "id", maxLen = 12 },
+		{ name = "tier", kind = "integer", min = 1, max = 4 },
+	}, 4, 6),
+	ask("V14", "BenchBuild", { { name = "blueprintId", kind = "id", maxLen = 24 } }, 3, 4),
+	tell("V14", "BenchState", "BenchState"),
+
 	-- ===== G20 season pass =====
 	ask("G20", "SeasonRequest", {}, 1, 2), -- a client asks for its pass (the server also sends it unasked)
 	ask("G20", "SeasonClaimRequest", {
@@ -294,6 +308,11 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== G23 ranked ladder =====
+	ask("G23", "RankedRequest", {}, 1, 2), -- a client that just started asks for its standing
+	ask("G23", "RankedToggle", { { name = "on", kind = "boolean" } }, 2, 3), -- the ranked switch
+	tell("G23", "RankedUpdate", "RankedPayload"),
 
 	-- ===== V16 power rating (video 3 gap #16) =====
 	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating

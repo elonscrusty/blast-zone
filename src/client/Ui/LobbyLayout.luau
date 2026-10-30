@@ -22,8 +22,8 @@ LobbyLayout.bannerBottom = 178
 LobbyLayout.groups = {
 	menu = { x = 280, y = 180, w = 220, h = 132 } :: Rect, -- centre column
 	side = { x = 56, y = 160, w = 104, h = 152 } :: Rect, -- left column, clear of the notch
-	right = { x = 620, y = 96, w = 104, h = 216 } :: Rect, -- right column, clear of the notch
-	more = { x = 508, y = 264, w = 104, h = 48 } :: Rect, -- between the centre and right columns (piece 48)
+	right = { x = 620, y = 40, w = 104, h = 272 } :: Rect, -- right column, clear of the notch
+	more = { x = 508, y = 208, w = 104, h = 104 } :: Rect, -- between the centre and right columns (piece 48)
 }
 
 export type Slot = { group: string, rect: Rect, touch: boolean }
@@ -34,7 +34,9 @@ LobbyLayout.slots = {
 	settings = { group = "menu", rect = { x = 280, y = 264, w = 106, h = 48 }, touch = true } :: Slot,
 	track = { group = "menu", rect = { x = 394, y = 264, w = 106, h = 48 }, touch = true } :: Slot, -- piece 18
 	looks = { group = "side", rect = { x = 56, y = 160, w = 104, h = 152 }, touch = true } :: Slot, -- fighter looks
+	chests = { group = "right", rect = { x = 620, y = 40, w = 104, h = 48 }, touch = true } :: Slot, -- gap 19
 	shop = { group = "right", rect = { x = 620, y = 152, w = 104, h = 48 }, touch = true } :: Slot, -- Scrap Shop
+	bench = { group = "more", rect = { x = 508, y = 208, w = 104, h = 48 }, touch = true } :: Slot, -- video 3 gap 14
 	loadout = { group = "right", rect = { x = 620, y = 208, w = 104, h = 48 }, touch = true } :: Slot, -- piece 19
 	daily = { group = "right", rect = { x = 620, y = 264, w = 104, h = 48 }, touch = true } :: Slot, -- piece 25
 	season = { group = "right", rect = { x = 620, y = 96, w = 104, h = 48 }, touch = true } :: Slot, -- video 3 gap 20

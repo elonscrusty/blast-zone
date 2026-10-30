@@ -9,3 +9,4 @@
 8. Steps to bring work back: `plans/UI-BRING-BACK.md` (carter's 5 tiny steps + builder steps).
 9. Checks: stylua OK, `lune run tests/run` 342 pass, rojo build OK, luau-lsp clean on Ui/ and Hud/. selene needs CI (no API dump here). Nothing run in Studio.
 10. Next: when carter brings the JSON + pictures, import the skin, then move LEGACY screens onto Components one group per PR.
+11. Update: carter's Claude Design skin "Street Sticker+" (design/street_sticker_plus.json) is imported as `Ui/Skins/StreetStickerPlus.luau` and is now `Tokens.defaultSkin` (display font LuckiestGuy, body FredokaOne, warmer win/lose/draw banners). Screens still on LEGACY keep their old hard-coded look until moved to Components.

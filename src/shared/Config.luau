@@ -776,6 +776,13 @@ Config.Moments = {
 	maxNameLength = 16, -- names on banners are cut to this many letters
 }
 
+-- Big map (video 3 gap 8): tap the minimap to see the whole arena and the circle. Logic only; the
+-- look comes from the UI system. It never pauses the game.
+Config.BigMap = {
+	enabled = true,
+	autoCloseSeconds = 8, -- carter picked C: a peek that closes itself after 8 s (0 = stays open until tapped)
+}
+
 Config.Plates = {
 	enabled = true,
 	maxDistance = 90, -- studs; further fighters show no plate
@@ -976,6 +983,23 @@ Config.Level = {
 Config.Daily = {
 	resetHourUtc = 0, -- the new day starts at this hour (UTC)
 	rewards = { easy = 20, medium = 35, hard = 50 },
+}
+
+-- Video 3 gap 14: the bench. Parts drop after a match (more for a better place), merge 3 into 1 up a tier, and
+-- build gear (looks only) from blueprints. The list is in shared/Bench/BenchDefs.
+Config.Bench = {
+	drops = { win = 4, podium = 3, middle = 2, other = 1 }, -- tier 1 parts per finished match
+	fieldSize = 8, -- "middle" means the top half of this many fighters
+}
+
+-- Gap 19: chests with a reveal. Free, earned by playing (never bought, never Robux). First place gives a Neon Chest,
+-- top 3 a Street Chest, and every `meterGoal`th finished match a Street Chest too. What can come out, and the odds
+-- (shown on the chest screen before anything is opened), are in shared/Chest/ChestDefs.
+Config.Chest = {
+	maxStored = 20, -- chests of one kind a player can hold; more are not given (the meter waits)
+	meterGoal = 4,
+	revealStyle = "A", -- "A" Lid Pop (carter picked), "B" Drop Burst, "C" Card Flip stay as skins (ChestReveal.styles)
+	reduceMotionStyle = "B", -- the quick one, used when the player turned on reduce flashes
 }
 
 -- Piece 48: weekly missions, achievements and login days. All pay Scrap (Config.Rewards.currencyName), claimed
@@ -1198,6 +1222,39 @@ Config.Stats = {
 		modelName = "TopWinsBoard",
 		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
 	},
+}
+
+-- Gap 23 (ranked ladder): rank points, tiers and a ranked on/off switch. Server only counts; saved in the profile as
+-- data.ranked. A match counts for a player who had the switch ON when the fight began. Tier names are carter's
+-- pick (Bronze to Gold style); looks come from Claude Design. The rules are in shared/Ranked/RankedRules.
+Config.Ranked = {
+	profileKey = "ranked", -- saved inside the player's profile as data.ranked (piece 17)
+	season = 1, -- a new season keeps `seasonKeep` of the points and asks for the warm-up matches again
+	seasonKeep = 0.5,
+	qualifyMatches = 3, -- warm-up: the tier shows as "Unranked" until this many counted matches
+	minField = 4, -- fighters (bots too) a match needs to count; fewer = practice
+	settleSeconds = 1, -- after the first spawn the server waits this long, then fixes who is ranked and takes the stakes
+	-- Points for one match: last place gets lastPoints, first place winPoints, in between on a straight line.
+	winPoints = 30,
+	lastPoints = -18,
+	killPoints = 3, -- per elimination, capped at maxKillPoints (so farming bots stays small)
+	maxKillPoints = 15,
+	-- A match with fewer than 2 real players is bots-only: gains are scaled, and cannot lift you into
+	-- tier number `soloCeilingTier` or higher (tiers are counted from 1).
+	soloScale = 0.5,
+	soloCeilingTier = 3,
+	dropTiers = false, -- false: losses never take you below the start of your tier. true: you can fall back down
+	maxPoints = 100000, -- sanity cap
+	divisions = 3, -- steps inside every tier except the top one
+	-- `from` = points where the tier starts. First tier starts at 0. The last tier has no divisions.
+	tiers = {
+		{ id = "bronze", name = "Bronze", from = 0 },
+		{ id = "silver", name = "Silver", from = 100 },
+		{ id = "gold", name = "Gold", from = 250 },
+		{ id = "platinum", name = "Platinum", from = 450 },
+		{ id = "diamond", name = "Diamond", from = 700 },
+		{ id = "champion", name = "Champion", from = 1000 },
+	} :: { { id: string, name: string, from: number } },
 }
 
 -- Video 3 gap #16: the power rating. One show-off number from things earned by playing. Nothing in combat, loot

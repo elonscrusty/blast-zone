@@ -7,6 +7,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -19,6 +20,8 @@ local TouchControls = require(script.Parent.Parent.Controls.TouchControls)
 local Settings = require(script.Parent.Parent.Settings.Settings)
 local SettingsPanel = require(script.Parent.Parent.Settings.SettingsPanel)
 
+local BigMapModel = require(script.Parent.BigMapModel)
+local BigMapView = require(script.Parent.BigMapView)
 local HudModel = require(script.Parent.HudModel)
 local HudView = require(script.Parent.HudView)
 local Layout = require(script.Parent.Layout)
@@ -85,6 +88,38 @@ function HudSystem.start()
 	view:setScale(Settings.number("hudScale"))
 	ControlsSystem.setWeapons(1, #config.weapons)
 	Controls.setEnabled(HudModel.controlsOn(model)) -- off until the server says a match is live
+
+	-- ===== big map: tap the minimap (touch), M (keyboard) or Y (pad); any tap on it closes it =====
+	local bigMap = BigMapModel.new()
+	local bigMapView = BigMapView.new(Config.Arena, function()
+		BigMapModel.close(bigMap)
+	end)
+	local offerUp = false -- a level-up offer is on screen; its cards and chips need the space
+	local function hudShows(): boolean
+		return HudModel.visible(model) and not offerUp
+	end
+	local function toggleBigMap()
+		if Config.BigMap.enabled then
+			BigMapModel.toggle(bigMap, os.clock(), hudShows())
+		end
+	end
+	view.mapButton.Activated:Connect(toggleBigMap)
+	Controls.Action:connect(function(action: string)
+		if action == "map" then
+			toggleBigMap()
+		end
+	end)
+	Net.on("UpgradeOffer", function(offer: any)
+		offerUp = offer ~= nil
+		if offerUp then
+			BigMapModel.close(bigMap)
+		end
+	end)
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		if input.KeyCode == Enum.KeyCode.ButtonB and bigMap.open then
+			BigMapModel.close(bigMap)
+		end
+	end)
 
 	-- the gear that opens the settings
 	local gear = Instance.new("TextButton")
@@ -184,6 +219,24 @@ function HudSystem.start()
 			safe = safe,
 			reduceFlashes = Settings.flag("reduceFlashes"),
 			hitAmount = model.hitConfirmAmount,
+		})
+		local mapOpen =
+			BigMapModel.step(bigMap, os.clock(), hudShows(), Config.BigMap.autoCloseSeconds)
+		local drawZone = nil
+		if mapOpen and zone and derived.zoneRadius ~= nil then
+			drawZone = {
+				centerX = zone.centerX,
+				centerZ = zone.centerZ,
+				radius = derived.zoneRadius,
+				targetRadius = zone.toRadius,
+			}
+		end
+		bigMapView:update({
+			open = mapOpen,
+			px = px,
+			pz = pz,
+			yaw = CameraHeading.get(),
+			zone = drawZone,
 		})
 		TouchControls.update(
 			derived.visible and HudModel.controlsOn(model),
