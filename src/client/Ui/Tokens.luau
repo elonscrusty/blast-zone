@@ -5,6 +5,7 @@
 -- Pure data so Lune can test it. Rule: plans/CONTRACTS.md, "Look and logic".
 
 local StreetSticker = require("./Skins/StreetSticker")
+local StreetStickerPlus = require("./Skins/StreetStickerPlus")
 
 export type Colors = {
 	panel: string,
@@ -98,9 +99,10 @@ Tokens.MIN_TEXT = 9
 
 Tokens.skins = {
 	street_sticker = StreetSticker :: Skin,
+	street_sticker_plus = StreetStickerPlus :: Skin, -- Claude Design, carter's pick
 }
 
-Tokens.defaultSkin = "street_sticker"
+Tokens.defaultSkin = "street_sticker_plus"
 
 local current = Tokens.defaultSkin
 
