@@ -15,6 +15,7 @@ local SprintService = require(script.Parent.Parent.Movement.SprintService)
 local Ballistics = require("./Ballistics")
 local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
+local BreakSystem = require(script.Parent.Parent.Props.BreakSystem)
 local Shells = require("./Shells")
 local ShotCaster = require("./ShotCaster")
 local WeaponState = require("./WeaponState")
@@ -121,6 +122,8 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 			end
 			if wallPart ~= nil and ContainerLink.damage(wallPart, amount, id, matchId) then
 				kind = "container"
+			elseif wallPart ~= nil then
+				BreakSystem.damage(wallPart, amount, id, matchId) -- a car, bin or bench (piece 47)
 			end
 		end
 		local muzzle = origin + Vector3.new(d.x, 0, d.z) * math.min(gun.muzzleOffset, hit.endDist)

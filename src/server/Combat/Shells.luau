@@ -18,6 +18,7 @@ local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
 local ShellFlight = require("./ShellFlight")
 local ShotCaster = require("./ShotCaster")
+local BreakSystem = require(script.Parent.Parent.Props.BreakSystem)
 
 local explosive = Config.Weapons.Explosive
 
@@ -151,6 +152,18 @@ local function detonate(s: Live, center: Vector3)
 			end
 		end
 	end
+	-- Street props (cars, bins, benches): the prop itself never hides it from its own blast.
+	BreakSystem.blast(
+		center,
+		s.radius,
+		s.damage,
+		s.ownerId,
+		s.matchId,
+		function(part: BasePart): boolean
+			local at = Vector3.new(part.Position.X, s.y, part.Position.Z)
+			return not ShotCaster.lineBlocked(center, at, bodies, part)
+		end
+	)
 end
 
 -- The same list without one fighter (a shell never touches its own shooter in flight).
