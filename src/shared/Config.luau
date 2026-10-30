@@ -660,7 +660,7 @@ Config.Loot = {
 -- when, where and what; clients only draw. All numbers are placeholders until carter plays.
 Config.Airdrop = {
 	enabled = true,
-	look = "B", -- "A" Gold Pillar, "B" Cyan Searchlight, "C" Coral Flare (carter picks; see looks below)
+	look = "B", -- carter picked B Cyan Searchlight. Skins: "A" Gold Pillar, "C" Coral Flare (see looks below)
 	count = 2, -- drops per match
 	firstAtSeconds = 45, -- seconds after the fight starts; the drops spread evenly from first to last
 	lastAtSeconds = 115,
