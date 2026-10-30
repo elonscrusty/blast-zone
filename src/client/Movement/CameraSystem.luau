@@ -1,8 +1,8 @@
 --!strict
 -- The elevated, angled camera. It follows the player from a fixed heading (it never turns during
 -- play), glides with a very short delay, and pulls back a little on narrow screens so a phone held
--- upright still shows threats at the sides. Spectating works by itself: piece 05 points
--- Camera.CameraSubject at the participant to watch, and this camera follows whatever it points at.
+-- upright still shows threats at the sides. Spectating: piece 05 sets the LocalPlayer attribute
+-- SpectateTargetId (and points Camera.CameraSubject there); this camera follows either.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Ids = require(Shared.Ids)
 local CameraRules = require(Shared.Movement.CameraRules)
 
 local CameraSystem = {}
@@ -30,8 +31,31 @@ local function rootOfModel(model: Instance?): BasePart?
 	return nil
 end
 
--- Who the camera looks at: whatever the camera subject is, else the player's own character.
+-- The body of a participant by id: a player's character, or a bot's model.
+local function characterOf(id: string): Model?
+	local userId = Ids.userIdOf(id)
+	if userId then
+		local other = Players:GetPlayerByUserId(userId)
+		return if other then other.Character else nil
+	end
+	for _, inst in workspace:GetChildren() do
+		if inst:IsA("Model") and inst:GetAttribute(Config.Attributes.ParticipantId) == id then
+			return inst
+		end
+	end
+	return nil
+end
+
+-- Who the camera looks at: the spectate target when piece 05 names one (LocalPlayer attribute
+-- SpectateTargetId), else whatever the camera subject is, else the player's own character.
 local function subjectRoot(camera: Camera): BasePart?
+	local spectateId = player:GetAttribute("SpectateTargetId")
+	if type(spectateId) == "string" and Ids.isValid(spectateId) then
+		local root = rootOfModel(characterOf(spectateId))
+		if root then
+			return root
+		end
+	end
 	local subject = camera.CameraSubject
 	if subject and subject:IsA("Humanoid") then
 		local root = rootOfModel(subject.Parent)
