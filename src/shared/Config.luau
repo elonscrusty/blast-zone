@@ -30,6 +30,8 @@ Config.Features = {
 	healPickup = false, -- piece 07, optional
 	bots = true, -- piece 09
 	roofFade = true, -- piece 04
+	cityArt = true, -- piece 14: Neon Night art pass on the arena (visual only; off = plain graybox)
+	dayNight = true, -- piece 14: lighting slides from day to night during a match (client only)
 	spectate = true, -- piece 05
 	devQuickStart = true, -- piece 05: simple way to start a small match; labeled as dev
 }
@@ -207,6 +209,8 @@ Config.Tags = {
 	ContainerSpot = "ContainerSpot",
 	SupplyContainer = "SupplyContainer",
 	FinalZoneRegion = "FinalZoneRegion",
+	ArtNeon = "ArtNeon", -- piece 14: art parts whose glow follows the time of day (client)
+	ArtFollower = "ArtFollower", -- piece 14: art parts that copy an occluder's see-through fade
 }
 
 Config.Workspace = {
@@ -338,6 +342,24 @@ Config.Perf = {
 
 Config.Net = {
 	clientWaitSeconds = 10,
+}
+
+-- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
+-- collision, shots, spawns or the zone.
+Config.Art = {
+	seed = 1407, -- same seed = same city, every server and every match
+	maxParts = 9000, -- phone budget for the whole art pass (tests fail above this)
+	maxLights = 30, -- PointLights across the whole city
+	lowestFloatingStuds = 5, -- art lower than this must sit flush against a solid or lie flat on the ground
+	flushStuds = 0.6, -- how far art may stick out of a solid below that height
+	skyline = { towers = 30, innerGap = 8, outerReach = 70 }, -- towers outside the arena wall
+	-- Day to night. t runs 0 (day) to 1 (full night), tied to match time: it reaches 1 when
+	-- sudden death starts. Outside a match the city is back in daylight.
+	dayNight = {
+		lobbyT = 0,
+		maxChangePerSecond = 0.25, -- the sky glides, even when a new match snaps t back to 0
+		glowSteps = 12, -- neon brightness is updated in this many steps, not every frame
+	},
 }
 
 return Config

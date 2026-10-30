@@ -1,0 +1,10 @@
+# 14 City art: Neon Night, day to night
+- Done: carter picked Neon Night, and "not always night": the match slides day, sunset, night and is full night when sudden death starts (`Config.Art.dayNight`). Lobby and results go back to day. Works on maps A, B and C (C is the live one).
+- Plan: `src/server/Arena/Art*.luau` (ArtPlan composes FacadeArt, RoofArt, StreetArt, ParkArt, InteriorArt, SkylineArt). Pure and seeded (`Config.Art.seed`), about 4,000 parts for C, under `Config.Art.maxParts` 9,000 and `maxLights` 30. `ArtBuilder` makes the parts: all anchored, CanCollide/CanQuery/CanTouch off, so no collision, spawn, crate spot, route or zone changed.
+- Hook: `ArenaSystem` builds `Arena.Art` after the graybox, inside a pcall (art can fail, the match still runs). Set `Config.Features.cityArt = false` for plain graybox. Gray boxes the art redraws (cars, trees, kiosk...) turn invisible but stay solid (`ArtPlan.replaces`).
+- Roof fade: art on a wall or roof gets `FadeWith` + tag `ArtFollower` and copies that occluder's fade in `InteriorVisibilitySystem`. Art never carries `OccluderKind`, so building footprints are unchanged.
+- Day/night: `src/shared/DayNight.luau` (pure maths) and `src/client/Arena/DayNightSystem.luau` (Lighting, Atmosphere, Bloom, neon via tag `ArtNeon`). Clock comes from ZoneState (`startedAt`, `stage`), so late joiners agree. Neon updates in 12 steps, not every frame.
+- Rules kept (tests/art.test.luau): no floating art, no gold or violet below head height (pickups), no thin cyan glow streak low down (shots), nothing on crate spots or spawn pads, towers outside the wall and the south ones low (camera looks north).
+- Tests: `tests/art.test.luau`, `tests/daynight.test.luau`. 365 pass. Proof renders (real plan in Three.js) were shown to carter.
+- Not tested: Roblox-side parts, lighting and the glow (needs Studio play). selene did not run here (needs the Roblox std download); CI runs it.
+- Left: look at it on a phone for frame rate (drop `Config.Art.skyline.towers` or `maxParts` first), tweak night brightness after playing, `Config.Art.seed` re-rolls clutter.
