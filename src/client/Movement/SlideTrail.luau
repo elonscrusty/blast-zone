@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local CosmeticLook = require(script.Parent.Parent.Progression.CosmeticLook)
 
 local SlideTrail = {}
 
@@ -37,7 +38,7 @@ function SlideTrail.play(character: Model, duration: number)
 	trail.Attachment0 = top
 	trail.Attachment1 = bottom
 	trail.Lifetime = Config.Slide.trailFadeSeconds
-	trail.Color = ColorSequence.new(Color3.fromHex(Config.Palette.Cyan))
+	trail.Color = ColorSequence.new(CosmeticLook.trailColor(character)) -- the owner's chosen trail (piece 18)
 	trail.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0.15),
 		NumberSequenceKeypoint.new(1, 1),

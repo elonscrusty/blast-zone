@@ -126,6 +126,4 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
   check it fits on every phone. The top of the lobby (above `LobbyLayout.bannerBottom`) is for banners.
 - Pieces placed with `UiKit.place` keep their distance to their screen edge in height units, so phones from 16:9
   to 21:9 get the same spacing; tablets get the 16:9 layout shrunk.
-- Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;
-  #17 coin strip `55` -> `UiLayers.MatchFlowExtra`, track panel `60` -> `UiLayers.Modal` (+ `ModalGate`),
-  lobby TRACK button -> `LobbyMenu.slot("track")`; #20 look picker `15` -> `UiLayers.Calm` (or `LobbyMenu.slot("looks")`).
+- Done in #24 for the screens on main. Still to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`.

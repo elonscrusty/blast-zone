@@ -1,0 +1,10 @@
+# 29 Emotes and winner poses
+- Done: 12 emotes drawn from code on piece N11's rig (sets A Street, B Hype, C Chill, 4 each) + 3 winner poses (Gun to the Sky, Fist Pump, Arms Crossed). carter picked "all of them": every emote is free, each player picks a winner pose. Preview: claude.ai/artifact/Us4bpgQdjNq6MYJv2iqWcy
+- Poses: `src/shared/Character/Emotes.luau` (fills a Pose like `Pose.luau`; A's win = N11's victory). Rules: `src/shared/Character/EmoteRules.luau` (owned? fighting? cooldown? "win_X" ids). Knobs: `Config.Emotes`.
+- Server `src/server/Emotes/EmoteSystem.luau`: `EmoteRequest(id)` -> checks -> character attributes `Emote` + `EmoteAt` (server time); "stop" ends it; "win_A/B/C" sets Player attribute `WinPose`. Ends after 8 s and when a match spawns. No emotes for alive fighters in a combat phase.
+- Client: `EmoteWheelSystem` = round ★ EMOTE button bottom right (Waiting/Countdown only), 4 bubbles + next-set bubble, last page = winner pose. Keys: B / ButtonY open, 1-4 play. Walking off sends "stop".
+- `CharacterAnimSystem` (N11) draws the emote from the attributes and the winner's own pose; `WinnerBannerSystem` shows a 3D copy of the winner doing it in the bottom-left corner of the results screen (DisplayOrder 52, ViewportFrame + WorldModel).
+- Coin track (piece 18) hook is ready but off: `Config.Emotes.trackUnlocks = true` opens emotes by track tier (starter 0,0,2,4; others 1,3,5,6). Added read-only `ProgressionSystem.progressOf(player)`.
+- Branch contains PR #20 (character) and PR #17 (coins) merged in, since it builds on both. Merge those first; this PR's own diff is the files above.
+- Tests: `tests/emotes.test.luau` (10 tests: finite/moving poses, shapes, A win == N11 victory, free/locked/tier rules, refusals, win ids; 2 deliberate breaks fail). luau-lsp clean on new files. Nothing run in Studio.
+- Untested until carter plays: angle signs on the real R15 joints (same convention as N11), bubble spots on small phones, winner window size, the WinPose pick is not saved between sessions.

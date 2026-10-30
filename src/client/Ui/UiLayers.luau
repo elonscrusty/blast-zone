@@ -12,6 +12,7 @@ UiLayers.Calm = 15 -- widgets shown between fights that are not lobby buttons
 UiLayers.Popups = 20 -- upgrade cards, bots banner
 UiLayers.Spectate = 30 -- spectate arrows
 UiLayers.MatchFlow = 50 -- lobby (PLAY, SETTINGS, every LobbyMenu slot), countdown, banners, results
+UiLayers.MatchFlowBanner = 52 -- winner banner, over the results screen
 UiLayers.MatchFlowExtra = 55 -- add-ons drawn over the results screen (coins strip)
 UiLayers.Modal = 100 -- full panels with a dim behind them: settings, track, loadout, shop
 UiLayers.Onboarding = 110 -- first-time intro; blocks everything under it
@@ -26,6 +27,7 @@ UiLayers.order = {
 	"Popups",
 	"Spectate",
 	"MatchFlow",
+	"MatchFlowBanner",
 	"MatchFlowExtra",
 	"Modal",
 	"Onboarding",
