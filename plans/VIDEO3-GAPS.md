@@ -15,6 +15,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 | What the video shows | Status |
 | --- | --- |
 | Neon night look, trees, props, chunky city | in progress (look + props passes) |
+| Name plates, big call-out banners, level-up burst (gaps 4, 5, 6) | in progress (Big moments, piece 44) |
 | Healing packs on the street, carried and used on a button | done (#50) |
 | Guns lying on the street | done (#50) |
 | Big level-up powers (rocket blast, piercing, double barrel...) | in progress (Power Picks) |
