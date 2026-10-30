@@ -113,6 +113,7 @@ Config.Features = {
 	dayNight = true, -- piece 14: lighting slides from day to night during a match (client only)
 	spectate = true, -- piece 05
 	devQuickStart = true, -- piece 05: simple way to start a small match; labeled as dev
+	traffic = true, -- piece SL: glowing cars drive the roads (looks only; off = empty streets)
 }
 
 -- Match lifecycle (piece 05). Times in seconds.
@@ -1078,6 +1079,36 @@ Config.Weather = {
 	applyAtmosphere = false, -- the city's DayNightSystem adds the Lighting attributes to its own Atmosphere; true = rain nudges an Atmosphere itself
 	dropColor = "#9FE9FF",
 	attributes = { fog = "WeatherFogAdd", haze = "WeatherHazeAdd" }, -- written on Lighting for the day-night code
+}
+
+-- Piece SL: night traffic. Glowing hover-cars loop the roads. Looks only: they never hit, block or
+-- shoot anything. The server sends the free road stretches; the client draws the cars.
+Config.Traffic = {
+	roadMinWidth = 12, -- narrower roads get no cars
+	laneMinLength = 40, -- shorter roads get no cars
+	edgeInset = 6, -- cars stop this far from the end of a road
+	segmentMinLength = 28, -- a free stretch shorter than this gets no car
+	solidMargin = 4, -- a car keeps this far from a wall, parked car or crate on its lane
+	studsPerCar = 70, -- about one car per this much lane
+	carGap = 30, -- at least this far between two cars of one stretch
+	maxCars = 14, -- hard cap on cars alive
+	phoneMaxCars = 8, -- touch-only devices draw fewer
+	speedMin = 16, -- studs per second
+	speedMax = 24,
+	hoverHeight = 1.8, -- how high the car body floats over the street
+	crossLift = 2.4, -- north-south lanes ride this much higher than east-west ones
+	endFadeStuds = 8, -- a car fades in and out over this much of each end of its stretch
+	fadeInner = 7, -- cars are invisible this close to the local fighter ...
+	fadeOuter = 13, -- ... and fully solid from this far away
+	slowRadius = 70, -- a shot this close to a road stretch slows the cars on it
+	slowFactor = 0.2, -- speed while braking, as a share of normal
+	slowHoldSeconds = 2,
+	slowRecoverSeconds = 2,
+	colors = { "#36D9E8", "#F15B64", "#FFC44D", "#B57BFF", "#3DFF8A" }, -- the glow strip
+	bodyColor = "#232D42",
+	cabColor = "#2C3A58",
+	lightColor = "#FFF2C0",
+	tailColor = "#FF4060",
 }
 
 -- Piece 17: saving player progress (DataStore). Read by src/server/Profile only.
