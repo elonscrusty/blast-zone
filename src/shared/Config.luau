@@ -711,6 +711,9 @@ Config.Art = {
 	},
 	-- Glowing grid on the lobby plaza (the synthwave floor from video 3) and stars in the night sky.
 	lobbyGrid = { enabled = true, spacing = 13, color = "#36D9E8", transparency = 0.35, line = 0.3 },
+	-- Shot streaks (Effects/Fx): thicker and longer, the bright beams of video 3. Studs; the gun's own
+	-- widthScale multiplies outer and inner.
+	shots = { outer = 1.3, inner = 0.65, tail = 4.4 },
 	stars = 2500, -- Sky.StarCount while the sky is dark (client only)
 }
 

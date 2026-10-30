@@ -8,4 +8,5 @@
 - Not tested: how it looks in Roblox (no Play tests). selene did not run here (needs the Roblox std download); CI runs it.
 - Step 2 (chunky props): trees are faceted (two turned cubes per blob, flat-shaded) instead of smooth balls; park fences get brick pillars with stone caps; fence lamps get a second bulb on an arm (no extra light). About 100 more parts per map (map C 4,086, limit 9,000). All in `ParkArt.luau`.
 - Step 3 (lobby): glowing cyan grid lines on the plaza floor (`LobbyBuilder.buildGrid`, `shared/GridLines.luau`, knobs in `Config.Art.lobbyGrid`, 32 neon parts, paint only) and stars in the night sky (`Config.Art.stars`, a Sky in `DayNightSystem`).
-- Left for later steps: fat bins and street props in `StreetArt`, thicker shot effects. Tune brightness and colors after carter plays.
+- Step 4 (shots): streaks are thicker and longer (`Config.Art.shots`: glow 1.3, core 0.65, tail 4.4 studs; was 0.9, 0.45, 3.2). Gun widthScale still multiplies. Inside the same part budget.
+- Left for later steps: fat bins and street props in `StreetArt` (skipped: the current dumpsters, planters and barriers already read chunky). Tune brightness and colors after carter plays.
