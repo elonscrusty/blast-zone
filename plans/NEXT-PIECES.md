@@ -17,5 +17,5 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 06 | Safe zone + sudden death | 15 | not started | |
 | 07 | Supply containers, pickups, run XP | 13, 14 | not started | |
 | 08 | Upgrade catalogue + offers (server) | 14 | not started | |
-| 09 | Test bots | 18 | not started | |
+| 09 | Test bots | 18 | PR up | this PR |
 | 10 | HUD, upgrade cards, mobile/controller controls, settings | 20 | not started | |

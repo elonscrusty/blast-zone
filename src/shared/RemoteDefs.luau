@@ -107,7 +107,11 @@ local Defs: { Def } = {
 	tell("08", "UpgradeOffer", "UpgradeOffer"),
 	tell("08", "UpgradeApplied", "{ upgradeId, stacks, text }"),
 
-	-- ===== 09 bots, 10 hud: add here only if you truly need a new remote =====
+	-- ===== 09 bots =====
+	ask("09", "AddBotsRequest", {}, 1, 2),
+	tell("09", "BotFillState", "{ secondsLeft: number? } (nil hides the banner)"),
+
+	-- ===== 10 hud: add here only if you truly need a new remote =====
 }
 
 local Index: { [string]: Def } = {}
