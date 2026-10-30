@@ -90,6 +90,7 @@ local WORLD_ART = {
 	"src/client/Character/CharacterGun.luau",
 	"src/client/Combat/CombatFx.luau",
 	"src/client/Combat/GunModels.luau",
+	"src/client/Effects/", -- piece 13 particles, tracers and flashes
 	"src/client/Movement/SlideTrail.luau",
 	"src/client/Pickups/PickupFxSystem.luau",
 	"src/client/Progression/CoinView.luau",
@@ -99,6 +100,9 @@ local LEGACY = {
 	"src/client/Bots/BotBannerSystem.luau",
 	"src/client/Character/LookPickerSystem.luau",
 	"src/client/Combat/HealthBars.luau",
+	"src/client/Daily/DailyUiSystem.luau",
+	"src/client/Emotes/EmoteWheelSystem.luau",
+	"src/client/Emotes/WinnerBannerSystem.luau",
 	"src/client/Match/ResultsClientSystem.luau",
 	"src/client/Match/SpectateClientSystem.luau",
 	"src/client/Onboarding/IntroView.luau",
@@ -106,6 +110,7 @@ local LEGACY = {
 	"src/client/Progression/ProgressUi.luau",
 	"src/client/Progression/TrackPanel.luau",
 	"src/client/Social/InviteButtonSystem.luau",
+	"src/client/Stats/StatsClientSystem.luau",
 	"src/client/Upgrades/UpgradeCardsSystem.luau",
 	"src/client/Zone/ZoneHud.luau",
 }
