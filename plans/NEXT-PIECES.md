@@ -41,3 +41,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 19 | Lobby plaza (3D) + loadout logic; look comes from Claude Design | 7, 20 | PR up | this PR |
 | 28 | Second map (D Neon Plaza, carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | second-map PR |
 | 37 | Gun sounds: Breaker, Hornet, Longline shots, gun drop and gun swap cues (box hit/break already existed); ids left empty | 9, 13 | PR up | gun sounds PR |
+| 36 | Kill streak rewards (heal, speed boost) | - | PR up | see PR |
