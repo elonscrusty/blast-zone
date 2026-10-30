@@ -1,24 +1,28 @@
 --!strict
 -- Piece 19: the lobby plaza and the loadout. Starts itself (any `*System` module does).
 --   * builds Workspace.Lobby (LobbyBuilder) before players spawn, so piece 05 finds the LobbySpawn part
---   * keeps each player's loadout (outfit, gun skin, Slide sidegrade): the server checks every pick
+--   * keeps each player's loadout (hero, outfit, gun skin, Slide sidegrade): the server checks every pick
+--   * the HERO slot (piece 46): the server tells combat which hero each player plays (Core/HeroBook) and tunes
+--     their stat sheet (speed, the slot 2 launcher); health and the starter gun are read when the match starts
 --   * the OUTFIT slot is piece N11's three fighters: this sets the player's CharacterLook attribute (and
 --     restyles a body already standing), and follows N11's own look buttons so the two never disagree
 --   * tells other pieces what to read:
---       Player attributes  OutfitId, GunSkin, SlideVariant   (gun code may read GunSkin)
---       EffectiveStats modifier  applies the Slide sidegrade to the player's stat sheet
+--       Player attributes  HeroId, OutfitId, GunSkin, SlideVariant   (gun code may read GunSkin)
+--       EffectiveStats modifiers  apply the Slide sidegrade and the hero to the player's stat sheet
 -- Picks can only change while you are out of the match (not on the roster).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Heroes = require(Shared.Heroes)
 local Ids = require(Shared.Ids)
 local Loadout = require(Shared.Loadout)
 local LoadoutStore = require(Shared.LoadoutStore)
 
 local Core = script.Parent.Parent.Core
 local EffectiveStats = require(Core.EffectiveStats)
+local HeroBook = require(Core.HeroBook)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 
@@ -52,6 +56,7 @@ end
 
 local function publishAttributes(player: Player)
 	local selection = store:get(player.UserId)
+	player:SetAttribute(Config.Heroes.attribute, selection.hero)
 	player:SetAttribute("OutfitId", selection.outfit)
 	player:SetAttribute("GunSkin", selection.gun)
 	player:SetAttribute("SlideVariant", selection.slide)
@@ -124,6 +129,14 @@ function LobbySystem.start()
 		if userId then
 			Loadout.applySlide(sheet, store:get(userId).slide)
 		end
+	end)
+
+	-- Hero: who plays which one (players from their pick, bots by number), and the hero's tuning of the sheet.
+	HeroBook:setPicker(function(userId: number): string?
+		return store:get(userId).hero
+	end)
+	EffectiveStats:addModifier(function(participantId: string, sheet: any)
+		Heroes.applyToSheet(Config, sheet, HeroBook:of(participantId))
 	end)
 
 	store.Changed:connect(function(userId: number)

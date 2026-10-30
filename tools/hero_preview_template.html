@@ -1,0 +1,369 @@
+<title>Circuit District Heroes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* One 3D lineup on top, the pick buttons and the hero card under it. Single dark look on purpose. */
+:root {
+  --bg: #0b1220; --stage: #14243a; --panel: #111c2e; --line: #24364f;
+  --fg: #e8eef6; --muted: #8ea2bb; --cyan: #36d9e8; --gold: #ffc44d; --coral: #f15b64;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); margin: 0; }
+body { font-family: var(--body); }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 12px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-size: 1.5rem; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
+.hint { color: var(--muted); font-size: .85rem; }
+.stage { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 50% 30%, #1d3352 0%, var(--stage) 55%, #0c1626 100%);
+  aspect-ratio: 4 / 3; max-height: 66vh; width: 100%; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lab { position: absolute; transform: translate(-50%, -100%); text-align: center; font-family: var(--display);
+  text-transform: uppercase; letter-spacing: .05em; font-size: .85rem; text-shadow: 0 1px 6px rgba(0,0,0,.8); white-space: nowrap; }
+.lab b { display: block; font-family: var(--mono); font-weight: 500; color: var(--gold); font-size: .8rem; letter-spacing: .02em; }
+.lab.sel { color: var(--cyan); }
+.views { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.views button { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(11,18,32,.78); color: var(--fg); font-family: var(--display); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+.views button[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pick { min-height: 64px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  font-family: var(--display); font-size: 1rem; text-transform: uppercase; letter-spacing: .04em;
+  display: grid; gap: 2px; place-content: center; text-align: center; padding: 6px 4px; }
+.pick span { font-family: var(--mono); font-size: .68rem; color: var(--muted); letter-spacing: .06em; text-transform: none; }
+.pick[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.chip { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  font-family: var(--display); font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; padding: 4px; }
+.chip[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plate { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px; }
+.plate h2 { font-family: var(--display); margin: 0; font-size: 1.3rem; text-transform: uppercase; letter-spacing: .04em; }
+.plate h2 small { font-family: var(--mono); font-size: .75rem; color: var(--cyan); letter-spacing: .1em; margin-left: 8px; }
+.blurb { margin: 0; color: var(--muted); font-size: .95rem; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.card { background: #0e1829; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 7px; align-content: start; }
+.card h3 { margin: 0; font-family: var(--display); font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; }
+.card h3 small { color: var(--muted); font-family: var(--mono); font-size: .65rem; margin-left: 6px; letter-spacing: .08em; }
+.row { display: grid; grid-template-columns: 5.6em minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; font-size: .8rem; }
+.row .k { color: var(--muted); }
+.row .v { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: #1b2a40; position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--cyan); border-radius: 4px; transition: width .35s ease; }
+.bar i.hp { background: var(--coral); }
+.bar i.sp { background: var(--gold); }
+@media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .views button { padding: 0 9px; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Heroes</h1>
+    <div class="hint">Drag to spin. Tap a hero. Look at the 3 sizes of difference below.</div>
+  </header>
+  <div class="stage">
+    <canvas id="view" aria-label="3D hero lineup"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="views" id="views"></div>
+  </div>
+  <div class="row3" id="spreads"></div>
+  <div class="chips" id="chips"></div>
+  <section class="plate" id="plate"></section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DATA = /*HERO_DATA*/null;
+const ACCENT = { ranger: 0x36d9e8, bulwark: 0xffc44d, wisp: 0x7be0a0, sentinel: 0x9b72d6, rigger: 0xf15b64 };
+const SPREAD_NOTE = { A: "A little different", B: "Clearly different", C: "Very different" };
+const STAR = "B";
+
+// ---------- renderer ----------
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 4 / 3, 0.1, 300);
+
+scene.add(new THREE.HemisphereLight(0xbfdcff, 0x1a2230, 0.75));
+const key = new THREE.DirectionalLight(0xffffff, 1.5);
+key.position.set(6, 14, 9); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -14, right: 14, top: 10, bottom: -10, near: 1, far: 50 });
+key.shadow.bias = -0.0006;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x36d9e8, 0.8); rim.position.set(-8, 5, -9); scene.add(rim);
+
+// plaza floor: pavement slab, cyan grid, navy edge (the lobby colours)
+const floor = new THREE.Mesh(new THREE.BoxGeometry(30, 0.4, 14), new THREE.MeshStandardMaterial({ color: 0x1b2e47, roughness: 0.8 }));
+floor.position.y = -0.2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(30, 30, 0x36d9e8, 0x24476a); grid.scale.z = 14 / 30; grid.position.y = 0.01;
+grid.material.transparent = true; grid.material.opacity = 0.45; scene.add(grid);
+
+const M = {};
+function mat(hex, o) {
+  const k = hex + JSON.stringify(o || {});
+  if (!M[k]) {
+    const c = new THREE.Color(hex).convertSRGBToLinear();
+    M[k] = o && o.neon ? new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 2, roughness: 0.4 })
+      : new THREE.MeshStandardMaterial({ color: c, roughness: (o && o.r) ?? 0.55, metalness: (o && o.m) ?? 0.05 });
+  }
+  return M[k];
+}
+const boxG = new THREE.BoxGeometry(1, 1, 1), ballG = new THREE.SphereGeometry(0.5, 28, 18), cylG = new THREE.CylinderGeometry(0.5, 0.5, 1, 28);
+function B(g, w, h, d, m, x, y, z, rx, ry, rz) {
+  const mesh = new THREE.Mesh(g, m); mesh.scale.set(w, h, d); mesh.position.set(x, y, z);
+  mesh.rotation.set(rx || 0, ry || 0, rz || 0); mesh.castShadow = true; mesh.receiveShadow = true; g_add(mesh); return mesh;
+}
+let cur = null; function g_add(m) { cur.add(m); }
+const box = (...a) => B(boxG, ...a), ball = (...a) => B(ballG, ...a), cyl = (...a) => B(cylG, ...a);
+
+// ---------- guns (the real part lists from WeaponModels) ----------
+const GL = {
+  poly: [0x303640, 0.05, 0.55], gun: [0x5a6676, 0.85, 0.38], steel: [0x9aa5b3, 0.95, 0.25], blued: [0x68778f, 0.85, 0.32],
+  brass: [0xc9a24a, 0.95, 0.3], dark: [0x07090c, 0, 0.8], hull: [0xc9454d, 0, 0.45], rubber: [0x15171b, 0, 0.9],
+  tan: [0x8c7656, 0, 0.6], glass: [0x36d9e8, 0.2, 0.05], cyan: [0x36d9e8, "neon"], coral: [0xf15b64, "neon"],
+};
+function gunMat(n) { const L = GL[n] || GL.poly; return L[1] === "neon" ? mat(L[0], { neon: true }) : mat(L[0], { m: L[1], r: L[2] }); }
+function gunModel(model) {
+  const g = new THREE.Group();
+  for (const p of model.parts) {
+    let mesh, sx, sy, sz;
+    if (p.shape === "box") { mesh = new THREE.Mesh(boxG, gunMat(p.look)); [sx, sy, sz] = [p.w, p.h, p.d]; }
+    else if (p.shape === "ball") { mesh = new THREE.Mesh(ballG, gunMat(p.look)); [sx, sy, sz] = [p.w, p.w, p.w]; }
+    else { mesh = new THREE.Mesh(cylG, gunMat(p.look)); [sx, sy, sz] = [p.h, p.w, p.h]; }
+    const shape = new THREE.Matrix4();
+    if (p.shape === "cylX") shape.makeRotationZ(Math.PI / 2); else if (p.shape === "cylZ") shape.makeRotationX(Math.PI / 2);
+    const local = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z)
+      .multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(p.pitch, 0, p.roll, "XYZ"))).multiply(shape);
+    const fr = p.frame && model.frames[p.frame];
+    const base = fr ? new THREE.Matrix4().makeTranslation(fr.x, fr.y, 0).multiply(new THREE.Matrix4().makeRotationZ(fr.tilt)) : new THREE.Matrix4();
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.copy(base.multiply(local).multiply(new THREE.Matrix4().makeScale(sx, sy, sz)));
+    mesh.castShadow = true; g.add(mesh);
+  }
+  return g;
+}
+
+// ---------- heroes: original placeholder bodies (Claude Design owns the real looks) ----------
+const GUN_OF = { ranger: "volt_pistol", bulwark: "breaker", wisp: "hornet", sentinel: "longline", rigger: "volt_pistol" };
+const NAVY = 0x14243a, CREAM = 0xfff4d6;
+function figure(id) {
+  const grp = new THREE.Group(); cur = grp;
+  const A = ACCENT[id], suit = mat(0x24456b), dark = mat(NAVY), glove = mat(CREAM), glow = mat(A, { neon: true }), trim = mat(A, { r: 0.5 });
+  const k = { ranger: [1, 1, 1], bulwark: [1.28, 1.02, 1.2], wisp: [0.82, 0.96, 0.82], sentinel: [0.95, 1.12, 0.95], rigger: [1.08, 1, 1.05] }[id];
+  const [wx, hy, dz] = k;
+  // legs + boots
+  for (const s of [-1, 1]) {
+    box(0.55 * wx, 1.15 * hy, 0.6 * dz, suit, 0.36 * s * wx, 0.95 * hy, 0);
+    box(0.62 * wx, 0.4, 0.85 * dz, dark, 0.36 * s * wx, 0.2, 0.1);
+    box(0.64 * wx, 0.09, 0.5 * dz, glow, 0.36 * s * wx, 0.42, 0.28 * dz);
+  }
+  // torso, belt, chest stripe
+  const ty = 2.35 * hy;
+  box(1.45 * wx, 1.25 * hy, 0.85 * dz, suit, 0, ty, 0);
+  box(1.5 * wx, 0.2, 0.9 * dz, dark, 0, ty - 0.55 * hy, 0);
+  box(0.22 * wx, 1.0 * hy, 0.9 * dz, trim, 0.4 * wx, ty + 0.05, 0);
+  box(0.3, 0.16, 0.05, glow, -0.35 * wx, ty + 0.25, 0.45 * dz);
+  // arms: right arm raised holding the gun, left arm at the side
+  const sx = 0.92 * wx;
+  box(0.42 * wx, 1.1 * hy, 0.42 * dz, suit, -sx, ty - 0.15, 0, 0, 0, 0.06);
+  ball(0.44, 0.44, 0.44, glove, -sx - 0.02, ty - 0.78 * hy, 0);
+  const armR = new THREE.Group(); armR.position.set(sx, ty + 0.35, 0); grp.add(armR); cur = armR;
+  box(0.42 * wx, 0.95, 0.42 * dz, suit, 0, -0.35, 0.35, -1.0, 0, 0);
+  cur = grp;
+  // head (the big readable head)
+  const hy0 = ty + 1.45 * hy;
+  ball(1.15, 1.15, 1.15, mat(0xe9eef5, { r: 0.35 }), 0, hy0, 0);
+  box(0.9, 0.34, 0.2, mat(0x0c1626, { r: 0.2, m: 0.3 }), 0, hy0 + 0.05, 0.5);
+  box(0.74, 0.1, 0.06, glow, 0, hy0 + 0.05, 0.61);
+  // per-hero parts
+  if (id === "ranger") {
+    box(0.18, 0.5, 0.7, glow, 0, hy0 + 0.62, -0.05);
+    ball(0.5, 0.5, 0.5, mat(0xe9eef5), -sx, ty + 0.55, 0); ball(0.5, 0.5, 0.5, mat(0xe9eef5), sx, ty + 0.55, 0);
+  } else if (id === "bulwark") {
+    ball(0.95, 0.95, 0.95, trim, -1.05 * wx, ty + 0.55, 0); ball(0.95, 0.95, 0.95, trim, 1.05 * wx, ty + 0.55, 0);
+    box(1.35 * wx, 0.8 * hy, 0.2, trim, 0, ty + 0.1, 0.52 * dz);
+    box(1.2, 0.3, 1.2, dark, 0, hy0 + 0.52, 0);
+    box(1.28, 0.08, 1.28, glow, 0, hy0 + 0.34, 0);
+  } else if (id === "wisp") {
+    for (const s of [-1, 1]) cyl(0.12, 0.9, 0.12, glow, 0.5 * s, hy0 + 0.55, -0.35, -0.5, 0, -0.5 * s);
+    box(1.0 * wx, 0.28, 0.5, glow, 0, ty + 0.62 * hy, -0.1);
+    box(0.5, 0.16, 1.5, glow, 0, ty - 0.2, -0.95, -0.35, 0, 0);
+  } else if (id === "sentinel") {
+    cyl(0.1, 0.1, 1.2, trim, 0, 0, 0, 0, 0, 0).visible = false;
+    box(1.8, 1.9 * hy, 0.18, mat(0x1c2c47), 0, ty - 0.3, -0.55, 0.12, 0, 0);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.9, 20), trim); cone.position.set(0, hy0 + 0.62, 0); cone.castShadow = true; grp.add(cone);
+    cyl(0.34, 0.2, 0.34, glow, 0.38, hy0 + 0.1, 0.55, Math.PI / 2, 0, 0);
+  } else if (id === "rigger") {
+    cyl(0.5, 1.5, 0.5, mat(0xc9454d), -0.4, ty + 0.1, -0.85); cyl(0.5, 1.5, 0.5, mat(0xc9454d), 0.4, ty + 0.1, -0.85);
+    box(1.3, 0.35, 0.3, dark, 0, ty + 0.1, -0.6);
+    cyl(0.4, 0.2, 0.4, glow, -0.32, hy0 + 0.25, 0.52, Math.PI / 2, 0, 0); cyl(0.4, 0.2, 0.4, glow, 0.32, hy0 + 0.25, 0.52, Math.PI / 2, 0, 0);
+    box(1.2, 0.12, 1.2, dark, 0, hy0 + 0.5, 0);
+  }
+  // slot 1 gun in the raised hand (the real model, turned to face forward)
+  cur = grp;
+  const gun = gunModel(DATA.guns[GUN_OF[id]]);
+  const gs = 0.62; gun.scale.set(gs, gs, gs);
+  const holder = new THREE.Group(); holder.rotation.y = -Math.PI / 2; holder.position.set(sx, ty + 0.0, 1.0 * dz); holder.add(gun);
+  grp.add(holder);
+  // slot 2 launcher: a chunky tube on the left shoulder, muzzle size follows its blast size
+  const lg = new THREE.Group(); lg.position.set(-sx - 0.1, ty + 0.9, -0.1); grp.add(lg); cur = lg;
+  cyl(0.46, 1.5, 0.46, mat(0x3a4a62, { m: 0.5, r: 0.4 }), 0, 0, 0, Math.PI / 2 - 0.35, 0, 0);
+  lg.userData.muzzle = ball(0.4, 0.4, 0.4, glow, 0, 0.3, 0.75);
+  lg.userData.tube = lg.children[0];
+  grp.userData.launcher = lg;
+  cur = null;
+  return grp;
+}
+
+// ---------- scene state ----------
+const heroes = {}, hitboxes = [], X0 = -6.4, DX = 3.2;
+DATA.order.forEach((id, i) => {
+  const f = figure(id); f.position.set(X0 + i * DX, 0, 0); f.rotation.y = 0.18 * (i - 2) * -1;
+  scene.add(f);
+  const bar = new THREE.Group(); bar.position.set(0, 5.35, 0); f.add(bar);
+  const back = new THREE.Mesh(boxG, mat(NAVY)); back.scale.set(2.5, 0.28, 0.12); bar.add(back);
+  const fill = new THREE.Mesh(boxG, mat(ACCENT[id], { neon: true })); fill.scale.set(2.3, 0.18, 0.16); fill.position.z = 0.03; bar.add(fill);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.75, 40), new THREE.MeshBasicMaterial({ color: ACCENT[id], transparent: true, opacity: 0.0, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; f.add(ring);
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 6, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.y = 3; hit.userData.id = id; f.add(hit); hitboxes.push(hit);
+  heroes[id] = { f, fill, bar, ring };
+});
+
+const labelsEl = document.getElementById("labels");
+const labs = {};
+DATA.order.forEach((id) => { const d = document.createElement("div"); d.className = "lab"; labelsEl.appendChild(d); labs[id] = d; });
+
+let spreadKey = STAR, sel = "bulwark", mode = "lineup";
+const spreadOf = () => DATA.spreads.find((s) => s.key === spreadKey);
+const MAXHP = 160;
+
+function refresh() {
+  const S = spreadOf();
+  for (const id of DATA.order) {
+    const c = S.heroes[id], h = heroes[id];
+    const w = 2.3 * (c.health / MAXHP) / (140 / MAXHP) * (1 / 1.0) * 0.55 + 0.25;
+    h.targetW = Math.max(0.3, 2.3 * c.health / 160);
+    h.ring.material.opacity = id === sel ? 0.9 : 0;
+    labs[id].className = "lab" + (id === sel ? " sel" : "");
+    labs[id].innerHTML = `${c.name}<b>${c.health} HP</b>`;
+    // launcher muzzle follows blast size
+    const blast = c.guns[1].lines.find((l) => l.key === "radius");
+    const sc = 0.55 + 0.9 * blast.bar;
+    h.f.userData.launcher.userData.muzzle.scale.set(0.3 * sc + 0.15, 0.3 * sc + 0.15, 0.3 * sc + 0.15);
+  }
+  document.querySelectorAll(".pick").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === spreadKey)));
+  document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === sel)));
+  plate();
+}
+function bars(lines) {
+  return lines.map((l) => `<div class="row"><span class="k">${l.label}</span><span class="bar"><i style="width:${Math.round(l.bar * 100)}%"></i></span><span class="v">${l.text}</span></div>`).join("");
+}
+function plate() {
+  const c = spreadOf().heroes[sel];
+  const kinds = ["SLOT 1 GUN", "SLOT 2 BLASTER"];
+  document.getElementById("plate").innerHTML =
+    `<h2>${c.name}<small>${c.role.toUpperCase()}</small></h2><p class="blurb">${c.blurb}</p>
+     <div class="card"><div class="row"><span class="k">Health</span><span class="bar"><i class="hp" style="width:${Math.round(c.healthBar * 100)}%"></i></span><span class="v">${c.health}</span></div>
+     <div class="row"><span class="k">Run speed</span><span class="bar"><i class="sp" style="width:${Math.round(c.speedBar * 100)}%"></i></span><span class="v">${Math.round(c.speed * 100)}%</span></div></div>
+     <div class="cards">${c.guns.map((g, i) => `<div class="card"><h3>${g.name}<small>${kinds[i]}</small></h3>${bars(g.lines)}</div>`).join("")}</div>`;
+}
+
+const spreadsEl = document.getElementById("spreads");
+DATA.spreads.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "pick"; b.dataset.k = s.key;
+  b.innerHTML = `${s.key === STAR ? "⭐ " : ""}${s.key} ${s.name}<span>${SPREAD_NOTE[s.key]}</span>`;
+  b.onclick = () => { spreadKey = s.key; refresh(); };
+  spreadsEl.appendChild(b);
+});
+const chipsEl = document.getElementById("chips");
+DATA.order.forEach((id) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.dataset.id = id; b.textContent = DATA.spreads[1].heroes[id].name;
+  b.onclick = () => { sel = id; refresh(); };
+  chipsEl.appendChild(b);
+});
+const viewsEl = document.getElementById("views");
+const VIEWS = { lineup: "All", close: "Close", game: "Game view" };
+for (const k in VIEWS) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = VIEWS[k]; b.dataset.m = k;
+  b.onclick = () => { mode = k; yawOff = 0; pitchOff = 0; idle = 0; setViews(); };
+  viewsEl.appendChild(b);
+}
+function setViews() { viewsEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === mode))); }
+
+// ---------- camera ----------
+let yawOff = 0, pitchOff = 0, idle = 0;
+const cam = { tx: 0, ty: 2.6, tz: 0, dist: 20, yaw: 0, pitch: 0.2 };
+function target() {
+  const aspect = camera.aspect, wide = Math.max(1, 1.33 / aspect);
+  if (mode === "close") { const f = heroes[sel].f.position; return { tx: f.x, ty: 3.0, tz: 0, dist: 17, yaw: 0.35, pitch: 0.1 }; }
+  if (mode === "game") return { tx: 0, ty: 0, tz: 0, dist: 34 * wide, yaw: 0, pitch: 0.96 };
+  return { tx: 0, ty: 2.7, tz: 0, dist: 21 * wide, yaw: 0, pitch: 0.17 };
+}
+function frame(t) {
+  const dt = Math.min(0.05, (t - (frame.last || t)) / 1000); frame.last = t; idle += dt;
+  const T = target(), k = 1 - Math.exp(-dt * 6);
+  for (const p of ["tx", "ty", "tz", "dist", "yaw", "pitch"]) cam[p] += (T[p] - cam[p]) * k;
+  const yaw = cam.yaw + yawOff, pitch = Math.min(1.3, Math.max(0, cam.pitch + pitchOff));
+  camera.position.set(cam.tx + Math.sin(yaw) * Math.cos(pitch) * cam.dist, cam.ty + Math.sin(pitch) * cam.dist, cam.tz + Math.cos(yaw) * Math.cos(pitch) * cam.dist);
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+  for (const id of DATA.order) {
+    const h = heroes[id]; const w = h.targetW || 2.3;
+    h.fill.scale.x += (w - h.fill.scale.x) * k; h.fill.position.x = -(2.3 - h.fill.scale.x) / 2;
+    h.bar.quaternion.copy(camera.quaternion);
+    h.ring.rotation.z += dt * 0.8;
+    if (!still) h.f.rotation.y = (id === sel && mode !== "game" ? Math.sin(t / 1400) * 0.25 : h.f.rotation.y);
+  }
+  renderer.render(scene, camera);
+  const r = canvas.getBoundingClientRect();
+  for (const id of DATA.order) {
+    const v = new THREE.Vector3(); heroes[id].f.getWorldPosition(v); v.y += 5.9;
+    v.project(camera);
+    const L = labs[id]; L.style.left = ((v.x * 0.5 + 0.5) * r.width) + "px"; L.style.top = ((-v.y * 0.5 + 0.5) * r.height) + "px";
+    L.style.display = mode === "game" || (mode === "close" && id !== sel) ? "none" : "block";
+  }
+  requestAnimationFrame(frame);
+}
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- input ----------
+const ray = new THREE.Raycaster(), pts = new Map(); let drag = null, moved = 0;
+canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); drag = [e.clientX, e.clientY]; moved = 0; });
+canvas.addEventListener("pointermove", (e) => {
+  if (!pts.has(e.pointerId) || !drag) return;
+  const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved += Math.abs(dx) + Math.abs(dy);
+  yawOff -= dx * 0.006; pitchOff += dy * 0.005; drag = [e.clientX, e.clientY];
+});
+canvas.addEventListener("pointerup", (e) => {
+  pts.delete(e.pointerId); drag = null;
+  if (moved < 6) {
+    const r = canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    const hit = ray.intersectObjects(hitboxes)[0];
+    if (hit) { sel = hit.object.userData.id; refresh(); }
+  }
+});
+canvas.addEventListener("pointercancel", () => { pts.clear(); drag = null; });
+function resize() {
+  const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize(); refresh(); setViews();
+requestAnimationFrame(frame);
+window.__heroPreview = { set(k, s, m) { if (k) spreadKey = k; if (s) sel = s; if (m) mode = m; yawOff = pitchOff = 0; refresh(); setViews(); } };
+</script>

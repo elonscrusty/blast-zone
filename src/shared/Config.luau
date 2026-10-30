@@ -115,7 +115,11 @@ Config.Camera = {
 	pitchDegrees = 55,
 	distance = 46,
 	fieldOfView = 55,
-	yawDegrees = 0, -- stable heading (0 = looking toward -Z)
+	yawDegrees = 0, -- starting heading (0 = looking toward -Z); the player can turn it (see below)
+	-- Turning the view. The heading is only a client look; the server never uses it.
+	lookDegreesPerPixel = 0.3, -- mouse (right-button drag) and touch (drag on the free right side)
+	padTurnDegreesPerSecond = 150, -- gamepad: hold L2 and push the right stick sideways
+	maxTurnPerFrame = 40, -- one hitch or a huge swipe can never whip the view around
 	followSmoothingSeconds = 0.06, -- small on purpose: avoid "disconnected" feel
 	aimLookAheadStuds = 0, -- optional framing from aim, off until it proves useful
 	snapDistance = 30, -- farther than this (respawn, spectate swap) the view jumps instead of gliding
@@ -239,6 +243,21 @@ Config.Weapons = {
 	},
 }
 
+-- Piece 46: heroes. Each hero has its own health, a little speed difference, its own starter gun (slot 1)
+-- and its own blast launcher (slot 2). The numbers per hero live in `src/shared/Heroes.luau`; these are the
+-- knobs around them. Heroes are all free and never bought: a hero is a sidegrade, never simply stronger.
+Config.Heroes = {
+	-- How far heroes differ from the plain 100 health / normal speed. 0 = all the same, 1 = as written.
+	-- carter picked B Medium (small 0.5, medium 1, big 1.5). Health ends up 80 to 135.
+	spread = 1,
+	healthMin = 60, -- no hero ends up outside these, whatever the spread says
+	healthMax = 160,
+	speedMin = 0.85, -- share of normal run speed
+	speedMax = 1.12,
+	attribute = "HeroId", -- set on the player and on the character so every client can read who is who
+	botsUseHeroes = true, -- bots get a hero by their number (the same one every match)
+}
+
 -- Piece 43: the big level-up powers. Their on/off stats live in the upgrade catalogue; these are the
 -- numbers the shot code uses once a power is on. Placeholders until carter plays.
 Config.Powers = {
@@ -277,7 +296,8 @@ Config.ShotRules = {
 Config.Slide = {
 	distance = 14,
 	duration = 0.25,
-	cooldown = 5,
+	cooldown = 5, -- seconds for ONE charge to come back
+	charges = 2, -- piece 45: slides you can chain before waiting (1 = the old single slide)
 	invulnerable = false,
 	stationaryFallback = "facing", -- no movement input: slide the way the character faces
 	stopsWhenBlocked = true,
@@ -291,6 +311,41 @@ Config.Slide = {
 	endGrace = 0.35, -- server checks where the player ended up this long after the slide
 	endTolerance = 4,
 	trailFadeSeconds = 0.3,
+}
+
+-- Piece 45: sprint. Press the sprint button to start, press again to stop. The server decides: speed,
+-- breath and when it may run. Shooting breaks the run for a moment. All placeholders until carter plays.
+Config.Sprint = {
+	enabled = true,
+	speedMultiplier = 1.4, -- on top of normal run speed (and its upgrades)
+	staminaSeconds = 3, -- running flat out empties the breath bar in this long
+	regenSeconds = 4, -- and filling it from empty takes this long
+	regenDelaySeconds = 0.8, -- breath starts to come back this long after the run stops
+	restartAt = 0.3, -- after running out, you may start again once breath is at this share
+	afterFireSeconds = 0.5, -- a shot slows you to normal speed for this long
+	minMoveSpeedShare = 0.2, -- standing still (or nudging the stick) does not use breath
+	tickSeconds = 0.1, -- how often the server steps everyone's breath
+	sendSeconds = 0.25, -- breath updates go to the player at most this often
+}
+
+-- Piece 45: hop over low cover. Pressing Slide against a hoppable thing in front of you hops it
+-- (the Slide button does both, so no new button). Server plans the hop and checks where you land.
+Config.Vault = {
+	enabled = true,
+	reach = 3.2, -- studs: the thing must be this close, straight ahead
+	maxDepth = 6, -- studs thick at most (a long car sideways is too thick)
+	maxHeight = 4.5, -- studs tall at most
+	landingPad = 2.4, -- studs past the far side you land
+	durationSeconds = 0.42,
+	cooldownSeconds = 1.0,
+	headOnDot = 0.5, -- how square-on you must face it (1 = perfectly)
+	bodyWidth = 2.4,
+	bodyHeight = 4, -- the landing spot must be clear this tall
+	floorTolerance = 1.2, -- the floor at the landing may differ this much from where you start
+	clearance = 1, -- hop this far above the top
+	maxPeak = 6.5,
+	endGrace = 0.35,
+	endTolerance = 4,
 }
 
 Config.Arena = {
@@ -323,6 +378,7 @@ Config.Arena = {
 Config.Tags = {
 	BlocksShots = "BlocksShots",
 	LowCover = "LowCover",
+	Vaultable = "Vaultable", -- piece 45: low walls, fences and cars a fighter can hop over
 	Roof = "Roof",
 	Interior = "Interior",
 	Spawn = "ArenaSpawn",
@@ -350,6 +406,7 @@ Config.Attributes = {
 Config.CollisionGroups = {
 	Participants = "Participants", -- do not collide with each other
 	Projectiles = "Projectiles",
+	Vaulting = "Vaulting", -- piece 45: a body hopping over cover touches nothing until it lands
 }
 
 -- Piece 07. Supply containers come in three loot tiers. The color tells the tier from far away:
@@ -497,10 +554,69 @@ Config.SpawnShield = {
 Config.Streaks = {
 	enabled = true,
 	windowSeconds = 12,
+	-- `moment` names the big banner (Config.Moments / shared/Moments/MomentRules); `announceAll` also
+	-- tells every other player, so a long streak is a threat they can see coming.
 	tiers = {
-		{ at = 2, heal = 15, speedMultiplier = 1, speedSeconds = 0, text = "DOUBLE! +15 HP" },
-		{ at = 3, heal = 20, speedMultiplier = 1, speedSeconds = 0, text = "TRIPLE! +20 HP" },
-		{ at = 5, heal = 30, speedMultiplier = 1, speedSeconds = 0, text = "RAMPAGE! +30 HP" },
+		{
+			at = 2,
+			heal = 15,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "DOUBLE! +15 HP",
+			moment = "double",
+			announceAll = false,
+		},
+		{
+			at = 3,
+			heal = 20,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "TRIPLE! +20 HP",
+			moment = "triple",
+			announceAll = false,
+		},
+		{
+			at = 5,
+			heal = 30,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "RAMPAGE! +30 HP",
+			moment = "spree",
+			announceAll = true,
+		},
+	},
+}
+
+-- Big moments (piece 46): banner call-outs, name plates over every fighter, level-up burst.
+-- Logic only; the looks come from Ui/MomentStyles (one of three, until Claude Design sends its own).
+Config.Moments = {
+	enabled = true,
+	style = "C", -- which entry of Ui/MomentStyles is drawn
+	bannerSeconds = 2.2, -- how long one banner stays
+	minGapSeconds = 0.3, -- quiet time between two banners
+	queueMax = 3, -- banners waiting behind the one on screen
+	staleSeconds = 4, -- a waiting banner older than this is dropped (it is news no more)
+	maxNameLength = 16, -- names on banners are cut to this many letters
+}
+
+Config.Plates = {
+	enabled = true,
+	maxDistance = 90, -- studs; further fighters show no plate
+	maxNameLength = 14, -- letters kept on a plate
+	showOwnPlate = false, -- your own bar and level are in the HUD
+	ownRing = true, -- the ring under your own feet
+	enemyRing = false, -- a ring under every other fighter too
+	lowHealthFraction = 0.3, -- under this share of health the bar turns the danger colour
+	ringDiameter = 5.6, -- studs
+	ringThickness = 0.12, -- studs
+	ringLift = 0.12, -- how far above the floor the ring floats (no z-fighting)
+	plateLift = 3.6, -- studs above the root part
+	burst = {
+		particles = 22, -- sparks per level-up (halved when the arena is busy or flashes are reduced)
+		arrowSeconds = 1.3, -- the arrow over the head
+		ringSeconds = 0.7, -- the ring that opens on the floor
+		ringDiameter = 14, -- studs when fully open
+		maxAtOnce = 4, -- bursts alive at once; more are skipped (cosmetic only)
 	},
 }
 

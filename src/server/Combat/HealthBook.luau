@@ -16,8 +16,10 @@ function HealthBook.new(maxHealth: number): Book
 	return setmetatable({ max = maxHealth, entries = {} }, HealthBook)
 end
 
-function HealthBook.add(self: Book, id: string)
-	self.entries[id] = { health = self.max, max = self.max, hitters = {}, order = {} }
+-- `maxHealth` gives this fighter their own maximum (a hero's health); nil uses the book's.
+function HealthBook.add(self: Book, id: string, maxHealth: number?)
+	local max = maxHealth or self.max
+	self.entries[id] = { health = max, max = max, hitters = {}, order = {} }
 end
 
 function HealthBook.has(self: Book, id: string): boolean

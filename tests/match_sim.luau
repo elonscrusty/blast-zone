@@ -11,6 +11,8 @@
 -- crates and shoot them, take their orbs, pick upgrade cards and tap Play again when told to.
 
 local Config = require("../src/shared/Config")
+local HeroRoster = require("../src/shared/HeroRoster")
+local Heroes = require("../src/shared/Heroes")
 local Ids = require("../src/shared/Ids")
 local MatchPhase = require("../src/shared/MatchPhase")
 local MatchContext = require("../src/shared/MatchContext")
@@ -61,6 +63,7 @@ export type Options = {
 	seed: number?,
 	layout: string?, -- "A" | "B" | "C" (default: Config.Arena.layout)
 	config: any?, -- a patched copy of Config
+	heroes: { [number]: string }?, -- hero id by user id (piece 46); everyone else plays the default hero
 }
 
 type Body = { x: number, z: number, vx: number, vz: number }
@@ -151,6 +154,16 @@ function MatchSim.new(options: Options?)
 	})
 	local runXp = RunXp.new(cfg.Xp)
 	local stats = StatBook.new(cfg)
+	-- Piece 46: Lobby/LobbySystem installs this modifier and Core/HeroBook; bots play heroes by number.
+	local function heroOf(id: string): string
+		return HeroRoster.heroOf(cfg, id, function(userId: number): string?
+			return (opts.heroes or {})[userId]
+		end)
+	end
+	stats:addModifier(function(id: string, sheet: any)
+		Heroes.applyToSheet(cfg, sheet, heroOf(id))
+	end)
+	sim.heroOf = heroOf
 	local shields = SpawnShield.new(clock)
 	sim.ctx, sim.registry, sim.router, sim.runXp, sim.shields =
 		ctx, registry, router, runXp, shields
@@ -254,7 +267,7 @@ function MatchSim.new(options: Options?)
 
 	-- ===== Combat (order 60): health, ammo, guns =====
 	local book = HealthBook.new(cfg.Health.max)
-	type Fighter = { matchId: number, weapons: WeaponState.State, primary: string }
+	type Fighter = { matchId: number, hero: string, weapons: WeaponState.State, primary: string }
 	local fighters: { [string]: Fighter } = {}
 	sim.book, sim.fighters = book, fighters
 
@@ -282,19 +295,23 @@ function MatchSim.new(options: Options?)
 			return f
 		end
 		local sheet = stats:get(id)
+		local hero = heroOf(id)
+		local primary = Heroes.primaryGun(hero)
+		local gun = WeaponCatalog.stats(cfg, primary, sheet.firearm)
 		local fresh: Fighter = {
 			matchId = p.matchId,
+			hero = hero,
 			weapons = WeaponState.new(
-				{ sheet.firearm.magazine, sheet.explosive.magazine },
+				{ gun.magazine, sheet.explosive.magazine },
 				cfg.Combat.fireTolerance
 			),
-			primary = cfg.Weapons.Firearm.id,
+			primary = primary,
 		}
 		if not p.alive then
 			fresh.weapons:lock()
 		end
 		fighters[id] = fresh
-		book:add(id)
+		book:add(id, Heroes.maxHealth(cfg, hero))
 		return fresh
 	end
 	sim.ensure = ensure
@@ -920,7 +937,7 @@ function MatchSim.new(options: Options?)
 					id = id,
 					pos = { x = b.x, z = b.z },
 					health = hp,
-					maxHealth = cfg.Health.max,
+					maxHealth = book:max_(id) or cfg.Health.max,
 					ammo = f.weapons.ammo[slot],
 					magazine = slotStats(id, slot).magazine,
 					reloading = f.weapons.reloadEndsAt[slot] ~= nil,

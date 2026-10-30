@@ -57,8 +57,24 @@ local Defs: { Def } = {
 		3
 	),
 	tell("02", "SlideFx", "{ participantId, fromPos, toPos, duration }"),
-	tell("02", "SlideState", "{ cooldownEndsAt: number, serverNow: number }"),
+	tell(
+		"02",
+		"SlideState",
+		"{ cooldownEndsAt: number, serverNow: number, charges: number, maxCharges: number }"
+	),
 	tell("02", "SlideDenied", "{}"),
+	-- Piece 44: sprint (the server owns breath and speed) and the hop over low cover.
+	ask("02", "SprintRequest", { { name = "on", kind = "boolean" } }, 6, 6),
+	tell("02", "SprintState", "{ stamina: number, running: boolean, locked: boolean }"),
+	ask(
+		"02",
+		"VaultRequest",
+		{ { name = "dir", kind = "vector3", optional = true, maxMagnitude = 2 } },
+		3,
+		3
+	),
+	tell("02", "VaultFx", "{ participantId, fromPos, toPos, peak: number, duration: number }"),
+	tell("02", "VaultDenied", "{}"),
 
 	-- ===== 03 aiming + weapons + health =====
 	ask("03", "FireRequest", {
@@ -194,6 +210,13 @@ local Defs: { Def } = {
 		"42",
 		"LootState",
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
+	),
+
+	-- ===== 46 big moments =====
+	tell(
+		"46",
+		"Moment",
+		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
 	),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====

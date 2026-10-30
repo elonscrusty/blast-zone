@@ -377,3 +377,96 @@ Harness.test("a bad or empty offer shows no chips", function()
 	Harness.eq(ChipModel.fighting("Results"), false)
 	Harness.eq(ChipModel.fighting(nil), false)
 end)
+
+-- ===== turning the camera =====
+
+Harness.test("a drag is collected and handed over once", function()
+	local s = InputState.new()
+	InputState.addLook(s, 12)
+	InputState.addLook(s, -5)
+	local pixels = InputState.takeLook(s)
+	Harness.eq(pixels, 7)
+	Harness.eq((InputState.takeLook(s)), 0) -- taken: it does not turn again
+end)
+
+Harness.test("a drag does nothing while controls are off or a menu is open", function()
+	local s = InputState.new()
+	InputState.setEnabled(s, false)
+	InputState.addLook(s, 50)
+	InputState.setEnabled(s, true)
+	Harness.eq((InputState.takeLook(s)), 0)
+	InputState.setModal(s, true)
+	InputState.addLook(s, 50)
+	Harness.eq((InputState.takeLook(s)), 0)
+	InputState.setModal(s, false)
+	InputState.addLook(s, 0 / 0) -- a bad number is ignored
+	InputState.addLook(s, math.huge)
+	Harness.eq((InputState.takeLook(s)), 0)
+end)
+
+Harness.test("a drag held when controls turn off does not turn the view later", function()
+	local s = InputState.new()
+	InputState.addLook(s, 80)
+	InputState.setEnabled(s, false)
+	InputState.setEnabled(s, true)
+	Harness.eq((InputState.takeLook(s)), 0)
+end)
+
+Harness.test("gamepad: L2 plus the right stick turns the camera instead of aiming", function()
+	local s = InputState.new()
+	InputState.noteDevice(s, "gamepad")
+	InputState.setPadAim(s, 1, 0)
+	local _, stick = InputState.takeLook(s)
+	Harness.eq(stick, 0) -- no L2: the stick only aims
+	local _, _, aiming = InputState.aim(s)
+	Harness.eq(aiming, true)
+
+	InputState.setPadLookHold(s, true)
+	_, stick = InputState.takeLook(s)
+	Harness.truthy(stick > 0.9, "stick should turn right, got " .. stick)
+	_, _, aiming = InputState.aim(s)
+	Harness.eq(aiming, false) -- and it stops aiming while it turns
+
+	InputState.setPadAim(s, -1, 0)
+	_, stick = InputState.takeLook(s)
+	Harness.truthy(stick < -0.9, "stick should turn left, got " .. stick)
+
+	InputState.setPadLookHold(s, false)
+	_, _, aiming = InputState.aim(s)
+	Harness.eq(aiming, true) -- let go of L2: aim is back
+end)
+
+Harness.test("gamepad turning ignores a tiny stick wobble and does not use aim speed", function()
+	local s = InputState.new()
+	InputState.noteDevice(s, "gamepad")
+	InputState.setPadLookHold(s, true)
+	InputState.setPadAim(s, 0.05, 0)
+	Harness.eq(select(2, InputState.takeLook(s)), 0)
+	s.aimSensitivity = 3
+	InputState.setPadAim(s, 0.5, 0)
+	local half = select(2, InputState.takeLook(s))
+	s.aimSensitivity = 1
+	InputState.setPadAim(s, 0.5, 0)
+	Harness.near(half, select(2, InputState.takeLook(s)), 1e-9)
+end)
+
+Harness.test("L2 and the stick are forgotten when the controls clear", function()
+	local s = InputState.new()
+	InputState.noteDevice(s, "gamepad")
+	InputState.setPadLookHold(s, true)
+	InputState.setPadAim(s, 1, 0)
+	InputState.reset(s)
+	Harness.eq(select(2, InputState.takeLook(s)), 0)
+	InputState.setPadAim(s, 1, 0)
+	local _, _, aiming = InputState.aim(s)
+	Harness.eq(aiming, true) -- L2 did not stay stuck down
+end)
+
+Harness.test("a phone drag works, and the stick does not turn the camera on a phone", function()
+	local s = InputState.new()
+	InputState.noteDevice(s, "touch")
+	InputState.addLook(s, 30)
+	local pixels, stick = InputState.takeLook(s)
+	Harness.eq(pixels, 30)
+	Harness.eq(stick, 0)
+end)
