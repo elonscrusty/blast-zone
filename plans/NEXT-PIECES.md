@@ -20,4 +20,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
-| 28 | Second map (D Neon Plaza, carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | second-map PR |
+| 28 | Second map (D Neon Plaza: default, awaiting carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | #34 |
