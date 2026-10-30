@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Ids = require(Shared.Ids)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local Combatants = require("./Combatants")
@@ -123,6 +124,14 @@ local function trySwap(drop: Drop, p: { id: string, matchId: number })
 	end
 	lastSwapAt[p.id] = now
 	remove(drop)
+	-- Counting only: a failure here must never touch the swap.
+	pcall(function()
+		local userId = Ids.userIdOf(p.id)
+		local who = if userId then game:GetService("Players"):GetPlayerByUserId(userId) else nil
+		if who then
+			require(script.Parent.Parent.Analytics.AnalyticsSystem).gunPicked(who, drop.gunId)
+		end
+	end)
 	if old ~= Config.Weapons.Firearm.id then
 		WeaponDrops.spawn(old, Vector3.new(here.X, there.Y - drops.height, here.Z), drop.matchId)
 	end

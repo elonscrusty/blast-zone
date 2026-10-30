@@ -13,6 +13,7 @@ require("./combat.test")
 require("./anticheat.test")
 
 require("./combat_guns.test")
+require("./analytics.test")
 require("./arena.test")
 require("./audio.test")
 require("./config.test")

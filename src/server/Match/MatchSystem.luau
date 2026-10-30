@@ -263,6 +263,13 @@ function MatchSystem.start()
 	-- Requests: Net already rate-limited and shape-checked them. The controller checks phase and who is asking.
 	Net.onRequest("PlayRequest", function(player)
 		controller.setReady(idOf(player), true)
+		-- Counting only: a failure here must never touch the match.
+		pcall(function()
+			require(script.Parent.Parent.Analytics.AnalyticsSystem).funnelStep(
+				player,
+				"pressedPlay"
+			)
+		end)
 	end)
 	Net.onRequest("ReplayRequest", function(player)
 		controller.setReady(idOf(player), true)

@@ -49,4 +49,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 39 | Idle (AFK) removal, bots top up part-full lobbies, safe server shutdown (pays out, no new matches, saves via #15) | - | PR up | piece 39 PR |
 | 35 | Smarter bots: easy/normal/hard tiers, take cover, leave the zone wall early, use found guns (calm start kept) | 18 | PR up | see handoff 35 |
 | 14 | City art pass: Neon Night, day to night in one match | 12 | PR up | #42 |
-| 38 | Weather: rain only (light/steady/heavy per match), server picks, one cheap emitter, haze on the sky | - | PR up | weather PR |
+| 40 | Player analytics (match start/end, deaths by cause, onboarding funnel, gun picks; server only) | - | code written, checks not run yet | - |
