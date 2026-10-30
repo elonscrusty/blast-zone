@@ -179,6 +179,10 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== 38 weather =====
+	ask("38", "WeatherRequest", {}, 1, 2), -- a client that joined late asks what the weather is
+	tell("38", "WeatherState", "WeatherState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====

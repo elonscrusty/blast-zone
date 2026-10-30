@@ -221,4 +221,11 @@ export type LoadoutState = {
 	saved: boolean, -- false = picks last this visit only
 }
 
+-- Piece 38: the weather the server picked for this match. level "clear" means no rain.
+export type WeatherState = {
+	matchId: MatchId,
+	level: string, -- "clear" | one of Config.Weather.levels
+	serverNow: number,
+}
+
 return {}
