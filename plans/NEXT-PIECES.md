@@ -19,6 +19,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 08 | Upgrade catalogue + offers (server) + upgrade cards (client, Bottom Row) | 14, 20 | PR up | #5 |
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
+| G23 | Ranked ladder (video 3 gap 23): rank points, tiers, warm-up, ranked switch, saved with Profiles; leaving keeps the loss; logic only (screens from Claude Design) | 17, 24 | PR up | ranked PR |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
 | 22 | UI layers: Settings over lobby, one panel at a time, lobby slots, phone-shape spacing | 20 | PR up | piece 22 PR |
 | 17 | Saving player progress (DataStore profiles, session lock, once-only grants) | 19 | PR up | this PR |

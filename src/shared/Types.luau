@@ -195,6 +195,39 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Gap 23: a player's ranked ladder standing (server to client only). `last` is set once, right after a match counted.
+export type RankedLast = {
+	matchId: number,
+	place: number,
+	kills: number,
+	delta: number,
+	counted: boolean, -- false = practice (switch was off, too few fighters, or a draw rule said no)
+	promoted: boolean,
+	demoted: boolean,
+	fromLabel: string,
+	toLabel: string,
+}
+
+export type RankedPayload = {
+	enabled: boolean, -- the ranked switch
+	points: number,
+	matches: number, -- counted this season
+	qualified: boolean, -- false while still in the warm-up matches
+	qualifyLeft: number,
+	label: string, -- "Wire II", or "Unranked" during the warm-up
+	tierId: string,
+	tierName: string,
+	step: number, -- 1..divisions (0 for the top tier)
+	intoStep: number, -- points earned inside this step
+	stepSize: number,
+	nextTierName: string?,
+	toNextTier: number?,
+	peakTierName: string,
+	season: number,
+	saved: boolean, -- false while the profile is not loaded or the last change is not written
+	last: RankedLast?,
+}
+
 -- Video 3 gap 18: the Scrap Shop. Coins and what is owned/worn come from ProgressState; this is only what is on sale.
 export type ShopOfferView = {
 	id: string,
