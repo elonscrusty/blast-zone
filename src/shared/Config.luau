@@ -179,9 +179,25 @@ Config.CollisionGroups = {
 	Projectiles = "Projectiles",
 }
 
+-- Piece 07. Supply containers come in three loot tiers. The color tells the tier from far away:
+-- blue = common, violet = rare, magenta = epic. A ContainerSpot marker can force a tier with its own
+-- "Tier" attribute; otherwise the tier is rolled by weight (50 / 35 / 15 percent).
+-- Health is in hits of the 10-damage starter gun. Each orb is worth Config.Xp.rewards.orbPickup.
+local COMMON_HEALTH = 40
+local COMMON_ORBS = 2
+
 Config.Containers = {
-	health = 40,
-	orbsPerContainer = 2,
+	health = COMMON_HEALTH, -- the common tier
+	orbsPerContainer = COMMON_ORBS, -- the common tier
+	size = 4, -- studs, a cube standing on the marker's bottom face
+	tierOrder = { "common", "rare", "epic" },
+	tiers = {
+		common = { color = "#3FA9F5", health = COMMON_HEALTH, orbs = COMMON_ORBS, weight = 50 },
+		rare = { color = "#6B46D6", health = 60, orbs = 3, weight = 35 },
+		epic = { color = "#E64FC4", health = 90, orbs = 5, weight = 15 },
+	} :: { [string]: { color: string, health: number, orbs: number, weight: number } },
+	bandColor = "#FFC44D", -- the glowing belt on every tier
+	flashColor = "#FFFFFF", -- what a hit flashes to
 }
 
 Config.Pickups = {
@@ -190,6 +206,12 @@ Config.Pickups = {
 	magnetRadius = 9, -- cosmetic pull on the client; never decides ownership
 	healAmount = 25, -- when Features.healPickup is on
 	maxActive = 60,
+	reserveSeconds = 1.5, -- the player who broke the container gets first claim on its orbs for this long
+	claimSlack = 1.5, -- extra studs the server forgives for lag when it checks a claim
+	scatterRadius = 3.5, -- orbs land on a ring this wide around the container
+	orbHeight = 1.5, -- orb center above the floor
+	orbSize = 1.4,
+	expireCheckSeconds = 0.5,
 }
 
 Config.Xp = {

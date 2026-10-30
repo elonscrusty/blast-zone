@@ -15,7 +15,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 04 | Graybox arena + interior/roof visibility | 12, 8 | not started | |
 | 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | not started | |
 | 06 | Safe zone + sudden death | 15 | not started | |
-| 07 | Supply containers, pickups, run XP | 13, 14 | not started | |
+| 07 | Supply containers (3 loot tiers), XP orbs, run XP wiring | 13, 14 | PR up | see PR list |
 | 08 | Upgrade catalogue + offers (server) | 14 | not started | |
 | 09 | Test bots | 18 | not started | |
 | 10 | HUD, upgrade cards, mobile/controller controls, settings | 20 | not started | |

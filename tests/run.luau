@@ -7,6 +7,7 @@ local Harness = require("./harness")
 require("./save_retry.test")
 require("./config.test")
 require("./guard.test")
+require("./pickups.test")
 require("./core.test")
 
 Harness.summary()
