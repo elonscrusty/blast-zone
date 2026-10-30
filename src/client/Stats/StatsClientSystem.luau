@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local StatsRules = require(Shared.Stats.StatsRules)
 local BoardRules = require(Shared.Stats.BoardRules)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local StatsClientSystem = {}
 StatsClientSystem.order = 220
@@ -55,7 +56,7 @@ local function buildCard()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "LobbyStats"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 40 -- under MatchFlow (50) so the PLAY and SETTINGS buttons stay on top
+	gui.DisplayOrder = UiLayers.Calm -- under MatchFlow so the PLAY and SETTINGS buttons stay on top
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	card = Instance.new("Frame")
