@@ -4,5 +4,6 @@
 local Harness = require("./harness")
 
 require("./save_retry.test")
+require("./arena.test")
 
 Harness.summary()
