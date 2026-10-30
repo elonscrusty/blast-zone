@@ -266,6 +266,64 @@ Harness.test("full match: two people, no bots, one of them wins", function()
 	end
 end)
 
+Harness.test(
+	"full match: heroes bring their own health and guns, bots too, and the match finishes",
+	function()
+		local Heroes = require("../src/shared/Heroes")
+		for _, seed in { 1, 2, 3 } do
+			local sim =
+				MatchSim.new({ seed = seed, heroes = { [101] = "bulwark", [102] = "sentinel" } })
+			local a, b = sim.join(101), sim.join(102)
+			sim.press(a)
+			sim.press(b)
+			-- Right after the match starts everyone has a record: check health and the starter gun.
+			sim.untilPhase("Active", 60)
+			for _, p in sim.registry:list() do
+				local f = sim.ensure(p.id)
+				Harness.truthy(f ~= nil, "everyone has a combat record")
+				local hero = sim.heroOf(p.id)
+				Harness.eq(sim.book:max_(p.id), Heroes.maxHealth(Config, hero), p.id .. " health")
+				Harness.eq(
+					sim.book:get(p.id),
+					Heroes.maxHealth(Config, hero),
+					p.id .. " starts full"
+				)
+				Harness.eq((f :: any).primary, Heroes.primaryGun(hero), p.id .. " starter gun")
+			end
+			Harness.eq(sim.book:max_(a), Heroes.maxHealth(Config, "bulwark"))
+			Harness.eq((sim.ensure(b) :: any).primary, "longline")
+			Harness.truthy(untilResults(sim, 1), `seed {seed}: done`)
+			noErrors(sim)
+			checkFinished(sim, 1)
+		end
+	end
+)
+
+Harness.test(
+	"full match: a lone player with bots playing different heroes still finishes",
+	function()
+		local Heroes = require("../src/shared/Heroes")
+		local sim = MatchSim.new({ seed = 7, heroes = { [101] = "wisp" } })
+		local me = sim.join(101)
+		sim.press(me)
+		sim.untilPhase("Active", 60)
+		local seen: { [string]: boolean } = {}
+		for _, p in sim.registry:list() do
+			sim.ensure(p.id)
+			seen[sim.heroOf(p.id)] = true
+		end
+		local kinds = 0
+		for _ in seen do
+			kinds += 1
+		end
+		Harness.truthy(kinds >= 3, "the bots bring a mix of heroes")
+		Harness.eq(sim.book:max_(me), Heroes.maxHealth(Config, "wisp"))
+		Harness.truthy(untilResults(sim, 1), "done")
+		noErrors(sim)
+		checkFinished(sim, 1)
+	end
+)
+
 Harness.test("full match: a full lobby of eight people", function()
 	local sim = MatchSim.new({ seed = 5 })
 	for i = 1, Config.Match.maxParticipants do

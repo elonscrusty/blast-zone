@@ -5,6 +5,7 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
+local HeroBook = require(script.Parent.Parent.Core.HeroBook)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local RunXp = require(script.Parent.Parent.Core.RunXp)
@@ -12,10 +13,12 @@ local HealthBook = require("./HealthBook")
 local WeaponState = require("./WeaponState")
 local Ballistics = require("./Ballistics")
 local WeaponCatalog = require("./WeaponCatalog")
+local Heroes = require(Shared.Heroes)
 
 export type Combatant = {
 	id: string,
 	matchId: number,
+	hero: string, -- the hero played this match (health, starter gun and launcher come from it)
 	weapons: WeaponState.State,
 	primary: string, -- the gun in slot 1: the Volt Pistol or a found gun
 	mirrored: Model?, -- the model whose attributes are up to date
@@ -71,6 +74,17 @@ function Combatants.slotStats(id: string, slot: number): WeaponState.Stats
 	return { fireInterval = w.fireInterval, magazine = w.magazine, reloadSeconds = w.reloadSeconds }
 end
 
+-- Most health this fighter can have: their hero's (the plain maximum before they have a record).
+function Combatants.maxHealth(id: string): number
+	return book:max_(id) or Config.Health.max
+end
+
+-- The slot 2 gun's name (the hero's own launcher).
+function Combatants.launcherName(id: string): string
+	local c = byId[id]
+	return Heroes.launcherName(if c ~= nil then c.hero else Heroes.default)
+end
+
 function Combatants.get(id: string): Combatant?
 	return byId[id]
 end
@@ -84,7 +98,7 @@ function Combatants.sendHealth(id: string)
 	local player = playerOf(id)
 	local hp = book:get(id)
 	if player ~= nil and hp ~= nil then
-		Net.fire("HealthState", player, { health = hp, max = Config.Health.max })
+		Net.fire("HealthState", player, { health = hp, max = Combatants.maxHealth(id) })
 	end
 end
 
@@ -96,7 +110,8 @@ function Combatants.mirror(id: string)
 		return
 	end
 	m:SetAttribute("Health", book:get(id) or 0)
-	m:SetAttribute("MaxHealth", Config.Health.max)
+	m:SetAttribute("MaxHealth", Combatants.maxHealth(id))
+	m:SetAttribute(Config.Heroes.attribute, c.hero)
 	m:SetAttribute("Alive", Participants:isAlive(id))
 	m:SetAttribute("WeaponId", c.primary) -- every client draws this gun in the fighter's hands
 	-- Name plates (piece 46): the name and run level every client shows over the head.
@@ -117,22 +132,27 @@ function Combatants.ensure(id: string): Combatant?
 	if c ~= nil and c.matchId == p.matchId then
 		return c
 	end
+	-- The hero is read once, when the match starts, so nothing changes mid-fight.
+	local hero = HeroBook:of(id)
+	local primary = Heroes.primaryGun(hero)
 	local sheet = EffectiveStats:get(id)
+	local gun = WeaponCatalog.stats(Config, primary, sheet.firearm)
 	local fresh: Combatant = {
 		id = id,
 		matchId = p.matchId,
+		hero = hero,
 		weapons = WeaponState.new(
-			{ sheet.firearm.magazine, sheet.explosive.magazine },
+			{ gun.magazine, sheet.explosive.magazine },
 			Config.Combat.fireTolerance
 		),
-		primary = Config.Weapons.Firearm.id,
+		primary = primary,
 		mirrored = nil,
 	}
 	if not p.alive then
 		fresh.weapons:lock()
 	end
 	byId[id] = fresh
-	book:add(id)
+	book:add(id, Heroes.maxHealth(Config, hero))
 	Combatants.mirror(id)
 	Combatants.sendHealth(id)
 	return fresh

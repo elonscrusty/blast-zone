@@ -58,3 +58,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 46 | Big moments (video 3 gaps 4-6): name plates (name, level badge, health bar, own ring), call-out banners (double kill, spree, circle closing, sudden death), level-up burst; 3 looks A/B/C | 14, 22 | PR up | big moments PR |
 | 44 | Turn the camera (bug: the view was locked): mouse right-button drag, touch drag on the free right side, gamepad L2 + right stick; walking, minimap follow the turn | 2, 10 | PR up | handoff 44 |
 | 45 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |
+| 46 | Heroes (video 3 gaps #12 + stat cards of #13): 5 original heroes, own health + own two guns, free HERO loadout slot, server-decided, gun stat cards (logic only; looks from Claude Design) | 9, 20 | PR up | heroes PR |

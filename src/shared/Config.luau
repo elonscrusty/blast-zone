@@ -243,6 +243,21 @@ Config.Weapons = {
 	},
 }
 
+-- Piece 46: heroes. Each hero has its own health, a little speed difference, its own starter gun (slot 1)
+-- and its own blast launcher (slot 2). The numbers per hero live in `src/shared/Heroes.luau`; these are the
+-- knobs around them. Heroes are all free and never bought: a hero is a sidegrade, never simply stronger.
+Config.Heroes = {
+	-- How far heroes differ from the plain 100 health / normal speed. 0 = all the same, 1 = as written.
+	-- carter picked B Medium (small 0.5, medium 1, big 1.5). Health ends up 80 to 135.
+	spread = 1,
+	healthMin = 60, -- no hero ends up outside these, whatever the spread says
+	healthMax = 160,
+	speedMin = 0.85, -- share of normal run speed
+	speedMax = 1.12,
+	attribute = "HeroId", -- set on the player and on the character so every client can read who is who
+	botsUseHeroes = true, -- bots get a hero by their number (the same one every match)
+}
+
 -- Piece 43: the big level-up powers. Their on/off stats live in the upgrade catalogue; these are the
 -- numbers the shot code uses once a power is on. Placeholders until carter plays.
 Config.Powers = {

@@ -250,8 +250,10 @@ end
 Harness.test("view: tabs are the slots in order", function()
 	local tabs = LoadoutView.tabs()
 	Harness.eq(#tabs, #Loadout.slots)
-	Harness.eq(tabs[1].slot, "outfit")
-	Harness.eq(tabs[1].label, "OUTFIT")
+	Harness.eq(tabs[1].slot, "hero")
+	Harness.eq(tabs[1].label, "HERO")
+	Harness.eq(tabs[2].slot, "outfit")
+	Harness.eq(tabs[2].label, "OUTFIT")
 end)
 
 Harness.test("view: cards say wearing, tap to wear, or what reward is needed", function()
@@ -289,7 +291,8 @@ end)
 
 Harness.test("view: summary names what you wear", function()
 	local rows = LoadoutView.summary(state(0))
-	Harness.eq(rows[1].name, "Runner")
+	Harness.eq(rows[1].name, "Ranger")
+	Harness.eq(rows[2].name, "Runner")
 	Harness.eq(#rows, #Loadout.slots)
 end)
 
