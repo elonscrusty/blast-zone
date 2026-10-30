@@ -96,7 +96,7 @@ local Defs: { Def } = {
 	tell("07", "ContainerHit", "{ containerId, health, max }"),
 	tell("07", "ContainerBroken", "{ containerId, pos }"),
 	tell("07", "PickupSpawned", "{ pickupId, kind, pos }"),
-	tell("07", "PickupRemoved", "{ pickupId, collectedBy? }"),
+	tell("07", "PickupRemoved", "{ pickupId, collectedBy?, pos }"),
 	tell("07", "XpState", "XpState"),
 
 	-- ===== 08 upgrades =====
