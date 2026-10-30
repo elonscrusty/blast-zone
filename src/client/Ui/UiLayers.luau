@@ -9,6 +9,7 @@ UiLayers.ZoneTint = 5 -- red screen edges and the zone arrow; never takes taps
 UiLayers.TouchControls = 9 -- thumb sticks and buttons
 UiLayers.Hud = 10 -- health, minimap, timer, gear
 UiLayers.Calm = 15 -- widgets shown between fights that are not lobby buttons
+UiLayers.Moments = 17 -- big banners (double kill, circle closing); over the HUD, under upgrade cards
 UiLayers.Popups = 20 -- upgrade cards, bots banner
 UiLayers.Spectate = 30 -- spectate arrows
 UiLayers.MatchFlow = 50 -- lobby (PLAY, SETTINGS, every LobbyMenu slot), countdown, banners, results
@@ -24,6 +25,7 @@ UiLayers.order = {
 	"TouchControls",
 	"Hud",
 	"Calm",
+	"Moments",
 	"Popups",
 	"Spectate",
 	"MatchFlow",

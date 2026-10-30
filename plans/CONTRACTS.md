@@ -120,6 +120,7 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
 | `TouchControls` | 9 | thumb sticks and buttons |
 | `Hud` | 10 | health, minimap, timer, gear |
 | `Calm` | 15 | between-fight widgets that are not lobby buttons |
+| `Moments` | 17 | big call-out banners (double kill, circle closing) |
 | `Popups` | 20 | upgrade cards, bots banner |
 | `Spectate` | 30 | spectate arrows |
 | `MatchFlow` | 50 | lobby, countdown, banners, results |

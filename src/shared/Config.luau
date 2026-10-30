@@ -496,10 +496,69 @@ Config.SpawnShield = {
 Config.Streaks = {
 	enabled = true,
 	windowSeconds = 12,
+	-- `moment` names the big banner (Config.Moments / shared/Moments/MomentRules); `announceAll` also
+	-- tells every other player, so a long streak is a threat they can see coming.
 	tiers = {
-		{ at = 2, heal = 15, speedMultiplier = 1, speedSeconds = 0, text = "DOUBLE! +15 HP" },
-		{ at = 3, heal = 20, speedMultiplier = 1, speedSeconds = 0, text = "TRIPLE! +20 HP" },
-		{ at = 5, heal = 30, speedMultiplier = 1, speedSeconds = 0, text = "RAMPAGE! +30 HP" },
+		{
+			at = 2,
+			heal = 15,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "DOUBLE! +15 HP",
+			moment = "double",
+			announceAll = false,
+		},
+		{
+			at = 3,
+			heal = 20,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "TRIPLE! +20 HP",
+			moment = "triple",
+			announceAll = false,
+		},
+		{
+			at = 5,
+			heal = 30,
+			speedMultiplier = 1,
+			speedSeconds = 0,
+			text = "RAMPAGE! +30 HP",
+			moment = "spree",
+			announceAll = true,
+		},
+	},
+}
+
+-- Big moments (piece 44): banner call-outs, name plates over every fighter, level-up burst.
+-- Logic only; the looks come from Ui/MomentStyles (one of three, until Claude Design sends its own).
+Config.Moments = {
+	enabled = true,
+	style = "A", -- which entry of Ui/MomentStyles is drawn
+	bannerSeconds = 2.2, -- how long one banner stays
+	minGapSeconds = 0.3, -- quiet time between two banners
+	queueMax = 3, -- banners waiting behind the one on screen
+	staleSeconds = 4, -- a waiting banner older than this is dropped (it is news no more)
+	maxNameLength = 16, -- names on banners are cut to this many letters
+}
+
+Config.Plates = {
+	enabled = true,
+	maxDistance = 90, -- studs; further fighters show no plate
+	maxNameLength = 14, -- letters kept on a plate
+	showOwnPlate = false, -- your own bar and level are in the HUD
+	ownRing = true, -- the ring under your own feet
+	enemyRing = false, -- a ring under every other fighter too
+	lowHealthFraction = 0.3, -- under this share of health the bar turns the danger colour
+	ringDiameter = 5.6, -- studs
+	ringThickness = 0.12, -- studs
+	ringLift = 0.12, -- how far above the floor the ring floats (no z-fighting)
+	plateLift = 3.6, -- studs above the root part
+	burst = {
+		particles = 22, -- sparks per level-up (halved when the arena is busy or flashes are reduced)
+		arrowSeconds = 1.3, -- the arrow over the head
+		ringSeconds = 0.7, -- the ring that opens on the floor
+		ringDiameter = 14, -- studs when fully open
+		maxAtOnce = 4, -- bursts alive at once; more are skipped (cosmetic only)
 	},
 }
 
