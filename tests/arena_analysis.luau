@@ -58,7 +58,12 @@ function Analysis.walkable(g: Grid, x: number, z: number): boolean
 end
 
 -- Cells reachable from (x, z) on foot (4 neighbours). `inside` can limit it to a region.
-function Analysis.flood(g: Grid, x: number, z: number, inside: ((number, number) -> boolean)?): { [number]: boolean }
+function Analysis.flood(
+	g: Grid,
+	x: number,
+	z: number,
+	inside: ((number, number) -> boolean)?
+): { [number]: boolean }
 	local seen: { [number]: boolean } = {}
 	local col, row = cellOf(g, x, z)
 	if col < 0 or row < 0 or col >= g.n or row >= g.n or g.blocked[idx(g, col, row)] then
@@ -134,12 +139,32 @@ function Analysis.exposure(layout: Layout.Layout, x: number, z: number, range: n
 		local reach = range
 		for _, s in layout.solids do
 			if s.blocksShots then
-				local hit = Layout.segmentHitsBox(x, z, x + dx * range, z + dz * range, s.x0, s.z0, s.x1, s.z1)
+				local hit = Layout.segmentHitsBox(
+					x,
+					z,
+					x + dx * range,
+					z + dz * range,
+					s.x0,
+					s.z0,
+					s.x1,
+					s.z1
+				)
 				if hit then
 					local lo, hi = 0, range
 					for _ = 1, 10 do
 						local mid = (lo + hi) / 2
-						if Layout.segmentHitsBox(x, z, x + dx * mid, z + dz * mid, s.x0, s.z0, s.x1, s.z1) then
+						if
+							Layout.segmentHitsBox(
+								x,
+								z,
+								x + dx * mid,
+								z + dz * mid,
+								s.x0,
+								s.z0,
+								s.x1,
+								s.z1
+							)
+						then
 							hi = mid
 						else
 							lo = mid
@@ -153,6 +178,22 @@ function Analysis.exposure(layout: Layout.Layout, x: number, z: number, range: n
 		total += range * range
 	end
 	return seen / total
+end
+
+-- Is this spot inside (or within `pad` of) any solid that blocks walking?
+function Analysis.insideAny(layout: Layout.Layout, x: number, z: number, pad: number): boolean
+	for _, s in layout.solids do
+		if
+			s.blocksMove
+			and x >= s.x0 - pad
+			and x <= s.x1 + pad
+			and z >= s.z0 - pad
+			and z <= s.z1 + pad
+		then
+			return true
+		end
+	end
+	return false
 end
 
 -- Is a shot-blocker within `d` studs of this spot (something to hide or lean on)?

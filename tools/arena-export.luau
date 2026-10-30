@@ -7,6 +7,7 @@ local process = require("@lune/process")
 local serde = require("@lune/serde")
 local Layout = require("../src/server/Arena/Layout")
 local Analysis = require("../tests/arena_analysis")
+local Config = require("../src/shared/Config")
 
 local out = process.args[1] or "arenas.json"
 local specs = {
@@ -23,13 +24,14 @@ for _, spec in specs do
 	for x = -100, 100, 5 do
 		for z = -100, 100, 5 do
 			if Analysis.walkable(walk, x, z) and Analysis.nearBlocker(layout, x, z, 3.5) then
-				worst = math.max(worst, Analysis.exposure(layout, x, z, 50))
+				worst =
+					math.max(worst, Analysis.exposure(layout, x, z, Config.Weapons.Firearm.range))
 			end
 		end
 	end
 	local far, near, sum = 0, 1e9, 0
 	for _, s in layout.spawns do
-		local d = math.sqrt((s.x - layout.finalZone.x) ^ 2 + (s.z - layout.finalZone.z) ^ 2)
+		local d = math.sqrt((s.x - Config.Zone.centerX) ^ 2 + (s.z - Config.Zone.centerZ) ^ 2)
 		far, near, sum = math.max(far, d), math.min(near, d), sum + d
 	end
 	local cover = 0

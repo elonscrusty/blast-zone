@@ -78,8 +78,6 @@ export type Spec = {
 	boxes: { BoxSpec },
 	spawns: { Pt },
 	containers: { Pt },
-	finalZone: { x: number, z: number, radius: number },
-	zoneStages: { number },
 	encounters: { Encounter },
 }
 
@@ -97,8 +95,24 @@ export type Solid = {
 	building: string?,
 }
 
-export type Roof = { id: string, building: string, x0: number, z0: number, x1: number, z1: number, h: number }
-export type Gate = { id: string, park: string, side: string, from: number, to: number, x: number, z: number }
+export type Roof = {
+	id: string,
+	building: string,
+	x0: number,
+	z0: number,
+	x1: number,
+	z1: number,
+	h: number,
+}
+export type Gate = {
+	id: string,
+	park: string,
+	side: string,
+	from: number,
+	to: number,
+	x: number,
+	z: number,
+}
 export type Point = { id: string, x: number, z: number }
 
 export type Layout = {
@@ -115,8 +129,6 @@ export type Layout = {
 	intersections: { GroundSpec },
 	spawns: { Point },
 	containers: { Point },
-	finalZone: { x: number, z: number, radius: number },
-	zoneStages: { number },
 	encounters: { Encounter },
 }
 
@@ -199,7 +211,14 @@ local function doorGaps(doors: { Door }, side: string): { { number } }
 end
 
 -- Four sides of a rectangle as wall lines, each with its own gaps.
-local function ringLines(x0: number, z0: number, x1: number, z1: number, t: number, doors: { Door }): { WallLine }
+local function ringLines(
+	x0: number,
+	z0: number,
+	x1: number,
+	z1: number,
+	t: number,
+	doors: { Door }
+): { WallLine }
 	return {
 		{ axis = "h", at = z0 + t / 2, from = x0, to = x1, gaps = doorGaps(doors, "N") },
 		{ axis = "h", at = z1 - t / 2, from = x0, to = x1, gaps = doorGaps(doors, "S") },
@@ -218,17 +237,25 @@ function Layout.compile(spec: Spec): Layout
 	end
 
 	for _, b in spec.buildings do
-		table.insert(ground, { id = `{b.id}-floor`, kind = "floor", x0 = b.x0, z0 = b.z0, x1 = b.x1, z1 = b.z1 })
+		table.insert(
+			ground,
+			{ id = `{b.id}-floor`, kind = "floor", x0 = b.x0, z0 = b.z0, x1 = b.x1, z1 = b.z1 }
+		)
 		for i, line in ringLines(b.x0, b.z0, b.x1, b.z1, Layout.WALL, b.doors) do
 			wallLine(solids, `{b.id}-wall{i}`, "wall", line, Layout.WALL, b.h, true, b.id, true)
 		end
 		for i, line in b.inner or {} do
 			wallLine(solids, `{b.id}-part{i}`, "partition", line, Layout.WALL, 7, true, b.id, false)
 		end
-		table.insert(
-			roofs,
-			{ id = `{b.id}-roof`, building = b.id, x0 = b.x0, z0 = b.z0, x1 = b.x1, z1 = b.z1, h = b.h }
-		)
+		table.insert(roofs, {
+			id = `{b.id}-roof`,
+			building = b.id,
+			x0 = b.x0,
+			z0 = b.z0,
+			x1 = b.x1,
+			z1 = b.z1,
+			h = b.h,
+		})
 	end
 
 	for _, p in spec.parks do
@@ -246,10 +273,15 @@ function Layout.compile(spec: Spec): Layout
 			else
 				gx, gz = p.x1, (d.from + d.to) / 2
 			end
-			table.insert(
-				gates,
-				{ id = `{p.id}-gate{i}`, park = p.id, side = d.side, from = d.from, to = d.to, x = gx, z = gz }
-			)
+			table.insert(gates, {
+				id = `{p.id}-gate{i}`,
+				park = p.id,
+				side = d.side,
+				from = d.from,
+				to = d.to,
+				x = gx,
+				z = gz,
+			})
 		end
 	end
 
@@ -316,8 +348,6 @@ function Layout.compile(spec: Spec): Layout
 		intersections = spec.intersections,
 		spawns = spawns,
 		containers = containers,
-		finalZone = spec.finalZone,
-		zoneStages = spec.zoneStages,
 		encounters = spec.encounters,
 	}
 end

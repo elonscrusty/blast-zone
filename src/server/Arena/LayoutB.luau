@@ -1,7 +1,7 @@
 --!strict
 -- Try B "Offset Avenues": the roads cross off-centre, so one huge park fills the bottom-left.
 -- Hall (enterable) top-right, alley block top-left, container yard bottom-right.
--- Final fight at the hall's corner by the crossing.
+-- The zone closes on (0,0): the park's top-right corner, with a gazebo and the north gate.
 
 return {
 	id = "B",
@@ -29,7 +29,9 @@ return {
 				{ side = "W", from = -80, to = -70 },
 				{ side = "E", from = -72, to = -62 },
 			},
-			inner = { { axis = "h", at = -74, from = 56, to = 92, gaps = { { 62, 72 }, { 78, 88 } } } },
+			inner = {
+				{ axis = "h", at = -74, from = 56, to = 92, gaps = { { 62, 72 }, { 78, 88 } } },
+			},
 		},
 	},
 	parks = {
@@ -65,6 +67,7 @@ return {
 		{ id = "bar-v5", kind = "cover", x0 = 22, z0 = -90, x1 = 27, z1 = -80 },
 		-- park
 		{ id = "pond", kind = "water", x0 = -60, z0 = 30, x1 = -30, z1 = 50 },
+		{ id = "gazebo", kind = "mass", x0 = -9, z0 = 0, x1 = 3, z1 = 10, h = 8 },
 		{ id = "bandstand", kind = "mass", x0 = -26, z0 = 64, x1 = -14, z1 = 76, h = 8 },
 		{ id = "tree1", kind = "prop", x0 = -92, z0 = -2, x1 = -89, z1 = 1 },
 		{ id = "tree2", kind = "prop", x0 = -92, z0 = 58, x1 = -89, z1 = 61 },
@@ -82,7 +85,9 @@ return {
 		{ id = "hedge6", kind = "cover", x0 = -70, z0 = 50, x1 = -68, z1 = 66, h = 3 },
 		{ id = "hedge7", kind = "cover", x0 = -8, z0 = 40, x1 = -6, z1 = 54, h = 3 },
 		{ id = "bench1", kind = "cover", x0 = -76, z0 = 40, x1 = -71, z1 = 42, h = 3 },
-		{ id = "bench2", kind = "cover", x0 = -20, z0 = 0, x1 = -14, z1 = 2, h = 3 },
+		{ id = "hedge8", kind = "cover", x0 = -20, z0 = 4, x1 = -18, z1 = 16, h = 3 },
+		{ id = "hedge9", kind = "cover", x0 = 6, z0 = -6, x1 = 8, z1 = 6, h = 3 },
+		{ id = "bench2", kind = "cover", x0 = -20, z0 = -4, x1 = -14, z1 = -2, h = 3 },
 		-- hall crates
 		{ id = "crate1", kind = "cover", x0 = 58, z0 = -90, x1 = 64, z1 = -86 },
 		{ id = "crate2", kind = "cover", x0 = 82, z0 = -90, x1 = 88, z1 = -86 },
@@ -128,8 +133,6 @@ return {
 		{ 5, -30 },
 		{ 30, 0 },
 	},
-	finalZone = { x = 46, z = -46, radius = 36 },
-	zoneStages = { 225, 160, 110, 72, 36 },
 	encounters = {
 		{
 			kind = "open-road",

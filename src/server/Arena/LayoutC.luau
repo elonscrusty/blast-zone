@@ -1,7 +1,8 @@
 --!strict
 -- Try C "Arcade Row": the road makes a T. A big three-room arcade sits in the north, with a narrow
 -- alley on each side. Park bottom-right, container yard bottom-left.
--- Final fight in front of the arcade doors.
+-- The zone closes on (0,0), the middle of the long road, with barriers to hide behind; the
+-- arcade doors are inside the 38 ring.
 
 return {
 	id = "C",
@@ -30,13 +31,26 @@ return {
 			doors = {
 				{ side = "S", from = -30, to = -18 },
 				{ side = "S", from = 18, to = 30 },
+				{ side = "S", from = -6, to = 6 },
 				{ side = "N", from = -6, to = 6 },
 				{ side = "W", from = -66, to = -56 },
 				{ side = "E", from = -66, to = -56 },
 			},
 			inner = {
-				{ axis = "v", at = -16, from = -90, to = -28, gaps = { { -70, -60 }, { -48, -38 } } },
-				{ axis = "v", at = 16, from = -90, to = -28, gaps = { { -70, -60 }, { -48, -38 } } },
+				{
+					axis = "v",
+					at = -16,
+					from = -90,
+					to = -28,
+					gaps = { { -70, -60 }, { -48, -38 } },
+				},
+				{
+					axis = "v",
+					at = 16,
+					from = -90,
+					to = -28,
+					gaps = { { -70, -60 }, { -48, -38 } },
+				},
 			},
 		},
 	},
@@ -61,6 +75,9 @@ return {
 		{ id = "kiosk", kind = "mass", x0 = -90, z0 = 78, x1 = -76, z1 = 92, h = 8 },
 		-- roads
 		{ id = "car-h1", kind = "cover", x0 = -90, z0 = -9, x1 = -80, z1 = -4 },
+		{ id = "median1", kind = "cover", x0 = -3, z0 = -8, x1 = 3, z1 = -4 },
+		{ id = "median2", kind = "cover", x0 = 36, z0 = 3, x1 = 41, z1 = 8 },
+		{ id = "median3", kind = "cover", x0 = -26, z0 = -8, x1 = -21, z1 = -3 },
 		{ id = "car-h2", kind = "cover", x0 = -20, z0 = 3, x1 = -10, z1 = 8 },
 		{ id = "car-h3", kind = "cover", x0 = 20, z0 = -9, x1 = 30, z1 = -4 },
 		{ id = "car-h4", kind = "cover", x0 = 64, z0 = 3, x1 = 74, z1 = 8 },
@@ -105,10 +122,9 @@ return {
 		{ -104, -104 },
 		{ 0, -104 },
 		{ 104, -104 },
-		{ 104, 0 },
+		{ 104, 6 },
 		{ 104, 104 },
 		{ -50, 104 },
-		{ -104, 104 },
 		{ -104, 0 },
 		{ -49, -60 },
 		{ 49, -60 },
@@ -131,8 +147,6 @@ return {
 		{ -90, 48 },
 		{ -50, 20 },
 	},
-	finalZone = { x = 0, z = -12, radius = 36 },
-	zoneStages = { 170, 120, 84, 58, 36 },
 	encounters = {
 		{
 			kind = "open-road",

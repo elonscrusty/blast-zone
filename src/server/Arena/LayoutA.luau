@@ -1,11 +1,12 @@
 --!strict
 -- Try A "Crossroads Park" (starred): road cross in the middle, park top-left, service alley
--- top-right, open car lot bottom-left, enterable depot bottom-right. Final fight at the depot corner.
+-- top-right, open car lot bottom-left, enterable depot bottom-right. The zone closes on the
+-- crossing (0,0), which has a planter and blocks to fight around; the depot is in the 38 ring.
 
 return {
 	id = "A",
 	name = "Crossroads Park",
-	blurb = "Even road cross. Park, alley, car lot and a depot you can walk through. Final fight at the depot corner.",
+	blurb = "Even road cross. Park, alley, car lot and a depot you can walk through. The last circle closes on the crossing.",
 	ground = {
 		{ id = "pavement", kind = "sidewalk", x0 = -110, z0 = -110, x1 = 110, z1 = 110 },
 		{ id = "road-h", kind = "road", x0 = -110, z0 = -10, x1 = 110, z1 = 10 },
@@ -21,17 +22,19 @@ return {
 	buildings = {
 		{
 			id = "depot",
-			x0 = 30,
-			z0 = 30,
-			x1 = 94,
-			z1 = 90,
+			x0 = 18,
+			z0 = 18,
+			x1 = 82,
+			z1 = 78,
 			h = 14,
 			doors = {
-				{ side = "W", from = 45, to = 55 },
-				{ side = "N", from = 52, to = 60 },
-				{ side = "E", from = 66, to = 76 },
+				{ side = "W", from = 40, to = 50 },
+				{ side = "N", from = 22, to = 32 },
+				{ side = "E", from = 54, to = 64 },
 			},
-			inner = { { axis = "v", at = 62, from = 32, to = 88, gaps = { { 48, 58 }, { 74, 84 } } } },
+			inner = {
+				{ axis = "v", at = 50, from = 20, to = 76, gaps = { { 36, 46 }, { 60, 70 } } },
+			},
 		},
 	},
 	parks = {
@@ -45,6 +48,7 @@ return {
 				{ side = "E", from = -70, to = -58 },
 				{ side = "S", from = -70, to = -58 },
 				{ side = "W", from = -60, to = -48 },
+				{ side = "E", from = -36, to = -24 },
 			},
 		},
 	},
@@ -88,10 +92,14 @@ return {
 		{ id = "bench1", kind = "cover", x0 = -44, z0 = -84, x1 = -38, z1 = -82, h = 3 },
 		{ id = "bench2", kind = "cover", x0 = -82, z0 = -62, x1 = -80, z1 = -56, h = 3 },
 		-- depot crates
-		{ id = "crate1", kind = "cover", x0 = 34, z0 = 70, x1 = 40, z1 = 76 },
-		{ id = "crate2", kind = "cover", x0 = 70, z0 = 36, x1 = 76, z1 = 42 },
-		{ id = "crate3", kind = "cover", x0 = 84, z0 = 80, x1 = 90, z1 = 86 },
-		{ id = "crate4", kind = "cover", x0 = 66, z0 = 60, x1 = 70, z1 = 64 },
+		{ id = "crate1", kind = "cover", x0 = 22, z0 = 58, x1 = 28, z1 = 64 },
+		{ id = "crate2", kind = "cover", x0 = 58, z0 = 24, x1 = 64, z1 = 30 },
+		{ id = "crate3", kind = "cover", x0 = 72, z0 = 66, x1 = 78, z1 = 72 },
+		{ id = "crate4", kind = "cover", x0 = 56, z0 = 48, x1 = 60, z1 = 52 },
+		-- the crossing: a planter in the middle and a block each side
+		{ id = "planter", kind = "cover", x0 = 3, z0 = -3, x1 = 9, z1 = 3 },
+		{ id = "block-n", kind = "cover", x0 = -2, z0 = -14, x1 = 2, z1 = -12 },
+		{ id = "block-s", kind = "cover", x0 = -2, z0 = 12, x1 = 2, z1 = 14 },
 	},
 	spawns = {
 		{ -104, -104 },
@@ -102,16 +110,16 @@ return {
 		{ 0, 104 },
 		{ -104, 104 },
 		{ -104, 0 },
-		{ -60, -70 },
+		{ -56, -72 },
 		{ 58, -92 },
 		{ -42, 50 },
-		{ 20, 50 },
 	},
 	containers = {
-		{ 40, 40 },
-		{ 50, 82 },
-		{ 84, 48 },
-		{ 74, 84 },
+		{ 30, 30 },
+		{ 36, 70 },
+		{ 70, 32 },
+		{ 64, 70 },
+		{ 92, 50 },
 		{ -76, -88 },
 		{ -40, -34 },
 		{ -54, -28 },
@@ -122,8 +130,6 @@ return {
 		{ -80, 58 },
 		{ -30, 40 },
 	},
-	finalZone = { x = 22, z = 22, radius = 40 },
-	zoneStages = { 190, 140, 100, 64, 40 },
 	encounters = {
 		{
 			kind = "open-road",
@@ -144,9 +150,9 @@ return {
 		{
 			kind = "interior",
 			name = "Depot",
-			x = 62,
-			z = 60,
-			r = 38,
+			x = 50,
+			z = 48,
+			r = 36,
 			note = "Three doors and a wall with two gaps. Fight room to room.",
 		},
 	},

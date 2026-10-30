@@ -147,6 +147,18 @@ Config.Arena = {
 	spawnClearRadius = 4,
 	containerSpots = 12,
 	parkEntrancesMin = 2,
+	-- Piece 04. Which graybox layout is built (A, B or C, see src/server/Arena/Layout*.luau).
+	layout = "A",
+	occluderTag = "ArenaOccluder", -- parts the camera may fade for the local player only
+	-- Local roof / wall fade (piece 04). Transparency targets, 0 = solid, 1 = gone.
+	fade = {
+		insideRoof = 1,
+		insideWall = 0.8,
+		outsideBlocker = 0.65,
+		playerPad = 3, -- studs: fade what is near the line of sight, not only exactly on it
+		headHeight = 3,
+		smoothing = 12, -- bigger is quicker
+	},
 }
 
 -- CollectionService tags and Workspace folder names that the pieces agree on.
