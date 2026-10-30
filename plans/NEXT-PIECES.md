@@ -39,3 +39,13 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |
 | 31 | UI system for Claude Design: screen list, brief, look/logic split (Ui/Tokens, Skins, Components), import tool | 20 | PR up | UI system PR |
 | 38 | Weather: rain only (light/steady/heavy per match), server picks, one cheap emitter, haze on the sky | - | PR up | weather PR |
+| 19 | Lobby plaza (3D) + loadout logic; look comes from Claude Design | 7, 20 | PR up | this PR |
+| 28 | Second map (D Neon Plaza: default, awaiting carter's pick) + map rotation between matches; E and F kept as extra maps | 12 | PR up | #34 |
+| 37 | Gun sounds: Breaker, Hornet, Longline shots, gun drop and gun swap cues (box hit/break already existed); ids left empty | 9, 13 | PR up | gun sounds PR |
+| 36 | Kill streak rewards (heal, speed boost) | - | PR up | see PR |
+| 32 | Spectate after you die: killer first, camera style (A same / B wide / C close), server-checked targets | PR up | see handoff 32 |
+| 33 | Map voting between matches: server counts votes in the lobby, winner picked right before the arena builds (placeholder buttons; look comes from the UI system) | - | PR up | map vote PR |
+| 34 | Account level from run XP + free gifts at milestone levels (Scrap or looks; saved with the profile). Server only: the look of the level screen waits for carter | - | PR up | level PR |
+| 39 | Idle (AFK) removal, bots top up part-full lobbies, safe server shutdown (pays out, no new matches, saves via #15) | - | PR up | piece 39 PR |
+| 35 | Smarter bots: easy/normal/hard tiers, take cover, leave the zone wall early, use found guns (calm start kept) | 18 | PR up | see handoff 35 |
+| 14 | City art pass: Neon Night, day to night in one match | 12 | PR up | #42 |

@@ -15,6 +15,7 @@ export type World = {
 	selfState: (id: string) -> BotBrain.Self?, -- nil = eliminated or gone
 	others: (id: string) -> { BotBrain.Body }, -- every other living participant
 	pickups: () -> { BotBrain.Pickup },
+	gunDrops: (() -> { BotBrain.GunDrop })?, -- found guns on the ground; nil = none known
 	zone: () -> BotBrain.Zone?,
 	weaponRange: (id: string) -> number,
 	canSee: (BotBrain.Vec2, BotBrain.Vec2) -> boolean, -- same test that blocks shots
@@ -22,10 +23,12 @@ export type World = {
 	fire: (id: string, aimX: number, aimZ: number) -> (),
 	reload: (id: string) -> (),
 	slide: (id: string, dirX: number, dirZ: number) -> (),
+	claimGun: ((id: string, dropId: string) -> ())?, -- ask for a swap with a found gun
 }
 
 type Entry = {
 	state: BotBrain.State,
+	tuning: BotTuning.Tuning, -- this bot's tier applied
 	nextThink: number,
 	last: BotBrain.Intent?,
 	stopped: boolean,
@@ -67,6 +70,7 @@ function BotRunner.add(self: Runner, id: string)
 	-- Spread the first thinks so bots do not all think on the same frame.
 	self.bots[id] = {
 		state = BotBrain.newState(),
+		tuning = BotTuning.forTier(self.tuning, BotTuning.tierOf(self.tuning, id)),
 		nextThink = self.world.now() + self.rand() * self.tuning.thinkInterval,
 		last = nil,
 		stopped = true,
@@ -84,6 +88,12 @@ function BotRunner.clear(self: Runner)
 	for id in self.bots do
 		self:remove(id)
 	end
+end
+
+-- The tier a bot plays ("easy", "normal", "hard"), or nil for an unknown bot.
+function BotRunner.tierName(self: Runner, id: string): string?
+	local entry = self.bots[id]
+	return if entry then entry.tuning.tierName else nil
 end
 
 function BotRunner.count(self: Runner): number
@@ -133,13 +143,14 @@ function BotRunner.step(self: Runner)
 			local ok, result = pcall(function(): BotBrain.Intent
 				local fightSeconds = world.fightSeconds
 				local tuning = if fightSeconds
-					then BotWarmup.apply(self.tuning, fightSeconds())
-					else self.tuning
+					then BotWarmup.apply(entry.tuning, fightSeconds())
+					else entry.tuning
 				local view: BotBrain.View = {
 					now = now,
 					me = me,
 					others = world.others(id),
 					pickups = world.pickups(),
+					gunDrops = if world.gunDrops then world.gunDrops() else nil,
 					zone = world.zone(),
 					range = world.weaponRange(id),
 					canSee = world.canSee,
@@ -160,6 +171,9 @@ function BotRunner.step(self: Runner)
 				end
 				if intent.fire then
 					world.fire(id, intent.aimX, intent.aimZ)
+				end
+				if intent.grabGunId and world.claimGun then
+					world.claimGun(id, intent.grabGunId)
 				end
 			else
 				self.onError(id, tostring(result))

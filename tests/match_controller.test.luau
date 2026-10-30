@@ -29,6 +29,7 @@ export type Rig = {
 	rewards: { { id: string, amount: number, place: number } },
 	announcements: { string },
 	published: { any },
+	benched: { string },
 }
 
 local function newRig(matchOverrides: { [string]: any }?): Rig
@@ -83,6 +84,7 @@ local function newRig(matchOverrides: { [string]: any }?): Rig
 		rewards = {},
 		announcements = {},
 		published = {},
+		benched = {},
 	}
 
 	local world: MatchController.World = {
@@ -121,6 +123,9 @@ local function newRig(matchOverrides: { [string]: any }?): Rig
 		end,
 		sendSpectate = function(id, targetId)
 			rig.spectate[id] = targetId
+		end,
+		benchPlayer = function(id)
+			table.insert(rig.benched, id)
 		end,
 		grantReward = function(id, amount, place)
 			table.insert(rig.rewards, { id = id, amount = amount, place = place })
@@ -661,6 +666,13 @@ Harness.test(
 		Harness.eq(rig.spectate[late], nil)
 	end
 )
+
+Harness.test("spectating: the fallen first watch whoever eliminated them", function()
+	local rig, ids = humans(3)
+	rig.untilPhase("Active")
+	rig.kill(ids[1], ids[3])
+	Harness.eq(rig.spectate[ids[1]], ids[3], "killer is watched first, not the first in line")
+end)
 
 Harness.test("a late joiner is not in the match and cannot be hurt", function()
 	local rig, _ = humans(2)

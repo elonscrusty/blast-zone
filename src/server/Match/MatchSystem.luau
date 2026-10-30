@@ -8,6 +8,8 @@
 --   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId): once per player per match.
 --   MatchSystem.queuePlayer(player)  piece 26: queue a player for the next match, same as pressing PLAY.
 --   MatchSystem.isQueued(player)     piece 26: true when the player pressed PLAY / PLAY AGAIN (or was queued).
+--   MatchSystem.kickIdle(player)     piece 39: take an idle player out of the fight (no reward) or off the queue.
+--   MatchSystem.shutdown()           piece 39: the server is closing; stop matches, pay what is owed. Runs once.
 -- Phase and matchId live in Core/MatchContext; the roster in Core/Participants; hurting goes through Core/Damage.
 
 local CollectionService = game:GetService("CollectionService")
@@ -156,10 +158,17 @@ local world: MatchController.World = {
 		end
 	end,
 
-	sendSpectate = function(id, targetId)
+	benchPlayer = function(id)
 		local player = playerById[id]
 		if player then
-			Net.fire("SpectateTarget", player, { participantId = targetId })
+			task.spawn(sendLobbyCharacter, player) -- a fresh body in the lobby; the old one is gone
+		end
+	end,
+
+	sendSpectate = function(id, targetId, targetName)
+		local player = playerById[id]
+		if player then
+			Net.fire("SpectateTarget", player, { participantId = targetId, name = targetName })
 		end
 	end,
 
@@ -195,6 +204,21 @@ end
 
 function MatchSystem.isQueued(player: Player): boolean
 	return controller ~= nil and controller.isReady(idOf(player))
+end
+
+function MatchSystem.kickIdle(player: Player): boolean
+	return controller.forfeitIdle(idOf(player))
+end
+
+local shutdownDone = false
+
+function MatchSystem.shutdown()
+	if shutdownDone or controller == nil then
+		return
+	end
+	shutdownDone = true
+	controller.beginShutdown()
+	Net.fireAll("Notice", { kind = "info", text = "Server is closing. Your progress is saving." })
 end
 
 local function onPlayerAdded(player: Player)
@@ -264,6 +288,21 @@ function MatchSystem.start()
 			end)
 		end
 	end
+
+	-- Server closing: stop matches and pay out first, then let the saves run. The profile saver calls this
+	-- before its final writes (so late rewards are in them); our own BindToClose covers a missing saver.
+	local profileFolder = script.Parent.Parent:FindFirstChild("Profile")
+	local profileModule = if profileFolder then profileFolder:FindFirstChild("Profiles") else nil
+	if profileModule and profileModule:IsA("ModuleScript") then
+		local ok, profiles = pcall(require, profileModule)
+		if ok and type(profiles.beforeShutdown) == "function" then
+			profiles.beforeShutdown(MatchSystem.shutdown)
+		end
+	end
+	game:BindToClose(function()
+		MatchSystem.shutdown()
+		task.wait(Config.Idle.shutdownGraceSeconds) -- time for the last rewards to reach the saves
+	end)
 
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)

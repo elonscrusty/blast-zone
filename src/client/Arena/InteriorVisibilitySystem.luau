@@ -19,6 +19,8 @@ local records: { [string]: Record } = {}
 local boxes: { Visibility.Box } = {}
 local buildings: { Visibility.Footprint } = {}
 local targets: { [string]: number } = {}
+-- Piece 14 city art copies the fade of the wall or roof it is painted on, by occluder name.
+local followers: { [string]: { BasePart } } = {}
 local hiddenModels: { [Model]: boolean } = {}
 local attr = Config.Attributes.ParticipantId
 
@@ -51,6 +53,37 @@ local function add(inst: Instance)
 			buildings,
 			{ id = building, x0 = box.x0, z0 = box.z0, x1 = box.x1, z1 = box.z1 }
 		)
+	end
+end
+
+local function addFollower(inst: Instance)
+	if not inst:IsA("BasePart") then
+		return
+	end
+	local name = inst:GetAttribute("FadeWith")
+	if typeof(name) ~= "string" then
+		return
+	end
+	local list = followers[name]
+	if list == nil then
+		list = {}
+		followers[name] = list
+	end
+	table.insert(list :: { BasePart }, inst)
+	local rec = records[name]
+	if rec and rec.current > 0 then
+		inst.LocalTransparencyModifier = rec.current -- arrived while the wall is already faded
+	end
+end
+
+local function removeFollower(inst: Instance)
+	local name = inst:GetAttribute("FadeWith")
+	local list = if typeof(name) == "string" then followers[name] else nil
+	if list then
+		local i = table.find(list, inst :: any)
+		if i then
+			table.remove(list, i)
+		end
 	end
 end
 
@@ -115,6 +148,13 @@ function InteriorVisibilitySystem.start()
 		end
 	end)
 
+	local followerTag = Config.Tags.ArtFollower
+	for _, inst in CollectionService:GetTagged(followerTag) do
+		addFollower(inst)
+	end
+	CollectionService:GetInstanceAddedSignal(followerTag):Connect(addFollower)
+	CollectionService:GetInstanceRemovedSignal(followerTag):Connect(removeFollower)
+
 	local localPlayer = Players.LocalPlayer
 	RunService.RenderStepped:Connect(function(dt: number)
 		local camera = Workspace.CurrentCamera
@@ -142,6 +182,12 @@ function InteriorVisibilitySystem.start()
 			if math.abs(target - rec.current) > 0.002 then
 				rec.current += (target - rec.current) * k
 				rec.part.LocalTransparencyModifier = rec.current
+				local copies = followers[id]
+				if copies then
+					for _, c in copies do
+						c.LocalTransparencyModifier = rec.current
+					end
+				end
 			end
 		end
 

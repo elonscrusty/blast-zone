@@ -61,6 +61,24 @@ function AudioClientSystem.start()
 	end
 	CollectionService:GetInstanceAddedSignal(Config.Tags.SupplyContainer):Connect(seeContainer)
 
+	-- Guns on the floor: the server makes an invisible part per gun in this Workspace folder.
+	local function watchDrops(dropFolder: Instance)
+		dropFolder.ChildAdded:Connect(function(inst: Instance)
+			if inst:IsA("BasePart") and typeof(inst:GetAttribute("WeaponId")) == "string" then
+				play(tracker:gunDropped(inst.Position))
+			end
+		end)
+	end
+	local existing = workspace:FindFirstChild(Config.Weapons.Drops.folder)
+	if existing then
+		watchDrops(existing)
+	end
+	workspace.ChildAdded:Connect(function(inst: Instance)
+		if inst.Name == Config.Weapons.Drops.folder then
+			watchDrops(inst)
+		end
+	end)
+
 	listen("MatchState", function(p: any)
 		local change = tracker:matchState(p)
 		if change == nil then

@@ -108,3 +108,9 @@ Harness.test("weather remotes: the server tells, a client may only ask", functio
 	Harness.truthy(ask.rate ~= nil and ask.rate.perSecond <= 2, "rate limited")
 	Harness.eq(#ask.schema, 0, "takes no arguments")
 end)
+
+Harness.test("rain hands its haze to the day-night code through two Lighting attributes", function()
+	Harness.eq(cfg.applyAtmosphere, false, "DayNightSystem owns the Atmosphere")
+	Harness.truthy(cfg.attributes.fog ~= cfg.attributes.haze)
+	Harness.truthy(#cfg.attributes.fog > 0 and #cfg.attributes.haze > 0)
+end)

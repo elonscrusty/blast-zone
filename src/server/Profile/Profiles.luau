@@ -20,6 +20,8 @@
 --   Profiles.saveNow(player)             -> boolean. Yields. Use after a reward or purchase.
 --   Profiles.retryLoad(player)           -> boolean. After a failed load.
 --   Profiles.waitForLoad(player, secs)   -> Profile?
+--   Profiles.beforeShutdown(fn)          fn runs first when the server closes, before the final saves (piece 39:
+--                                           the match pays out last rewards there). Errors in fn are ignored.
 --   Signals: Loaded(player, profile), Released(player), StatusChanged(player, status, reason?)
 --
 -- Nothing is written per shot or per update: changes only mark the profile dirty. Writes happen on
@@ -55,6 +57,7 @@ local jobId: string = if game.JobId ~= ""
 	else "studio-" .. HttpService:GenerateGUID(false)
 
 local manager: ProfileManager.Manager? = nil
+local shutdownHooks: { () -> () } = {}
 local known: { [number]: Player } = {} -- so Released can name a player who already left
 
 local function say(text: string)
@@ -167,6 +170,12 @@ function Profiles.init()
 	end)
 
 	game:BindToClose(function()
+		for _, hook in shutdownHooks do
+			local ok, err = pcall(hook)
+			if not ok then
+				warn(`[profiles] shutdown hook failed: {err}`)
+			end
+		end
 		m:shutdown()
 	end)
 	task.spawn(function()
@@ -185,6 +194,10 @@ function Profiles.init()
 			end
 		end
 	end)
+end
+
+function Profiles.beforeShutdown(fn: () -> ())
+	table.insert(shutdownHooks, fn)
 end
 
 function Profiles.get(player: Player): Profile?

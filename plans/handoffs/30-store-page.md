@@ -1,8 +1,8 @@
 # 30 Store page
 
-- What: 3 icon + 3 thumbnail ideas (A Hero Shot ⭐, B Gun Glow, C Zone Closing), 3 name ideas, store description, upload steps.
+- What: icon + thumbnail ideas C1 Showdown ⭐, C2 Last Two, C3 Loot Rush (cooler C), plus A, B, C, 3 name ideas, store description, upload steps.
 - Files: `art/store/icon-*.png` (512x512), `art/store/thumb-*.png` (1920x1080), `art/store/preview.html`, `plans/STORE-PAGE.md`.
-- Art is real 3D (three.js r128) built from the game's looks: A++ gun parts list, Crash Dummy colors, Config.Palette, Neon Night city.
+- Art is real 3D (three.js r128) from the game looks: A++ gun parts list, Config.Palette, Neon Night city. Opponents are other players in their own outfits (carter: no bots on store art).
 - Re-render: open preview.html locally with `#shot=A&mode=thumb&w=1920&h=1080&title=Neon%20Lockdown`, screenshot `#shot` (Playwright, swiftshader).
 - No game code changed. Name in the game is still `Config.Game.Name` = "Circuit District".
 - Live preview for carter: https://claude.ai/artifact/XARRj36mR1ef9tjF2ZjKHH

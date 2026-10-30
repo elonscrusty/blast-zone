@@ -24,6 +24,7 @@ local Net = require(ServerRoot.Core.Net)
 local MatchSystem = require(ServerRoot.Match.MatchSystem)
 
 local TopWinsStore = require(script.Parent.TopWinsStore)
+local NeonTower = require(script.Parent.NeonTower)
 local TrophyWall = require(script.Parent.TrophyWall)
 
 local StatsSystem = {}
@@ -105,7 +106,10 @@ local function placeBoard(): CFrame
 end
 
 local function startBoard()
-	local wall = TrophyWall.build(placeBoard())
+	local build: (CFrame) -> NeonTower.Wall = if cfg.board.look == "A"
+		then TrophyWall.build
+		else NeonTower.build
+	local wall = build(placeBoard())
 	if Profiles == nil then
 		wall.setStatus("Saving is off in this build")
 		return

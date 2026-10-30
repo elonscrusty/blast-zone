@@ -1,5 +1,5 @@
 --!strict
--- The 3D top-wins board in the lobby (piece 24, carter's pick A "Trophy Wall"):
+-- The 3D top-wins board, look A "Trophy Wall" (kept as a skin; carter picked B, see NeonTower.luau):
 -- a cream sticker board on two posts, with gold, silver and bronze podiums and trophies in front.
 -- The server builds it and fills the top list. Each client fills the YOU row with its own stats
 -- (StatsClientSystem), hides the board during a fight and spins the trophies.
@@ -32,8 +32,9 @@ local MEDALS = { GOLD, SILVER, BRONZE }
 local FONT = Enum.Font.FredokaOne
 
 local BOARD_W, BOARD_H, BOARD_D = 14, 17, 1
-local POST_H = 4
+local POST_H = 6 -- tall enough that the gold trophy never covers the YOU row
 local PIXELS_PER_STUD = 50
+local PODIUM_Z = 9 -- studs in front of the board
 
 local TrophyWall = {}
 
@@ -254,14 +255,14 @@ function TrophyWall.build(root: CFrame): Wall
 			model,
 			`Podium{i}`,
 			Vector3.new(4.4, spec.h, 4.4),
-			root * CFrame.new(spec.x, spec.h / 2, -7),
+			root * CFrame.new(spec.x, spec.h / 2, -PODIUM_Z),
 			color
 		)
 		part(
 			model,
 			`PodiumEdge{i}`,
 			Vector3.new(4.7, 0.35, 4.7),
-			root * CFrame.new(spec.x, spec.h, -7),
+			root * CFrame.new(spec.x, spec.h, -PODIUM_Z),
 			NAVY
 		)
 		local plateGui = surface(block, "Plate")
@@ -280,7 +281,7 @@ function TrophyWall.build(root: CFrame): Wall
 		trophy(
 			model,
 			`Trophy{i}`,
-			root * CFrame.new(spec.x, spec.h + 0.2, -7),
+			root * CFrame.new(spec.x, spec.h + 0.2, -PODIUM_Z),
 			color,
 			if i == 1 then 1.15 else 0.9
 		)

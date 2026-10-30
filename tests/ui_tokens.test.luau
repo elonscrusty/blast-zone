@@ -87,6 +87,7 @@ local LOOK_LAYER = {
 	"src/client/Hud/UiKit.luau",
 }
 local WORLD_ART = {
+	"src/client/Arena/DayNightSystem.luau", -- piece 14 sky and light colours
 	"src/client/Character/CharacterGun.luau",
 	"src/client/Combat/CombatFx.luau",
 	"src/client/Combat/GunModels.luau",
@@ -103,6 +104,9 @@ local LEGACY = {
 	"src/client/Daily/DailyUiSystem.luau",
 	"src/client/Emotes/EmoteWheelSystem.luau",
 	"src/client/Emotes/WinnerBannerSystem.luau",
+	"src/client/Lobby/LoadoutPanel.luau",
+	"src/client/Lobby/LobbyClientSystem.luau",
+	"src/client/MapVote/MapVoteClientSystem.luau",
 	"src/client/Match/ResultsClientSystem.luau",
 	"src/client/Match/SpectateClientSystem.luau",
 	"src/client/Onboarding/IntroView.luau",

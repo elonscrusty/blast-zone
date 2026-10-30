@@ -29,6 +29,8 @@ function Schema.defaults(): Data
 			unlocked = {},
 			equipped = {},
 			grantedKeys = {},
+			accountXp = 0,
+			claimedLevels = {},
 		},
 		loadout = {},
 		flags = {},

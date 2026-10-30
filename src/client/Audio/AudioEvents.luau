@@ -5,6 +5,9 @@
 
 local MusicPlan = require("./MusicPlan")
 
+-- Found guns that have their own shot sound (the cue is "fire_<gun>", or "fire_<gun>_other" for others).
+local GUN_CUES: { [string]: boolean } = { breaker = true, hornet = true, longline = true }
+
 local AudioEvents = {}
 AudioEvents.__index = AudioEvents
 
@@ -14,6 +17,7 @@ export type Tracker = typeof(setmetatable(
 		myId: string,
 		explosiveId: string,
 		reloading: { [number]: boolean },
+		weapon: { [number]: string },
 		ammo: { [number]: number },
 		level: number,
 		zoneWarned: { [number]: boolean },
@@ -28,6 +32,7 @@ function AudioEvents.new(myId: string, explosiveId: string): Tracker
 		myId = myId,
 		explosiveId = explosiveId,
 		reloading = {},
+		weapon = {},
 		ammo = {},
 		level = 1,
 		zoneWarned = {},
@@ -43,6 +48,7 @@ end
 -- Forget per-match memory (level, reload flags, zone warnings).
 function AudioEvents.reset(self: Tracker)
 	table.clear(self.reloading)
+	table.clear(self.weapon)
 	table.clear(self.ammo)
 	table.clear(self.zoneWarned)
 	self.level = 1
@@ -55,8 +61,12 @@ function AudioEvents.shot(self: Tracker, p: any): Request?
 	if p.weaponId == self.explosiveId then
 		return { cue = "fire_mortar", pos = p.origin }
 	end
+	local mine = p.shooterId == self.myId
+	local gun = if type(p.weaponId) == "string" and GUN_CUES[p.weaponId]
+		then p.weaponId
+		else "pistol"
 	return {
-		cue = if p.shooterId == self.myId then "fire_pistol" else "fire_pistol_other",
+		cue = "fire_" .. gun .. (if mine then "" else "_other"),
 		pos = p.origin,
 	}
 end
@@ -94,9 +104,18 @@ function AudioEvents.ammoState(self: Tracker, p: any): Request?
 	local nowReloading = type(p.reloadEndsAt) == "number"
 	local wasReloading = self.reloading[slot] == true
 	local before = self.ammo[slot]
+	-- A different gun in the slot (a swap). The first message of a match only sets the baseline.
+	local swapped = false
+	if type(p.weaponId) == "string" then
+		local had = self.weapon[slot]
+		swapped = had ~= nil and had ~= p.weaponId
+		self.weapon[slot] = p.weaponId
+	end
 	self.reloading[slot] = nowReloading
 	self.ammo[slot] = p.ammo
-	if nowReloading and not wasReloading then
+	if swapped then
+		return { cue = "gun_swap" }
+	elseif nowReloading and not wasReloading then
 		return { cue = "reload_start" }
 	elseif wasReloading and not nowReloading and before ~= nil and p.ammo > before then
 		return { cue = "reload_end" }
@@ -127,6 +146,14 @@ function AudioEvents.containerBroken(_self: Tracker, p: any): Request?
 		return nil
 	end
 	return { cue = "container_break", pos = p.pos }
+end
+
+-- A gun lying on the floor appeared (a box gave it up). `pos` comes from the part, as for containers.
+function AudioEvents.gunDropped(_self: Tracker, pos: any): Request?
+	if pos == nil then
+		return nil
+	end
+	return { cue = "gun_drop", pos = pos }
 end
 
 -- Only your own pickups make a sound; other people's orbs would just be noise.

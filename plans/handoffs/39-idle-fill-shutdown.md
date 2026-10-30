@@ -1,0 +1,9 @@
+# 39 Idle removal, bot top-up, safe shutdown
+- Done: server-only logic, no new screens. Numbers in `Config.Idle`. Warnings use the existing `Notice` remote.
+- Idle in a fight: `Match/IdleWatch.luau` (pure) + `Match/IdleSystem.luau`. Clock starts when Active begins. Counts as active: a real walk (3+ studs, not jitter), fire, reload, slide, switch gun, pickup, upgrade pick. Warn at 25 s, removed at 40 s.
+- Removed = `MatchController.forfeitIdle`: out like a leaver (last of those standing, no reward, no killer credit), a fresh body in the lobby (`world.benchPlayer`), off the queue. Match carries on; if one is left they win.
+- Idle in the lobby: queued with no input at all for 90 s (warn 60 s) = taken off the queue, told to tap PLAY again. Not kicked from the server (Roblox has its own 20 min idle kick).
+- Bots: `BotRoster.updateFill` now also tops up a part-full lobby (2 to 5 people) after `topUpDelay` (8 s). The "Alone?" banner still shows only for a lone player (`FillResult.alone`). "Add bots now" is still alone-only.
+- Shutdown: `MatchSystem.shutdown()` runs first in `Profiles.beforeShutdown` (new hook, piece 17 file, 8 lines), with our own BindToClose as backup. A running fight stops with no result and no reward; a finished one pays everyone once now (so the saves in #15 get it); nothing new queues or starts; players see a Notice.
+- Tests: `tests/idle.test.luau` (watch, fight kick, lobby, bots, 4 shutdown cases). `match_controller.test.luau` rig got a `benched` list. 631 pass, StyLua and rojo build ok. Selene could not run here (no network for its std dump), CI checks it.
+- Not tested in Studio. Left: warnings are plain Notice text (Claude Design may style them); a queued-but-idle player can still be pulled into a countdown that starts before the 90 s are up, then the 40 s fight rule removes them.
