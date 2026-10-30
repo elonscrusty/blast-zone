@@ -19,6 +19,7 @@ local Net = require(script.Parent.Parent.Core.Net)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local RunXp = require(script.Parent.Parent.Core.RunXp)
+local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 
 local ContainerRules = require(script.Parent.ContainerRules)
 local PickupRules = require(script.Parent.PickupRules)
@@ -179,12 +180,12 @@ end
 function PickupSystem.start()
 	Net.onRequest("PickupRequest", function(player: Player, pickupId: string)
 		local participant = Participants:ofPlayer(player)
-		local character = player.Character
-		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-		if participant == nil or root == nil or not root:IsA("BasePart") then
+		-- Where the server believes the player is (piece 27), never a spot a cheat just jumped to.
+		local position = MoveGuard.trustedPosition(player)
+		if participant == nil or position == nil or MoveGuard.isHeld(participant.id) then
 			return
 		end
-		PickupSystem.tryClaim(participant.id, root.Position, pickupId)
+		PickupSystem.tryClaim(participant.id, position, pickupId)
 	end)
 
 	MatchContext.MatchStarted:connect(function()

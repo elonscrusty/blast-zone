@@ -34,6 +34,13 @@ function Net.init()
 	end
 	started = true
 	Remotes.build()
+	-- Server-to-client remotes: a client firing one back gets nothing, and the server does not
+	-- keep a queue of its junk (an unheard RemoteEvent stores what it is sent).
+	for _, def in RemoteDefs.list do
+		if def.direction == "toClient" then
+			Remotes.get(def.name).OnServerEvent:Connect(function() end)
+		end
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastWarn[player.UserId] = nil
 		for _, limiter in limiters do

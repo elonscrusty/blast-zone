@@ -396,4 +396,16 @@ Config.Net = {
 	clientWaitSeconds = 10,
 }
 
+-- Piece 27: the server's watch on where players really are (see server/AntiCheat/MoveCheck).
+Config.AntiCheat = {
+	speedSlack = 0.3, -- a player may move 30% faster than their walk speed (lag, slopes)
+	burstSeconds = 1, -- after standing still, this much walking may arrive in one lump (phone lag)
+	leeway = 3, -- studs always forgiven
+	graceSeconds = 0.5, -- a move that is too far waits this long for a slide to explain it, then snaps back
+	slideCreditSeconds = 1.5, -- a slide's extra distance can be used for this long
+	riseSlope = 1.5, -- going up: at most this many studs up per stud across (ramps)
+	riseLeeway = 4, -- studs of going up always forgiven (steps, curbs)
+	warnEverySeconds = 10,
+}
+
 return Config
