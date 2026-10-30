@@ -138,3 +138,30 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
 - Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;
   #17 coin strip `55` -> `UiLayers.MatchFlowExtra`, track panel `60` -> `UiLayers.Modal` (+ `ModalGate`),
   lobby TRACK button -> `LobbyMenu.slot("track")`; #20 look picker `15` -> `UiLayers.Calm` (or `LobbyMenu.slot("looks")`).
+
+## Look and logic (UI system)
+
+Claude Design makes the whole UI, so a screen's **look** and its **logic** live apart and a new design drops in
+without touching game code.
+
+| Layer | Files | May do | Must not do |
+| --- | --- | --- | --- |
+| Look | `src/client/Ui/Tokens.luau`, `src/client/Ui/Skins/*` | colours, fonts, text sizes, corners, shadows, motion | know about any screen |
+| Parts | `src/client/Ui/Components.luau` (+ `Hud/UiKit`, `Hud/Theme` for older code) | build screen, panel, text, button, bar, modal from **roles** | hold game state |
+| Layout | `Hud/Layout.luau`, `Ui/LobbyLayout.luau`, `Ui/UiLayers.luau` | where things sit, which layer | colours or fonts |
+| View | `*View.luau`, `*Panel.luau`, the drawing half of a `*System` | put parts in layout spots, show a model | pick a colour, font or size; decide anything |
+| Model / System | `*Model.luau`, `*System.luau` logic, `Core/Net` | read remotes, keep state, send requests | make Instances for looks |
+
+- A view asks for a role (`"accent"`, `"title"`, `"primary"`), never `Color3.fromRGB`, a `"#RRGGBB"` hex, `Enum.Font.*`
+  or `Config.Palette`. `tests/ui_tokens.test.luau` fails on new files that do. 3D world art (guns, effects, zone wall,
+  coin model) keeps its own colours and is listed there as `WORLD_ART`.
+- Older screens are listed as `LEGACY`. When you touch one, move it onto `Ui/Components` and delete its line.
+  The test fails if a listed file is already clean, so the list only shrinks.
+- Every skin has every key in `Tokens.COLOR_KEYS` etc. and passes `Tokens.check` (fonts are Roblox built-ins, ink on
+  panel 4.5:1 contrast, text on gold or coral 3:1). New skins come from Claude Design JSON through
+  `lune run tools/import-design design/<id>.json` (template: `design/skin-template.json`).
+- Full panels use `Components.modal` (Modal layer + `ModalGate` + DONE). Buttons use `Components.button`
+  (never under `Tokens.MIN_TOUCH` = 48 design points; tap, click and gamepad A all fire `onPress`).
+- Every screen and its states, data and remotes: `plans/UI-SCREENS.md`. Brief for Claude Design:
+  `plans/UI-DESIGN-BRIEF.md`. Bringing it back: `plans/UI-BRING-BACK.md`.
+

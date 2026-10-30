@@ -11,7 +11,15 @@ local Layout = require("./Layout")
 
 local UiKit = {}
 
-UiKit.FONT = Enum.Font.FredokaOne
+-- The display face from the current skin (Ui/Tokens). Unknown names fall back to FredokaOne.
+local function fontEnum(name: string): Enum.Font
+	local ok, font = pcall(function()
+		return (Enum.Font :: any)[name]
+	end)
+	return if ok and typeof(font) == "EnumItem" then font :: Enum.Font else Enum.Font.FredokaOne
+end
+UiKit.fontEnum = fontEnum
+UiKit.FONT = fontEnum(Theme.fontName)
 
 function UiKit.look(): Theme.Look
 	return Theme.get(nil)
