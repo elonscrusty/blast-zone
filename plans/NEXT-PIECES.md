@@ -20,3 +20,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
+| 30 | Store page: 3 icon + thumbnail ideas (3D), name ideas, description, upload steps | - | PR up | store PR |
