@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local LobbyLayout = require(Shared.LobbyLayout)
+local GridLines = require(Shared.GridLines)
 
 local LobbyBuilder = {}
 
@@ -159,6 +160,34 @@ local function buildGround(root: Folder)
 	wall("WallSouth", ox, oz + d / 2 + t / 2, w + 2 * t, t)
 	wall("WallWest", ox - w / 2 - t / 2, oz, t, d)
 	wall("WallEast", ox + w / 2 + t / 2, oz, t, d)
+end
+
+-- Glowing cyan grid lines lying on the plaza floor (the synthwave floor from video 3). Paint only:
+-- no collision, no queries, no shadows. Pads and the spawn block sit above them.
+local function buildGrid(root: Folder)
+	local g = Config.Art.lobbyGrid
+	if not g.enabled then
+		return
+	end
+	local w, d = LobbyLayout.width, LobbyLayout.depth
+	local ox, oz = LobbyLayout.origin.x, LobbyLayout.origin.z
+	local folder = Instance.new("Folder")
+	folder.Name = "Grid"
+	folder.Parent = root
+	local function line(name: string, cx: number, cz: number, sx: number, sz: number)
+		local p = block(folder, name, cx, 0.03, cz, sx, 0.06, sz, g.color, false)
+		p.Material = Enum.Material.Neon
+		p.Transparency = g.transparency
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+	end
+	for _, dx in GridLines.offsets(w, g.spacing) do
+		line("GridV", ox + dx, oz, g.line, d)
+	end
+	for _, dz in GridLines.offsets(d, g.spacing) do
+		line("GridH", ox, oz + dz, w, g.line)
+	end
 end
 
 local function buildSpawn(root: Folder)
@@ -342,6 +371,7 @@ function LobbyBuilder.build(): Folder
 	local root = Instance.new("Folder")
 	root.Name = LobbyBuilder.folderName
 	buildGround(root)
+	buildGrid(root)
 	buildSpawn(root)
 	buildStations(root)
 	buildDecor(root)

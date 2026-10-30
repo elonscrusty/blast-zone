@@ -701,21 +701,17 @@ Config.Art = {
 		maxChangePerSecond = 0.25, -- the sky glides, even when a new match snaps t back to 0
 		glowSteps = 12, -- neon brightness is updated in this many steps, not every frame
 	},
-	-- Toy look from video 3 (client only, cosmetic): a thin dark outline on every fighter and a
-	-- green ring under your own feet. Roblox draws at most 31 Highlights at once: outlines for
-	-- every fighter plus the hit-flash pool in Effects/Fx must stay under that (tests check).
+	-- Toy look from video 3 (client only, cosmetic): a thin dark outline on every fighter.
+	-- Roblox draws at most 31 Highlights at once: outlines for every fighter plus the hit-flash
+	-- pool in Effects/Fx must stay under that (tests check).
 	outline = {
 		enabled = true,
 		color = "#0B0F1C",
 		fxHighlightPool = 6, -- Effects/Fx.HIGHLIGHT_POOL, kept in step by a test
-		ring = {
-			enabled = true,
-			color = "#4AFF8A",
-			transparency = 0.25,
-			diameter = 4.4,
-			thickness = 0.2,
-		},
 	},
+	-- Glowing grid on the lobby plaza (the synthwave floor from video 3) and stars in the night sky.
+	lobbyGrid = { enabled = true, spacing = 13, color = "#36D9E8", transparency = 0.35, line = 0.3 },
+	stars = 2500, -- Sky.StarCount while the sky is dark (client only)
 }
 
 return Config
