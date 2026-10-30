@@ -58,7 +58,7 @@ Harness.test("catalogue: ids are unique, numbers sane, links point at real upgra
 			)
 		end
 	end
-	Harness.eq(#UpgradeDefs.list, 9)
+	Harness.eq(#UpgradeDefs.list, 14)
 end)
 
 -- ===== effective stats =====
@@ -466,25 +466,27 @@ end)
 
 Harness.test("run: an offer that no longer fits the build is dropped, not applied", function()
 	local t = { now = 0 }
-	-- first roll picks the blast upgrade (mortar on)
+	-- the last rolls pick from the end of the catalogue: they include a mortar-only power
 	local ctxRand = seq({ 0.999999, 0.999999, 0.999999 })
 	local run, ctx = newRun(t, ctxRand, true)
 	run:enroll("p1", 1)
 	local offer = run:issue("p1")
-	local boomIndex: number? = nil
+	local blastIndex: number? = nil
+	local blastId = ""
 	for i, o in offer.options do
-		if o.id == "bigger_boom" then
-			boomIndex = i
+		if o.id == "bigger_boom" or o.id == "aftershock" or o.id == "heavy_shell" then
+			blastIndex = i
+			blastId = o.id
 		end
 	end
-	Harness.truthy(boomIndex ~= nil, "test needs the blast card in the offer")
+	Harness.truthy(blastIndex ~= nil, "test needs a mortar card in the offer")
 	ctx.hasExplosive = false -- the mortar went away
 	t.now = 1
-	local res = run:choose("p1", 1, offer.offerId, boomIndex :: number)
+	local res = run:choose("p1", 1, offer.offerId, blastIndex :: number)
 	Harness.eq(res.ok, false)
 	Harness.eq(res.reason, "offer_invalid")
 	Harness.eq(run:hasActive("p1"), false)
-	Harness.eq(run:stacksOf("p1").bigger_boom, nil)
+	Harness.eq(run:stacksOf("p1")[blastId], nil)
 end)
 
 Harness.test(

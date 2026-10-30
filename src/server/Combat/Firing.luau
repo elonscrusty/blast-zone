@@ -87,28 +87,42 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 	local targets = Combatants.targets(id, 0)
 	for _, d in Ballistics.fan(dx, dz, stats.pellets, stats.spreadDegrees) do
 		local wallDist, wallPart = ShotCaster.cast(origin, d.x, d.z, stats.range, bodies, nil)
-		local hit =
-			Ballistics.firstHit(origin.X, origin.Z, d.x, d.z, stats.range, wallDist, targets)
-		local endPos = origin + Vector3.new(d.x, 0, d.z) * hit.dist
+		local hit = Ballistics.line(
+			origin.X,
+			origin.Z,
+			d.x,
+			d.z,
+			stats.range,
+			wallDist,
+			targets,
+			stats.pierce
+		)
+		local endPos = origin + Vector3.new(d.x, 0, d.z) * hit.endDist
 		local kind = "none"
-		if hit.kind == "target" and hit.id ~= nil then
+		-- Each body a bullet passes through takes less (Config.Powers.pierceFalloff).
+		local amount = stats.damage
+		for _, h in hit.hits do
 			kind = "target"
 			Damage:apply({
 				matchId = matchId,
-				targetId = hit.id,
-				amount = stats.damage,
+				targetId = h.id,
+				amount = amount,
 				cause = "bullet",
 				sourceId = id,
 				weaponId = gun.id,
-				hitPosition = endPos,
+				hitPosition = origin + Vector3.new(d.x, 0, d.z) * h.dist,
 			})
-		elseif hit.kind == "wall" then
-			kind = "wall"
-			if wallPart ~= nil and ContainerLink.damage(wallPart, stats.damage, id, matchId) then
+			amount *= Config.Powers.pierceFalloff
+		end
+		if hit.endKind == "wall" then
+			if kind == "none" then
+				kind = "wall"
+			end
+			if wallPart ~= nil and ContainerLink.damage(wallPart, amount, id, matchId) then
 				kind = "container"
 			end
 		end
-		local muzzle = origin + Vector3.new(d.x, 0, d.z) * math.min(gun.muzzleOffset, hit.dist)
+		local muzzle = origin + Vector3.new(d.x, 0, d.z) * math.min(gun.muzzleOffset, hit.endDist)
 		Net.fireAll("ShotFx", {
 			shooterId = id,
 			weaponId = gun.id,

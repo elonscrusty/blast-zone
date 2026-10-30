@@ -111,6 +111,46 @@ function Ballistics.firstHit(
 	return { kind = "none", dist = maxDist }
 end
 
+export type LineHit = { id: string, dist: number }
+export type LineResult = {
+	hits: { LineHit }, -- bodies the shot passes through, nearest first
+	endKind: "target" | "wall" | "none", -- what stopped it: the last body it may hit, a wall, or its range
+	endDist: number,
+}
+
+-- A shot that can pass through `extra` bodies after the first (the Piercing Rounds power). Walls still
+-- stop it. With extra = 0 this is exactly `firstHit`: one body, a wall, or nothing.
+function Ballistics.line(
+	ox: number,
+	oz: number,
+	dx: number,
+	dz: number,
+	maxDist: number,
+	wallDist: number?,
+	targets: { Target },
+	extra: number
+): LineResult
+	local hits: { LineHit } = {}
+	local left = table.clone(targets)
+	local allowed = 1 + math.max(0, math.floor(extra))
+	while true do
+		local h = Ballistics.firstHit(ox, oz, dx, dz, maxDist, wallDist, left)
+		if h.kind ~= "target" or h.id == nil then
+			return { hits = hits, endKind = h.kind, endDist = h.dist }
+		end
+		table.insert(hits, { id = h.id, dist = h.dist })
+		if #hits >= allowed then
+			return { hits = hits, endKind = "target", endDist = h.dist }
+		end
+		for i, t in left do
+			if t.id == h.id then
+				table.remove(left, i)
+				break
+			end
+		end
+	end
+end
+
 -- Damage share at a distance from the middle of a blast (measured from the body's edge).
 -- 1 at the centre, `minFactor` at the rim, 0 outside.
 function Ballistics.blastFactor(edgeDist: number, radius: number, minFactor: number): number
