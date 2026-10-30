@@ -26,6 +26,7 @@ Layout.regions = {
 	vitals = { x = 16, y = 16, w = 136, h = 48 } :: Rect, -- health bar and run level
 	status = { x = 311, y = 16, w = 158, h = 28 } :: Rect, -- players left and zone timer
 	warning = { x = 285, y = 52, w = 210, h = 24 } :: Rect, -- one warning at a time
+	moment = { x = 270, y = 78, w = 240, h = 40 } :: Rect, -- piece 46: one big banner at a time, under the warning
 	minimap = { x = 676, y = 16, w = 88, h = 88 } :: Rect,
 	weapon = { x = 586, y = 72, w = 88, h = 48 } :: Rect, -- also the weapon-swap button
 	-- Touch controls

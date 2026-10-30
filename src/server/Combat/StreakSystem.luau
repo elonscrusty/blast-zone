@@ -1,7 +1,7 @@
 --!strict
 -- Piece 36: small rewards for knockout streaks. Listens to eliminations, asks StreakRules what the
--- kill earned, then heals and/or boosts speed on the server. The text goes out as a plain Notice
--- (placeholder look; Claude Design owns the real streak banner). Clients never ask for any of this.
+-- kill earned, then heals and/or boosts speed on the server. The call-out goes out as a Moment (piece 46);
+-- the big banner is drawn by Moments/MomentBannerSystem. Clients never ask for any of this.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,13 +11,13 @@ local StreakRules = require(Shared.StreakRules)
 
 local Core = script.Parent.Parent.Core
 local Damage = require(Core.Damage)
-local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 local MatchContext = require(Core.MatchContext)
 local EffectiveStats = require(Core.EffectiveStats)
 
 local Combatants = require(script.Parent.Combatants)
 local MovementSetup = require(script.Parent.Parent.Movement.MovementSetup)
+local Moments = require(script.Parent.Parent.Moments.Moments)
 
 local StreakSystem = {}
 StreakSystem.order = 140 -- after combat and upgrades
@@ -91,8 +91,8 @@ function StreakSystem.start()
 			startBoost(killer, tier.speedMultiplier, tier.speedSeconds)
 		end
 		local p = Participants:get(killer)
-		if p ~= nil and p.player ~= nil then
-			Net.fire("Notice", p.player, { text = tier.text, kind = "info" })
+		if p ~= nil then
+			Moments.streak(p, reward.streak, tier)
 		end
 	end)
 	-- An upgrade landing mid-boost keeps the boost on top of the new speed.

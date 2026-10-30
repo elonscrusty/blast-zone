@@ -207,6 +207,13 @@ local Defs: { Def } = {
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
 	),
 
+	-- ===== 46 big moments =====
+	tell(
+		"46",
+		"Moment",
+		"{ kind: 'streak'|'zoneClosing'|'suddenDeath', matchId, tier?, streak?, actorId?, actorName?, heal?, stage? } (see Moments/MomentRules)"
+	),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====

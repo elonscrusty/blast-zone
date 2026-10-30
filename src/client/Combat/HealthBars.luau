@@ -2,6 +2,8 @@
 -- A small health bar over every fighter's head, read from the Health / MaxHealth attributes the server
 -- keeps on the character. Your own bar belongs to the HUD, so it is skipped. An enemy bar shows for a
 -- few seconds after their health changes, so the arena is not full of bars.
+-- With Config.Plates.enabled (piece 46) the always-on name plate in Moments/PlateSystem replaces that
+-- bar; this file then only keeps the id -> model list and tells the plates when a fighter appears.
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -17,6 +19,18 @@ local NAVY = Color3.fromHex(Config.Palette.Navy)
 -- Every fighter's model by participant id, so a hit can find who it landed on without scanning the map.
 local models: { [string]: Model } = {}
 
+-- Fighters already announced to the listeners (weak, so a removed model is not held).
+local announced: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local listeners: { (Model) -> () } = {}
+
+-- `fn` runs once for every fighter model, now and whenever a new one appears.
+function HealthBars.onFighter(fn: (Model) -> ())
+	table.insert(listeners, fn)
+	for model in announced do
+		task.spawn(fn, model)
+	end
+end
+
 function HealthBars.modelOf(id: string): Model?
 	local model = models[id]
 	if model ~= nil and model.Parent ~= nil then
@@ -29,6 +43,15 @@ local function attach(model: Model)
 	local id = model:GetAttribute(Config.Attributes.ParticipantId)
 	if typeof(id) == "string" then
 		models[id] = model
+	end
+	if not announced[model] then
+		announced[model] = true
+		for _, fn in listeners do
+			task.spawn(fn, model)
+		end
+	end
+	if Config.Plates.enabled then
+		return -- the name plate carries the bar
 	end
 	if model:FindFirstChild("CombatHealthBar") ~= nil then
 		return

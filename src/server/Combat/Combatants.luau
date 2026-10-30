@@ -7,6 +7,7 @@ local Config = require(Shared.Config)
 local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
+local RunXp = require(script.Parent.Parent.Core.RunXp)
 local HealthBook = require("./HealthBook")
 local WeaponState = require("./WeaponState")
 local Ballistics = require("./Ballistics")
@@ -98,6 +99,11 @@ function Combatants.mirror(id: string)
 	m:SetAttribute("MaxHealth", Config.Health.max)
 	m:SetAttribute("Alive", Participants:isAlive(id))
 	m:SetAttribute("WeaponId", c.primary) -- every client draws this gun in the fighter's hands
+	-- Name plates (piece 46): the name and run level every client shows over the head.
+	local p = Participants:get(id)
+	m:SetAttribute("PlateName", if p ~= nil then p.displayName else nil)
+	local xp = RunXp:get(id)
+	m:SetAttribute("Level", if xp ~= nil then xp.level else 1)
 	c.mirrored = m
 end
 
