@@ -724,7 +724,7 @@ Config.Daily = {
 -- Roblox product number. No product number or price is made up here. The rows are in shared/Season/SeasonDefs.
 Config.Season = {
 	startUnix = 1793577600, -- 2026-11-02 00:00 UTC: season 1 begins (earlier times count as season 1)
-	lengthDays = 28,
+	lengthDays = 14, -- carter picked 2 weeks
 	xpPerTier = 120, -- season XP to climb one tier
 	forSale = false, -- the client shows the paid row as "coming soon" while this is false
 	duplicateScrap = 40, -- a look you already own pays this much Scrap instead
