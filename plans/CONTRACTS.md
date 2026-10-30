@@ -121,6 +121,7 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
 | `ZoneTint` | 5 | zone screen edges and arrow (no taps) |
 | `TouchControls` | 9 | thumb sticks and buttons |
 | `Hud` | 10 | health, minimap, timer, gear |
+| `BigMap` | 12 | the whole-arena map (tap the minimap); over the HUD, under everything else |
 | `Calm` | 15 | between-fight widgets that are not lobby buttons |
 | `Moments` | 17 | big call-out banners (double kill, circle closing) |
 | `Popups` | 20 | upgrade cards, bots banner |

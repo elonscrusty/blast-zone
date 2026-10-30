@@ -49,6 +49,7 @@ export type HudView = typeof(setmetatable(
 		-- minimap
 		safeCircle: Frame,
 		zonePointer: TextLabel,
+		mapButton: TextButton, -- tap the minimap to open the big map
 		-- weapon
 		weaponName: TextLabel,
 		ammoText: TextLabel,
@@ -293,6 +294,17 @@ function HudView.new(opts: Options): HudView
 	meStroke.Color = UiKit.color(look.outline)
 	meStroke.Parent = me
 	UiKit.styleStroke(meStroke, root, 0.8)
+	-- a clear button over the whole minimap (piece 47: the big map)
+	local mapButton = Instance.new("TextButton")
+	mapButton.Name = "OpenMap"
+	mapButton.Text = ""
+	mapButton.AutoButtonColor = false
+	mapButton.Selectable = false
+	mapButton.BackgroundTransparency = 1
+	mapButton.Size = UDim2.fromScale(1, 1)
+	mapButton.ZIndex = 10
+	mapButton.Parent = miniPanel
+	UiKit.circle(mapButton)
 
 	-- ===== weapon and ammo (also the swap button on touch, see TouchControls) =====
 	local weapon = pieceFrame(root, "Weapon", Layout.regions.weapon, scales)
@@ -394,6 +406,7 @@ function HudView.new(opts: Options): HudView
 		warnKey = "",
 		safeCircle = safeCircle,
 		zonePointer = zonePointer,
+		mapButton = mapButton,
 		weaponName = weaponName,
 		ammoText = ammoText,
 		magText = magText,
