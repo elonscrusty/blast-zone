@@ -5,6 +5,7 @@
 local Harness = require("./harness")
 
 require("./save_retry.test")
+require("./arena.test")
 require("./config.test")
 require("./guard.test")
 require("./core.test")
