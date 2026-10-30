@@ -387,6 +387,7 @@ Config.Tags = {
 	FinalZoneRegion = "FinalZoneRegion",
 	ArtNeon = "ArtNeon", -- piece 14: art parts whose glow follows the time of day (client)
 	ArtFollower = "ArtFollower", -- piece 14: art parts that copy an occluder's see-through fade
+	Breakable = "Breakable", -- piece 47: street props (cars, bins...) that burst when shot
 }
 
 Config.Workspace = {
@@ -653,6 +654,36 @@ Config.Loot = {
 	},
 }
 
+-- Piece 47: the street breaks (carter picked "A Chunk Burst"). Cars, dumpsters, planters, benches and
+-- barriers take shot and blast damage, then burst into chunky blocks. The solid goes away (people
+-- can walk and shoot through), a scorch mark and a few blocks stay until the match ends.
+-- `kinds` are StreetArt.classify names. Health is in the same units as gun damage. Placeholders until carter plays.
+Config.Breakables = {
+	enabled = true,
+	kinds = {
+		car = { health = 160, chunks = 12 },
+		dumpster = { health = 220, chunks = 9 },
+		planter = { health = 90, chunks = 7 },
+		bench = { health = 70, chunks = 6 },
+		barrier = { health = 260, chunks = 9 },
+	} :: { [string]: { health: number, chunks: number } },
+	rubble = {
+		pieces = 6,
+		minSize = 0.5,
+		maxSize = 1.1,
+		scorchColor = "#0E1018",
+		scorchAlpha = 0.45,
+	},
+	fly = {
+		maxLiveChunks = 48, -- all breaks together, on this client
+		seconds = 1.6, -- how long a flying chunk lives before it shrinks away
+		upSpeed = 14,
+		sideSpeed = 11,
+		gravity = 60,
+	},
+	blastMinFactor = 0.2, -- a blast this far from the edge (share of full) still counts
+}
+
 Config.Rewards = {
 	currencyName = "Scrap", -- must match CoinLooks[Config.Progression.look].name (a test checks it)
 	participation = 10,
@@ -696,6 +727,15 @@ Config.Wallet = {
 	},
 	maxBalance = 999999, -- per counter; earning stops at this, nothing is lost or wrapped
 	maxGrant = 50, -- sanity cap for one grant, like Config.Progression.maxMatchGrant
+}
+
+-- Video 3 gap 18: the Scrap Shop. Looks only (slide trails and shot tracers), paid in Scrap, never Robux, never
+-- power. A few looks are always on sale and a few change each day (same for everyone, new at Config.Daily's reset).
+-- The list is in shared/Shop/ShopDefs. Prices are placeholders: carter tunes them after he plays.
+Config.Shop = {
+	prices = { common = 60, rare = 150, epic = 300 } :: { [string]: number },
+	-- One daily slot per entry: it takes a look of that rarity from the day's pool, never the same look twice.
+	dailySlots = { "common", "common", "rare", "epic" } :: { string },
 }
 
 Config.Settings = {
@@ -854,6 +894,15 @@ Config.Stats = {
 		modelName = "TopWinsBoard",
 		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
 	},
+}
+
+-- Video 3 gap #16: the power rating. One show-off number from things earned by playing. Nothing in combat, loot
+-- or matchmaking reads it, and no part of it can be bought with Robux. See shared/Power/PowerRules.
+Config.Power = {
+	perLevel = 10, -- points for each account level above 1
+	perUnit = { looks = 15, wins = 5, eliminations = 1, matches = 1 }, -- points for each one counted
+	caps = { looks = 10, wins = 100, eliminations = 300, matches = 200 }, -- the most of each that counts
+	bands = { 0, 100, 250, 450, 700, 1000, 1400 }, -- a band starts at each of these points (1 = first)
 }
 
 -- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
