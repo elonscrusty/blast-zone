@@ -128,9 +128,10 @@ function CoinView.create(parent: Instance, lookKey: string): ViewportFrame
 				)
 			end
 			add(pieces, model, true, Vector3.new(0.34, 0.34, 0.12), z, look.face)
-		else -- diamond
-			add(pieces, model, false, Vector3.new(0.78, 0.78, 0.1), z, look.ink, false, math.pi / 4)
-			add(pieces, model, false, Vector3.new(0.4, 0.4, 0.12), z, look.rim, false, math.pi / 4)
+		else -- star: two squares turned against each other (an 8-point star), with a round middle
+			add(pieces, model, false, Vector3.new(0.9, 0.9, 0.1), z, look.ink)
+			add(pieces, model, false, Vector3.new(0.9, 0.9, 0.1), z, look.ink, false, math.pi / 4)
+			add(pieces, model, true, Vector3.new(0.36, 0.36, 0.12), z, look.rim)
 		end
 	end
 

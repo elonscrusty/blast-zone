@@ -11,7 +11,7 @@ export type Look = {
 	rim: string,
 	edge: string, -- the ridges on the side
 	ink: string, -- the raised mark
-	glyph: "bolt" | "gear" | "diamond",
+	glyph: "bolt" | "gear" | "star",
 }
 
 CoinLooks.looks = {
@@ -33,11 +33,11 @@ CoinLooks.looks = {
 	},
 	C = {
 		name = "Tokens",
-		face = "#9FC3D6",
-		rim = "#36D9E8",
-		edge = "#1E8FA0",
-		ink = "#14243A",
-		glyph = "diamond",
+		face = "#718D57",
+		rim = "#C8A675",
+		edge = "#8A6D45",
+		ink = "#FFF4D6",
+		glyph = "star",
 	},
 } :: { [string]: Look }
 
