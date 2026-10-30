@@ -6,6 +6,22 @@
 local FIRE_RATE = 5 -- shots per second
 local EXPLOSIVE_INTERVAL = 1.6 -- seconds between mortar shots
 
+-- What a game mode may change (piece G24, see Config.Modes). Every field is optional; a missing one means "as usual".
+export type ModeTuning = {
+	zoneTimeScale: number?, -- multiplies every zone time (warn, close, sudden death); below 1 = a faster circle
+	zoneDamageScale: number?, -- multiplies the zone's damage per second
+	floorGuns: number?, -- found guns put on the street when the match starts
+	floorPacks: number?, -- heal packs put on the street when the match starts
+	crateWeights: { [string]: number }?, -- supply crate tier odds (tier id -> weight)
+}
+
+export type ModeDef = {
+	name: string,
+	blurb: string, -- one short line for the picker
+	unlockLevel: number, -- account level that opens it (1 = open from the start)
+	tuning: ModeTuning,
+}
+
 local Config = {}
 
 -- The game name lives ONLY here (and in the Roblox place itself). Rename it with one edit.
@@ -72,6 +88,49 @@ Config.MapVote = {
 		E = "Market Hall",
 		F = "Canal Docks",
 	} :: { [string]: string },
+}
+
+-- Piece G24 (video 3 gap 24). Game modes. Players vote for a mode in the lobby like they vote for a map; the server
+-- counts, checks the voter's account level, and applies the winner's tuning right before the fight (Spawning),
+-- then puts everything back when the match ends. A mode never touches health, damage per hit, speed or ammo, and
+-- never costs Robux: it only changes the circle and the loot. `enabled` is the list shown, in order.
+Config.Modes = {
+	defaultId = "classic", -- used when nobody voted
+	enabled = { "classic", "quick", "loot" } :: { string },
+	maxIdLength = 16,
+	stateRepeatSeconds = 1, -- the server sends the running count at most this often
+	minScale = 0.4, -- a time or damage scale outside minScale..maxScale is a mistake (a test checks every mode)
+	maxScale = 2,
+	defs = {
+		classic = {
+			name = "Classic",
+			blurb = "The normal fight.",
+			unlockLevel = 1,
+			tuning = {},
+		},
+		quick = {
+			name = "Quick Blast",
+			blurb = "The circle closes fast.",
+			unlockLevel = 2,
+			tuning = { zoneTimeScale = 0.6 },
+		},
+		loot = {
+			name = "Loot Rush",
+			blurb = "More guns, more heals, better crates.",
+			unlockLevel = 4,
+			tuning = {
+				floorGuns = 8,
+				floorPacks = 10,
+				crateWeights = { common = 30, rare = 40, epic = 30 },
+			},
+		},
+		last = {
+			name = "Last Stand",
+			blurb = "The circle hurts more.",
+			unlockLevel = 6,
+			tuning = { zoneDamageScale = 1.5 },
+		},
+	} :: { [string]: ModeDef },
 }
 
 -- Piece 39: idle (AFK) check. Server only. A fighter is "active" when they move, shoot, reload, slide,
@@ -725,6 +784,15 @@ Config.Missions = {
 	-- The login row: one reward per day you come and claim. Missing days never reset it. After the last
 	-- one the row starts again. Every number stays under Config.Progression.maxMatchGrant.
 	loginRewards = { 10, 15, 20, 25, 30, 40, 100 },
+}
+
+-- Video 3 gap 18: the Scrap Shop. Looks only (slide trails and shot tracers), paid in Scrap, never Robux, never
+-- power. A few looks are always on sale and a few change each day (same for everyone, new at Config.Daily's reset).
+-- The list is in shared/Shop/ShopDefs. Prices are placeholders: carter tunes them after he plays.
+Config.Shop = {
+	prices = { common = 60, rare = 150, epic = 300 } :: { [string]: number },
+	-- One daily slot per entry: it takes a look of that rarity from the day's pool, never the same look twice.
+	dailySlots = { "common", "common", "rare", "epic" } :: { string },
 }
 
 Config.Settings = {

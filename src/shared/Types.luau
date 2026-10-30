@@ -195,6 +195,27 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Video 3 gap 18: the Scrap Shop. Coins and what is owned/worn come from ProgressState; this is only what is on sale.
+export type ShopOfferView = {
+	id: string,
+	slot: string, -- "trail" | "tracer"
+	name: string,
+	color: string, -- hex
+	rarity: string, -- "common" | "rare" | "epic"
+	price: number,
+	always: boolean, -- true = on sale every day
+}
+
+export type ShopState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	day: number,
+	secondsLeft: number, -- until the shop changes
+	offers: { ShopOfferView },
+	isNew: boolean, -- the player has not opened today's shop yet
+	bought: string?, -- set once, right after a buy worked (the item id)
+	denied: string?, -- why the last buy was refused
+}
+
 -- Video 3 gap #16: a player's own power rating (server to client only). Parts are in PowerRules.PART_IDS order.
 export type PowerPayload = {
 	power: number,

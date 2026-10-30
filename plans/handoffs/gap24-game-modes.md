@@ -1,0 +1,11 @@
+# G24 Game modes (video 3 gap 24, logic only)
+- Players vote for a mode in the lobby (same window as the map vote: Results to the end of Countdown). Server counts; ties are random but never repeat the last mode; nobody voted = Classic.
+- Padlock: a mode has `unlockLevel` (account level, piece 34). The server checks the voter's level, so a locked mode cannot be voted for. Each player gets their own `locked` flags.
+- Modes are data in `Config.Modes.defs`; `Config.Modes.enabled` is the list shown. Classic (level 1), Quick Blast (level 2, circle 0.6x time), Loot Rush (level 4, 8 floor guns, 10 heal packs, better crate odds). Last Stand (level 6, circle damage 1.5x) is defined but off until carter wants it.
+- A mode only has five dials: zone time scale, zone damage scale, floor guns, floor packs, crate odds. Never health, hit damage, speed, ammo or Robux. `ModeRules.problem` checks every mode (tests do too).
+- Pure rules: `src/shared/Modes/ModeRules.luau` (list, vote, per-viewer state, apply/undo). Server: `src/server/Modes/ModeSystem.luau` (order 8, so it runs before the arena, crates, loot and zone at Spawning). Applies at Spawning, undoes at Results/Resetting/Waiting/Countdown.
+- Zone: `ZoneModel` runner now builds its timeline again on every `start`, so a changed mode takes effect.
+- Remotes (block G24): `ModeVoteRequest(modeId)`, `ModeStateRequest`, `ModeState` (open, modes[id,name,blurb,unlockLevel,locked,votes], yourVote, nextModeId, level). `workspace` attribute `ModeId` names the mode in play.
+- Client: `src/client/Modes/ModeClientSystem.luau` is a PLACEHOLDER row under the map vote (Components.button, MatchFlowExtra). Claude Design replaces the look; keep the `ModeState` / `ModeVoteRequest` calls.
+- Tests: `tests/modes.test.luau` (22). Full run 993 passed, stylua clean, rojo build ok. selene could not run here (no API dump); CI will.
+- Left: Claude Design look; show the chosen mode on the countdown/results (`nextModeId`, `ModeId`); analytics could log the mode; a 3D map preview in the picker.

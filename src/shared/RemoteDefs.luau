@@ -178,6 +178,12 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== video 3 gap 18: Scrap Shop =====
+	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
+	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
+	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
+	tell("V3-18", "ShopState", "ShopState"),
+
 	-- ===== 48 missions + login days =====
 	ask("48", "MissionsRequest", {}, 1, 2), -- a client asks for its weekly missions, awards and login row
 	ask("48", "MissionClaim", {
@@ -211,6 +217,21 @@ local Defs: { Def } = {
 	),
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
+
+	-- ===== G24 game modes =====
+	ask(
+		"G24",
+		"ModeVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Modes.maxIdLength } },
+		2,
+		3
+	),
+	ask("G24", "ModeStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"G24",
+		"ModeState",
+		"ModeState (open, modes with counts and locks, yourVote?, nextModeId?, level)"
+	),
 
 	-- ===== 42 loot: heal packs =====
 	ask("42", "UseHealRequest", {}, 3, 3),
