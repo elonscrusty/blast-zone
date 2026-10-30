@@ -29,6 +29,12 @@
           "$path": "src/client"
         }
       }
+    },
+    "ServerStorage": {
+      "$ignoreUnknownInstances": true
+    },
+    "StarterGui": {
+      "$ignoreUnknownInstances": true
     }
   }
 }
