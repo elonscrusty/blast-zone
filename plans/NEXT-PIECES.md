@@ -11,7 +11,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 00 | Repo setup | - | done | first commit |
 | 01 | Core + shared rules (Config, remotes, ids, damage door, boot) | 17 | PR up | this PR |
 | 02 | Movement, elevated camera, Slide | 8, 10 | not started | |
-| 03 | Aiming, firearm, health, elimination (explosive weapon later) | 9, 11 | not started | |
+| 03 | Aiming, firearm, health, elimination (explosive weapon later) | 9, 11 | PR up | this PR |
 | 04 | Graybox arena + interior/roof visibility | 12, 8 | not started | |
 | 05 | Match state machine, spawns, results, spectate, reset | 7, 11, 16 | not started | |
 | 06 | Safe zone + sudden death | 15 | PR up | this PR |

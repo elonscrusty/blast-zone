@@ -26,7 +26,7 @@ Config.Palette = {
 
 -- Feature gates. A piece that lands before its partners flips its own flag on.
 Config.Features = {
-	explosiveWeapon = false, -- piece 03 turns on once the mortar works
+	explosiveWeapon = true, -- piece 03: the Arc Mortar works (slot 2)
 	healPickup = false, -- piece 07, optional
 	bots = true, -- piece 09
 	roofFade = true, -- piece 04
@@ -115,6 +115,21 @@ Config.Weapons = {
 		warnSeconds = 0.5, -- landing marker shows before the blast
 		selfDamageScale = 0.5,
 	},
+}
+
+-- Piece 03 only. Everything about how shots and health behave that is not a weapon stat.
+Config.Combat = {
+	bodyRadius = 1.8, -- a body is a circle this wide on the ground; shots and blasts test against it
+	shotHeight = 0.5, -- studs above the root part that shots fly (cover shorter than this is jumped over by nothing: only BlocksShots blocks)
+	fireTolerance = 0.04, -- a shot may arrive this many seconds early (network jitter): one early shot, never a faster average
+	switchSeconds = 0.25, -- after switching weapons you cannot fire for this long
+	maxPassThrough = 10, -- how many non-blocking parts one shot may fly through before it is cut off
+	shellContactPadding = 0.2, -- extra studs around a body for a shell to count as touching it
+	shellStepSeconds = 1 / 30, -- longest slice a shell is moved in at once
+	maxShells = 12, -- in flight at once, whole server
+	hitMarkerSeconds = 0.18,
+	incomingHitSeconds = 0.7,
+	healthBarSeconds = 3, -- an enemy health bar stays visible this long after it changes
 }
 
 -- What blocks what. Arena (04) tags geometry; Combat (03) reads these. Tag names are in Tags.
