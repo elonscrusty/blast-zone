@@ -10,6 +10,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local LoadoutView = require(Shared.LoadoutView)
 
+local ModalGate = require(script.Parent.Parent.Ui.ModalGate)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local Controller = require(script.Parent.LoadoutController)
 
 local LoadoutPanel = {}
@@ -131,7 +133,7 @@ local function build()
 	local g = Instance.new("ScreenGui")
 	g.Name = "Loadout"
 	g.ResetOnSpawn = false
-	g.DisplayOrder = 60 -- above match flow (50), below nothing else we know of
+	g.DisplayOrder = UiLayers.get("Modal")
 	g.IgnoreGuiInset = true
 	g.Enabled = false
 	g.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -201,9 +203,17 @@ local function build()
 	end)
 end
 
+local MODAL = "loadout"
+
 function LoadoutPanel.open()
 	build()
+	if open then
+		return
+	end
 	open = true
+	ModalGate.opened(MODAL, function()
+		LoadoutPanel.close()
+	end)
 	if noteLabel then
 		noteLabel.Text = ""
 	end
@@ -214,7 +224,10 @@ function LoadoutPanel.open()
 end
 
 function LoadoutPanel.close()
-	open = false
+	if open then
+		open = false
+		ModalGate.closed(MODAL)
+	end
 	if gui then
 		gui.Enabled = false
 	end

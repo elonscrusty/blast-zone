@@ -1,7 +1,7 @@
 --!strict
 -- Piece 19 on the client: stepping on a pad in the lobby does that pad's job, and a LOADOUT button does the
 -- same for phones that would rather tap.
---   LOADOUT pad   -> the loadout screen            (this piece)
+--   LOADOUT pad   -> the loadout screen            (this piece; button in lobby slot "loadout")
 --   PLAY pad      -> PlayRequest, same as piece 05's PLAY button (the server decides; nothing new)
 --   SETTINGS pad  -> SettingsPanel.toggle()        (piece 10)
 --   REWARDS pad   -> the Rewards screen            (piece 18, if it is there)
@@ -17,6 +17,7 @@ local MatchPhase = require(Shared.MatchPhase)
 local Signal = require(Shared.Signal)
 
 local Net = require(script.Parent.Parent.Core.Net)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 local Controller = require(script.Parent.LoadoutController)
 local LoadoutPanel = require(script.Parent.LoadoutPanel)
 
@@ -32,7 +33,6 @@ local CHECK_EVERY = 0.1
 local phase: string = MatchPhase.Waiting
 local current: string? = nil -- the pad we are standing on
 local lastFired = 0
-local loadoutButton: TextButton? = nil
 
 local function optionalModule(folderName: string, moduleName: string): any?
 	local folder = script.Parent.Parent:FindFirstChild(folderName)
@@ -76,15 +76,8 @@ local function rootPosition(): Vector3?
 	return nil
 end
 
+-- The LOADOUT button lives in the lobby menu slot "loadout" (shown only in the lobby by the match screen).
 local function makeButton()
-	local player = Players.LocalPlayer
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "LobbyButtons"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 40
-	gui.IgnoreGuiInset = true
-	gui.Parent = player:WaitForChild("PlayerGui")
-
 	local b = Instance.new("TextButton")
 	b.Name = "Loadout"
 	b.Text = "LOADOUT"
@@ -92,11 +85,8 @@ local function makeButton()
 	b.TextScaled = true
 	b.TextColor3 = Color3.fromHex("#14243A")
 	b.BackgroundColor3 = Color3.fromHex("#FFF4D6")
-	b.AnchorPoint = Vector2.new(0, 1)
-	b.Position = UDim2.fromScale(0.03, 0.95)
-	b.Size = UDim2.fromScale(0.18, 0.11)
-	b.Visible = false
-	b.Parent = gui
+	b.Size = UDim2.fromScale(1, 1)
+	b.Parent = LobbyMenu.slot("loadout")
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0.25, 0)
 	corner.Parent = b
@@ -104,13 +94,9 @@ local function makeButton()
 	stroke.Color = Color3.fromHex("#14243A")
 	stroke.Thickness = 3
 	stroke.Parent = b
-	local limit = Instance.new("UISizeConstraint")
-	limit.MinSize = Vector2.new(96, 44) -- thumb-sized on any screen
-	limit.Parent = b
 	b.Activated:Connect(function()
 		use("loadout")
 	end)
-	loadoutButton = b
 end
 
 function LobbyClientSystem.start()
@@ -132,9 +118,6 @@ function LobbyClientSystem.start()
 		sinceCheck = 0
 		local pos = rootPosition()
 		local inLobby = pos ~= nil and LobbyLayout.contains(pos.X, pos.Z, 4)
-		if loadoutButton then
-			loadoutButton.Visible = inLobby and phase == MatchPhase.Waiting
-		end
 		if not inLobby or not pos then
 			current = nil
 			if LoadoutPanel.isOpen() and phase ~= MatchPhase.Waiting then
