@@ -566,7 +566,7 @@ Config.Weather = {
 	rampSeconds = 4, -- rain fades in and out over this long
 	coverStuds = 70, -- the rain sheet above the camera is this wide
 	heightStuds = 45, -- and this high above the camera
-	applyAtmosphere = true, -- false once the city time-of-day code adds the Lighting attributes itself
+	applyAtmosphere = false, -- the city's DayNightSystem adds the Lighting attributes to its own Atmosphere; true = rain nudges an Atmosphere itself
 	dropColor = "#9FE9FF",
 	attributes = { fog = "WeatherFogAdd", haze = "WeatherHazeAdd" }, -- written on Lighting for the day-night code
 }

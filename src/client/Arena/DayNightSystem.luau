@@ -57,6 +57,7 @@ function DayNightSystem.start()
 	end
 	local zone = Config.Zone
 	local settings = Config.Art.dayNight
+	local weather = Config.Weather.attributes
 
 	local atmosphere = find(Lighting, "NeonAtmosphere", "Atmosphere") :: Atmosphere
 	local bloom = find(Lighting, "NeonBloom", "BloomEffect") :: BloomEffect
@@ -138,8 +139,13 @@ function DayNightSystem.start()
 		Lighting.OutdoorAmbient = rgb(look.outdoorAmbient)
 		atmosphere.Color = rgb(look.atmosphereColor)
 		atmosphere.Decay = rgb(look.atmosphereDecay)
-		atmosphere.Density = look.density
-		atmosphere.Haze = look.haze
+		-- rain (piece 38) adds fog on top of the day-night value; the weather client only writes these two numbers
+		local fogAdd = Lighting:GetAttribute(weather.fog)
+		local hazeAdd = Lighting:GetAttribute(weather.haze)
+		atmosphere.Density =
+			math.clamp(look.density + (if typeof(fogAdd) == "number" then fogAdd else 0), 0, 1)
+		atmosphere.Haze =
+			math.clamp(look.haze + (if typeof(hazeAdd) == "number" then hazeAdd else 0), 0, 10)
 		atmosphere.Glare = look.glare
 		bloom.Intensity = look.bloom
 		correction.TintColor = rgb(look.tint)

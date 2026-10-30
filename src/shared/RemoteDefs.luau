@@ -160,6 +160,10 @@ local Defs: { Def } = {
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 
+	-- ===== 38 weather =====
+	ask("38", "WeatherRequest", {}, 1, 2), -- a client that joined late asks what the weather is
+	tell("38", "WeatherState", "WeatherState"),
+
 	-- ===== 19 lobby + loadout =====
 	ask("19", "LoadoutEquip", {
 		{ name = "slot", kind = "id", maxLen = 12 },
@@ -178,10 +182,6 @@ local Defs: { Def } = {
 	),
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
-
-	-- ===== 38 weather =====
-	ask("38", "WeatherRequest", {}, 1, 2), -- a client that joined late asks what the weather is
-	tell("38", "WeatherState", "WeatherState"),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
