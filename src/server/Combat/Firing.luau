@@ -6,7 +6,6 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Damage = require(script.Parent.Parent.Core.Damage)
-local EffectiveStats = require(script.Parent.Parent.Core.EffectiveStats)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Net = require(script.Parent.Parent.Core.Net)
 local Participants = require(script.Parent.Parent.Core.Participants)
@@ -18,6 +17,7 @@ local ContainerLink = require("./ContainerLink")
 local Shells = require("./Shells")
 local ShotCaster = require("./ShotCaster")
 local WeaponState = require("./WeaponState")
+local WeaponCatalog = require("./WeaponCatalog")
 
 local firearm = Config.Weapons.Firearm
 local explosive = Config.Weapons.Explosive
@@ -25,8 +25,8 @@ local tuning = Config.Combat
 
 local Firing = {}
 
-local function weaponIdOf(slot: number): string
-	return if slot == 2 then explosive.id else firearm.id
+local function weaponIdOf(id: string, slot: number): string
+	return if slot == 2 then explosive.id else Combatants.primary(id)
 end
 
 -- The slot's weapon is usable only when its feature flag is on.
@@ -43,11 +43,21 @@ function Firing.sendAmmo(id: string)
 	local slot = c.weapons.slot
 	local endsAt = c.weapons.reloadEndsAt[slot]
 	local serverNow = workspace:GetServerTimeNow()
+	local weaponId = weaponIdOf(id, slot)
+	local st = Combatants.slotStats(id, slot)
 	Net.fire("AmmoState", p.player, {
 		slot = slot,
-		weaponId = weaponIdOf(slot),
+		weaponId = weaponId,
+		weaponName = if slot == 2
+			then explosive.displayName
+			else WeaponCatalog.displayName(Config, weaponId),
+		fireInterval = st.fireInterval,
+		reloadSeconds = st.reloadSeconds,
+		muzzleOffset = if slot == 2
+			then firearm.muzzleOffset
+			else WeaponCatalog.def(Config, weaponId).muzzleOffset,
 		ammo = c.weapons.ammo[slot],
-		magazine = Combatants.slotStats(id, slot).magazine,
+		magazine = st.magazine,
 		reloadEndsAt = if endsAt ~= nil then serverNow + (endsAt - os.clock()) else nil,
 		serverNow = serverNow,
 	})
@@ -71,7 +81,8 @@ local function shotOrigin(root: BasePart, claimed: Vector3?, bodies: { Instance 
 end
 
 local function fireBullets(id: string, matchId: number, origin: Vector3, dx: number, dz: number)
-	local stats = EffectiveStats:get(id).firearm
+	local stats = Combatants.gunStats(id)
+	local gun = WeaponCatalog.def(Config, Combatants.primary(id))
 	local bodies = Combatants.bodies()
 	local targets = Combatants.targets(id, 0)
 	for _, d in Ballistics.fan(dx, dz, stats.pellets, stats.spreadDegrees) do
@@ -88,7 +99,7 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 				amount = stats.damage,
 				cause = "bullet",
 				sourceId = id,
-				weaponId = firearm.id,
+				weaponId = gun.id,
 				hitPosition = endPos,
 			})
 		elseif hit.kind == "wall" then
@@ -97,10 +108,10 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 				kind = "container"
 			end
 		end
-		local muzzle = origin + Vector3.new(d.x, 0, d.z) * math.min(firearm.muzzleOffset, hit.dist)
+		local muzzle = origin + Vector3.new(d.x, 0, d.z) * math.min(gun.muzzleOffset, hit.dist)
 		Net.fireAll("ShotFx", {
 			shooterId = id,
-			weaponId = firearm.id,
+			weaponId = gun.id,
 			origin = muzzle,
 			endPos = endPos,
 			hitKind = kind,

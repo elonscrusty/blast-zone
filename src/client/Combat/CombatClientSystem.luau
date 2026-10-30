@@ -32,6 +32,8 @@ type Controls = {
 local slot = 1
 local ammo = firearm.magazine
 local reloadEndsAt: number? = nil
+local gunInterval = firearm.fireInterval -- the slot 1 gun's fire interval (found guns differ)
+local gunMuzzle = firearm.muzzleOffset
 
 local seq = 0
 local nextSendAt = 0
@@ -83,7 +85,7 @@ local function currentDir(): Vector3?
 end
 
 local function intervalOf(s: number): number
-	return if s == 2 then explosive.fireInterval else firearm.fireInterval
+	return if s == 2 then explosive.fireInterval else gunInterval
 end
 
 local function canSend(now: number): boolean
@@ -115,7 +117,7 @@ local function trySend(dir: Vector3)
 	local origin = r.Position + Vector3.new(0, Config.Combat.shotHeight, 0)
 	Net.send("FireRequest", origin, dir, seq)
 	-- Instant feedback; the server's answer (ammo, tracer, hit) follows.
-	CombatFx.muzzleFlash(origin + dir * firearm.muzzleOffset, dir, true)
+	CombatFx.muzzleFlash(origin + dir * gunMuzzle, dir, true)
 	ammo = math.max(0, ammo - 1)
 end
 
@@ -205,6 +207,14 @@ function CombatClientSystem.start()
 		slot = s.slot
 		ammo = s.ammo
 		reloadEndsAt = s.reloadEndsAt
+		if s.slot == 1 then
+			if type(s.fireInterval) == "number" and s.fireInterval > 0 then
+				gunInterval = s.fireInterval
+			end
+			if type(s.muzzleOffset) == "number" then
+				gunMuzzle = s.muzzleOffset
+			end
+		end
 	end)
 
 	Net.on("ShotFx", function(s: any)

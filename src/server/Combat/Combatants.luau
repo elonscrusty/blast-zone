@@ -10,11 +10,13 @@ local Participants = require(script.Parent.Parent.Core.Participants)
 local HealthBook = require("./HealthBook")
 local WeaponState = require("./WeaponState")
 local Ballistics = require("./Ballistics")
+local WeaponCatalog = require("./WeaponCatalog")
 
 export type Combatant = {
 	id: string,
 	matchId: number,
 	weapons: WeaponState.State,
+	primary: string, -- the gun in slot 1: the Volt Pistol or a found gun
 	mirrored: Model?, -- the model whose attributes are up to date
 }
 
@@ -51,10 +53,20 @@ function Combatants.root(id: string): BasePart?
 	return nil
 end
 
+-- The slot 1 gun of a participant (the pistol when there is no record yet).
+function Combatants.primary(id: string): string
+	local c = byId[id]
+	return if c ~= nil then c.primary else Config.Weapons.Firearm.id
+end
+
+-- Full numbers of the slot 1 gun, read fresh so upgrades count.
+function Combatants.gunStats(id: string): WeaponCatalog.GunStats
+	return WeaponCatalog.stats(Config, Combatants.primary(id), EffectiveStats:get(id).firearm)
+end
+
 -- Weapon numbers for one slot (1 = firearm, 2 = explosive), read fresh so upgrades count.
 function Combatants.slotStats(id: string, slot: number): WeaponState.Stats
-	local sheet = EffectiveStats:get(id)
-	local w = if slot == 2 then sheet.explosive else sheet.firearm
+	local w: any = if slot == 2 then EffectiveStats:get(id).explosive else Combatants.gunStats(id)
 	return { fireInterval = w.fireInterval, magazine = w.magazine, reloadSeconds = w.reloadSeconds }
 end
 
@@ -85,6 +97,7 @@ function Combatants.mirror(id: string)
 	m:SetAttribute("Health", book:get(id) or 0)
 	m:SetAttribute("MaxHealth", Config.Health.max)
 	m:SetAttribute("Alive", Participants:isAlive(id))
+	m:SetAttribute("WeaponId", c.primary) -- every client draws this gun in the fighter's hands
 	c.mirrored = m
 end
 
@@ -106,6 +119,7 @@ function Combatants.ensure(id: string): Combatant?
 			{ sheet.firearm.magazine, sheet.explosive.magazine },
 			Config.Combat.fireTolerance
 		),
+		primary = Config.Weapons.Firearm.id,
 		mirrored = nil,
 	}
 	if not p.alive then
@@ -116,6 +130,22 @@ function Combatants.ensure(id: string): Combatant?
 	Combatants.mirror(id)
 	Combatants.sendHealth(id)
 	return fresh
+end
+
+-- Put a different gun in slot 1 (full magazine). Returns the gun that was there, or nil when refused.
+function Combatants.setPrimary(id: string, gunId: string, now: number): string?
+	local c = Combatants.ensure(id)
+	if c == nil or not WeaponCatalog.isGun(Config, gunId) or gunId == c.primary then
+		return nil
+	end
+	local old = c.primary
+	local stats = WeaponCatalog.stats(Config, gunId, EffectiveStats:get(id).firearm)
+	if not c.weapons:replace(1, stats.magazine, now, Config.Combat.switchSeconds) then
+		return nil
+	end
+	c.primary = gunId
+	Combatants.mirror(id)
+	return old
 end
 
 function Combatants.drop(id: string)

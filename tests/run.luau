@@ -10,6 +10,8 @@ require("./character_looks.test")
 require("./character_pose.test")
 require("./combat.test")
 require("./anticheat.test")
+
+require("./combat_guns.test")
 require("./arena.test")
 require("./audio.test")
 require("./config.test")
