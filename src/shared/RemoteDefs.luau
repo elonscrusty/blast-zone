@@ -199,6 +199,26 @@ local Defs: { Def } = {
 	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
 	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
+	-- ===== V11 squads (duo and trio) =====
+	ask(
+		"V11",
+		"SquadVoteRequest",
+		{ { name = "modeId", kind = "id", maxLen = Config.Squads.maxModeIdLength } },
+		2,
+		3
+	),
+	ask("V11", "SquadVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell(
+		"V11",
+		"SquadVoteState",
+		"{ open, modes: { { id, name, size, votes } }, yourVote?, chosen? }"
+	),
+	tell(
+		"V11",
+		"SquadState",
+		"{ matchId, size, team?, mates: { { id, name, alive } } } (size 1 = solo, nothing to show)"
+	),
+
 	-- ===== 42 loot: heal packs =====
 	ask("42", "UseHealRequest", {}, 3, 3),
 	tell(

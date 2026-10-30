@@ -19,6 +19,7 @@ export type Row = {
 	placement: number,
 	eliminations: number,
 	survivedSeconds: number,
+	teamIndex: number?, -- squad matches: the squad this fighter was in
 }
 
 export type Outcome = "win" | "draw" | "abandoned"
@@ -26,7 +27,9 @@ export type Outcome = "win" | "draw" | "abandoned"
 export type Result = {
 	matchId: number,
 	outcome: Outcome,
-	winnerId: string?,
+	winnerId: string?, -- squad matches: one member of the winning squad
+	winnerTeam: number?, -- squad matches: the winning squad
+	squadSize: number, -- 1 = solo
 	reason: string, -- "last_standing" | "timeout" | "forfeit"
 	rows: { Row }, -- best first
 	activeSeconds: number,
@@ -62,6 +65,7 @@ export type Deps = {
 	ids: any, -- shared Ids
 	clock: () -> number,
 	world: World,
+	squads: any?, -- shared Squads/SquadBook; leave nil for solo-only
 }
 
 export type Controller = {
@@ -81,6 +85,8 @@ export type Controller = {
 	getBotsRequested: () -> number,
 	isReady: (id: string) -> boolean,
 }
+
+local TeamRank = require("./TeamRank")
 
 type Human = {
 	id: string,
@@ -124,6 +130,8 @@ function MatchController.new(deps: Deps): Controller
 	local killedBy: { [string]: string } = {} -- victim id -> killer id; a spectator first watches who got them
 	local ledger = rules.newLedger()
 	local lastKey = ""
+	local squads = deps.squads
+	local startedUnits = 0 -- fighters (solo) or squads (squad match) that began the fight
 
 	local self = {} :: Controller
 
@@ -135,6 +143,22 @@ function MatchController.new(deps: Deps): Controller
 
 	local function phase(): string
 		return ctx:getPhase()
+	end
+
+	local function squadsOn(): boolean
+		return squads ~= nil and squads:active()
+	end
+
+	local function isAliveId(id: string): boolean
+		return registry:isAlive(id)
+	end
+
+	-- Who is still in the fight: fighters, or squads in a squad match.
+	local function unitsAlive(): number
+		if squadsOn() then
+			return squads:aliveTeamCount(isAliveId)
+		end
+		return registry:aliveCount()
 	end
 
 	local function totalNow(): number
@@ -224,6 +248,22 @@ function MatchController.new(deps: Deps): Controller
 		return out
 	end
 
+	-- In a squad match a fallen fighter watches their living teammates first; with none left, everyone.
+	local function aliveIdListFor(id: string): { string }
+		if squadsOn() then
+			local mates: { string } = {}
+			for _, mate in squads:matesOf(id) do
+				if registry:isAlive(mate) then
+					table.insert(mates, mate)
+				end
+			end
+			if #mates > 0 then
+				return mates
+			end
+		end
+		return aliveIdList()
+	end
+
 	local function setTarget(id: string, target: string?)
 		if spectateTarget[id] == target then
 			return
@@ -234,9 +274,9 @@ function MatchController.new(deps: Deps): Controller
 	end
 
 	local function refreshSpectators()
-		local alive = aliveIdList()
 		for _, id in humanOrder do
 			if canSpectate(id) then
+				local alive = aliveIdListFor(id)
 				setTarget(id, rules.pickWatchTarget(alive, spectateTarget[id], killedBy[id]))
 			elseif spectateTarget[id] ~= nil then
 				setTarget(id, nil)
@@ -248,7 +288,7 @@ function MatchController.new(deps: Deps): Controller
 		if not canSpectate(id) then
 			return
 		end
-		setTarget(id, rules.cycleTarget(aliveIdList(), spectateTarget[id], step))
+		setTarget(id, rules.cycleTarget(aliveIdListFor(id), spectateTarget[id], step))
 	end
 
 	-- ===== end of match =====
@@ -276,24 +316,80 @@ function MatchController.new(deps: Deps): Controller
 			info[d.id] =
 				{ name = d.name, isBot = false, kills = kills[d.id] or 0, out = d.eliminatedAt }
 		end
-		local ranked = rules.rank(entries, now, M.simultaneousEliminationWindow)
 		local start = activeStartedAt or now
 		local rows: { Row } = {}
-		for _, id in ranked.order do
-			local i = info[id]
-			table.insert(rows, {
-				participantId = id,
-				displayName = i.name,
-				isBot = i.isBot,
-				placement = ranked.place[id],
-				eliminations = i.kills,
-				survivedSeconds = math.max(0, i.out - start),
-			})
+		local outcome: Outcome = "draw"
+		local winnerId: string? = nil
+		local winnerTeam: number? = nil
+		local squadSize = 1
+		if squadsOn() then
+			-- A squad ranks as one: every member shares the squad's place. Rows go squad by squad, best first.
+			squadSize = squads:size()
+			local teams: { { string } } = {}
+			for t = 1, squads:teamCount() do
+				teams[t] = squads:membersOf(t)
+			end
+			local team = TeamRank.rank(entries, teams, now, M.simultaneousEliminationWindow)
+			outcome, winnerTeam = team.rank.outcome :: any, team.winnerTeam
+			for _, t in team.order do
+				local members = teams[t]
+				table.sort(members, function(a: string, b: string): boolean
+					local ka, kb = info[a] and info[a].kills or 0, info[b] and info[b].kills or 0
+					if ka ~= kb then
+						return ka > kb
+					end
+					return a < b
+				end)
+				for _, id in members do
+					local i = info[id]
+					if i then
+						table.insert(rows, {
+							participantId = id,
+							displayName = i.name,
+							isBot = i.isBot,
+							placement = team.placeOf[t],
+							eliminations = i.kills,
+							survivedSeconds = math.max(0, i.out - start),
+							teamIndex = t,
+						})
+					end
+				end
+			end
+			if winnerTeam ~= nil then
+				-- The banner names one member: a survivor if there is one, else whoever ranks first.
+				for _, row in rows do
+					if row.teamIndex == winnerTeam then
+						if winnerId == nil then
+							winnerId = row.participantId
+						end
+						if registry:isAlive(row.participantId) then
+							winnerId = row.participantId
+							break
+						end
+					end
+				end
+			end
+		else
+			local ranked = rules.rank(entries, now, M.simultaneousEliminationWindow)
+			outcome, winnerId = ranked.outcome :: any, ranked.winnerId
+			for _, id in ranked.order do
+				local i = info[id]
+				table.insert(rows, {
+					participantId = id,
+					displayName = i.name,
+					isBot = i.isBot,
+					placement = ranked.place[id],
+					eliminations = i.kills,
+					survivedSeconds = math.max(0, i.out - start),
+				})
+			end
 		end
 		return {
 			matchId = ctx:getMatchId(),
-			outcome = ranked.outcome,
-			winnerId = ranked.winnerId,
+			outcome = outcome,
+			winnerId = winnerId,
+			winnerTeam = winnerTeam,
+			squadSize = squadSize,
 			reason = reason,
 			rows = rows,
 			activeSeconds = math.max(0, now - start),
@@ -313,7 +409,9 @@ function MatchController.new(deps: Deps): Controller
 				pendingRewards[row.participantId] = {
 					amount = rules.rewardFor(row.placement, row.eliminations, cfg.Rewards),
 					place = row.placement,
-					won = res.outcome == "win" and res.winnerId == row.participantId,
+					won = res.outcome == "win" and (if res.winnerTeam ~= nil
+						then row.teamIndex == res.winnerTeam
+						else res.winnerId == row.participantId),
 				}
 			end
 		end
@@ -333,12 +431,15 @@ function MatchController.new(deps: Deps): Controller
 				draw = res.outcome ~= "win",
 				outcome = res.outcome,
 				winnerId = res.winnerId,
+				winnerTeam = res.winnerTeam,
+				squadSize = res.squadSize,
 				endsAt = closesAt,
 				you = if mine
 					then {
 						placement = mine.placement,
 						eliminations = mine.eliminations,
 						survivedSeconds = mine.survivedSeconds,
+						teamIndex = mine.teamIndex,
 						reward = if pending then pending.amount else 0,
 					}
 					else nil,
@@ -407,7 +508,11 @@ function MatchController.new(deps: Deps): Controller
 			end
 		end
 		world.cleanup(registry:list())
+		if squads then
+			squads:clear() -- before the roster, so the Removed events below see a solo server
+		end
 		registry:clear()
+		startedUnits = 0
 		ledger:forgetBefore(matchId - 2)
 		for id in humanParticipants do
 			local h = humans[id]
@@ -439,7 +544,7 @@ function MatchController.new(deps: Deps): Controller
 			return
 		end
 		local now = clock()
-		local alive = registry:aliveCount()
+		local alive = unitsAlive()
 		local start = activeStartedAt or now
 		if alive == 0 then
 			finish("last_standing")
@@ -456,7 +561,7 @@ function MatchController.new(deps: Deps): Controller
 			p == phases.Active
 			-- By count only once someone is out: a two-player match must not open in Final pressure.
 			and (
-				(alive <= M.finalPressureAliveCount and alive < startedTotal)
+				(alive <= M.finalPressureAliveCount and alive < startedUnits)
 				or now - start >= M.finalPressureAtSeconds
 			)
 		then
@@ -492,6 +597,17 @@ function MatchController.new(deps: Deps): Controller
 			end
 		end
 		startedTotal = #list
+		startedUnits = startedTotal
+		if squads then
+			local members = {}
+			for _, p in list do
+				table.insert(members, { id = p.id, isBot = p.kind == "bot" })
+			end
+			squads:assign(members, cfg.Squads.minTeams)
+			if squads:active() then
+				startedUnits = squads:teamCount()
+			end
+		end
 		local rng = world.random or function(n: number): number
 			return math.random(1, n)
 		end
@@ -831,7 +947,10 @@ function MatchController.new(deps: Deps): Controller
 		if killerId then
 			killedBy[e.victimId] = killerId
 		end
-		local placement = registry:aliveCount() + 1
+		-- A squad ranks as one: its place is final only once its last member is out.
+		local victimTeam: number? = if squadsOn() then squads:teamOf(e.victimId) else nil
+		local squadOut = victimTeam == nil or not squads:teamAlive(victimTeam, isAliveId)
+		local placement = unitsAlive() + (if squadOut then 1 else 0)
 		local start = activeStartedAt or clock()
 		world.sendEliminated({
 			matchId = e.matchId,
@@ -841,6 +960,8 @@ function MatchController.new(deps: Deps): Controller
 			killerName = if killer then killer.displayName else nil,
 			cause = e.cause,
 			placement = placement,
+			teamIndex = victimTeam,
+			squadOut = squadOut,
 			eliminations = kills[e.victimId] or 0,
 			survivedSeconds = math.max(0, (victim.eliminatedAt or clock()) - start),
 		})

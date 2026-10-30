@@ -85,7 +85,7 @@ local function fireBullets(id: string, matchId: number, origin: Vector3, dx: num
 	local stats = Combatants.gunStats(id)
 	local gun = WeaponCatalog.def(Config, Combatants.primary(id))
 	local bodies = Combatants.bodies()
-	local targets = Combatants.targets(id, 0)
+	local targets = Combatants.targets(id, 0, id)
 	for _, d in Ballistics.fan(dx, dz, stats.pellets, stats.spreadDegrees) do
 		local wallDist, wallPart = ShotCaster.cast(origin, d.x, d.z, stats.range, bodies, nil)
 		local hit = Ballistics.line(
