@@ -1,0 +1,9 @@
+# 42 Look from video 3: Neon Pop Night
+- carter studied video 3 and picked option C, Neon Pop Night: a bright, colorful night with bold neon. World art only; Claude Design owns the UI.
+- Sky: `Config.Art.dayNight.fixedT = 1` holds full night in the lobby and the match (`DayNight.targetT` got an optional `fixedT`). Set it to `nil` to bring the old day-to-night slide back (`lobbyT` is then the lobby sky).
+- Night look retuned in `shared/DayNight.luau`: brighter (1.6), blue-violet ambient, saturation .3, bloom .85, navy haze. Crates and shots stay readable (tests check).
+- Palette: pink/magenta walls, teal trees and grass, lavender pavement, navy-violet roads (`ArtKit.P`, `ArenaBuilder.GROUND`, `Config.Palette`). No gold or violet low down, so pickups stay clear (art test keeps this).
+- Fighters get a thin dark outline (Highlight, no fill) and you get a green ring under your feet: `client/Character/CharacterOutlineSystem.luau`, knobs in `Config.Art.outline`. Fighters plus the hit-flash pool stay under Roblox's 31 Highlights (tests/outline.test.luau).
+- Preview board and plan: project files `previews/video3-look/` (look-board.html, LOOK-PLAN.md).
+- Not tested: how it looks in Roblox (no Play tests). selene did not run here (needs the Roblox std download); CI runs it.
+- Left for later steps: chunky props pass (faceted trees, brick-pillar fences, fat bins), lobby cyan grid backdrop, thicker shot effects. Tune brightness and colors after carter plays.

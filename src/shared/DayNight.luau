@@ -60,20 +60,22 @@ local SUNSET: Look = {
 	glow = 0.7,
 }
 
--- Night keeps real light on the ground on purpose: crates, shots and players must stay readable.
+-- Neon Pop Night (carter picked C after video 3): a bright, saturated night. Blue-violet ambient,
+-- strong neon bloom, deep navy haze. Night keeps real light on the ground on purpose: crates,
+-- shots and players must stay readable.
 local NIGHT: Look = {
 	clockTime = 23,
-	brightness = 1.2,
-	ambient = { 92, 108, 152 },
-	outdoorAmbient = { 110, 126, 172 },
-	atmosphereColor = { 40, 60, 110 },
-	atmosphereDecay = { 20, 30, 70 },
-	density = 0.45,
+	brightness = 1.6,
+	ambient = { 104, 128, 214 },
+	outdoorAmbient = { 124, 150, 228 },
+	atmosphereColor = { 24, 38, 100 },
+	atmosphereDecay = { 16, 28, 84 },
+	density = 0.36,
 	haze = 1,
 	glare = 0,
-	bloom = 0.6,
-	tint = { 205, 220, 255 },
-	saturation = 0.1,
+	bloom = 0.85,
+	tint = { 222, 228, 255 },
+	saturation = 0.3,
 	glow = 1,
 }
 
@@ -150,15 +152,20 @@ function DayNight.progress(matchStart: number, now: number, zone: ZoneConfig): n
 	return clamp01((now - matchStart) / length)
 end
 
--- Where t is heading right now: the match clock during a live match, daylight otherwise.
--- matchStart is nil until the first ZoneState of the match has arrived.
+-- Where t is heading right now: the match clock during a live match, the lobby value otherwise.
+-- matchStart is nil until the first ZoneState of the match has arrived. A fixedT (0 to 1) holds
+-- the sky still at that value, match or lobby (Neon Pop Night holds it at 1).
 function DayNight.targetT(
 	live: boolean,
 	matchStart: number?,
 	now: number,
 	zone: ZoneConfig,
-	lobbyT: number
+	lobbyT: number,
+	fixedT: number?
 ): number
+	if fixedT ~= nil then
+		return clamp01(fixedT)
+	end
 	if not live or matchStart == nil then
 		return clamp01(lobbyT)
 	end

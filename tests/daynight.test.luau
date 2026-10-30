@@ -83,6 +83,27 @@ Harness.test("daynight: outside a match it is day, and the sky glides home", fun
 	Harness.eq(DayNight.follow(0, 1, -1, 1), 0, "negative dt does nothing")
 end)
 
+Harness.test("daynight: a fixed t holds the sky still, match or lobby", function()
+	Harness.eq(DayNight.targetT(false, nil, 0, ZONE, 0, 1), 1, "lobby")
+	Harness.eq(DayNight.targetT(true, 100, 100, ZONE, 0, 1), 1, "start of a match")
+	Harness.eq(DayNight.targetT(true, 100, 130, ZONE, 0, 0.4), 0.4, "mid match")
+	Harness.eq(DayNight.targetT(true, 100, 130, ZONE, 0, 9), 1, "clamped")
+	Harness.eq(
+		DayNight.targetT(true, 100, 130, ZONE, 0, nil),
+		DayNight.progress(100, 130, ZONE),
+		"nil slides"
+	)
+end)
+
+Harness.test("daynight: Neon Pop Night is a bright, colorful night", function()
+	local n = DayNight.looks.night
+	Harness.truthy(n.brightness >= 1.4, "bright enough to read the street")
+	Harness.truthy(n.saturation >= 0.25, "colors pop")
+	Harness.truthy(n.bloom >= 0.7, "neon glows")
+	Harness.truthy(n.outdoorAmbient[3] > n.outdoorAmbient[1], "blue-violet ambient")
+	Harness.truthy(Config.Art.dayNight.fixedT == 1, "the match is held at night")
+end)
+
 Harness.test("daynight: neon steps and windows come on one by one", function()
 	local steps = ART.glowSteps
 	Harness.eq(DayNight.glowLevel(0, steps), 0)

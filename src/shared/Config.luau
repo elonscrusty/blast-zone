@@ -18,8 +18,8 @@ Config.Game = {
 Config.Palette = {
 	Navy = "#14243A",
 	Cyan = "#36D9E8",
-	Pavement = "#C8A675",
-	ParkGreen = "#718D57",
+	Pavement = "#8E96D8",
+	ParkGreen = "#35A37A",
 	RewardGold = "#FFC44D",
 	DangerCoral = "#F15B64",
 }
@@ -693,12 +693,28 @@ Config.Art = {
 	lowestFloatingStuds = 5, -- art lower than this must sit flush against a solid or lie flat on the ground
 	flushStuds = 0.6, -- how far art may stick out of a solid below that height
 	skyline = { towers = 30, innerGap = 8, outerReach = 70 }, -- towers outside the arena wall
-	-- Day to night. t runs 0 (day) to 1 (full night), tied to match time: it reaches 1 when
-	-- sudden death starts. Outside a match the city is back in daylight.
+	-- Day to night. t runs 0 (day) to 1 (full night). With fixedT nil it follows the match clock and
+	-- reaches 1 when sudden death starts (outside a match it is lobbyT). fixedT holds it still.
 	dayNight = {
-		lobbyT = 0,
+		fixedT = 1, -- Neon Pop Night: the sky stays at full night, lobby and match (nil = slide day to night)
+		lobbyT = 1,
 		maxChangePerSecond = 0.25, -- the sky glides, even when a new match snaps t back to 0
 		glowSteps = 12, -- neon brightness is updated in this many steps, not every frame
+	},
+	-- Toy look from video 3 (client only, cosmetic): a thin dark outline on every fighter and a
+	-- green ring under your own feet. Roblox draws at most 31 Highlights at once: outlines for
+	-- every fighter plus the hit-flash pool in Effects/Fx must stay under that (tests check).
+	outline = {
+		enabled = true,
+		color = "#0B0F1C",
+		fxHighlightPool = 6, -- Effects/Fx.HIGHLIGHT_POOL, kept in step by a test
+		ring = {
+			enabled = true,
+			color = "#4AFF8A",
+			transparency = 0.25,
+			diameter = 4.4,
+			thickness = 0.2,
+		},
 	},
 }
 
