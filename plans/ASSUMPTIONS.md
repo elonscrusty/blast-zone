@@ -22,7 +22,7 @@ Only carter's brief is the reference; nobody here watched the recordings. All nu
 | 10 Roster | Humans plus clearly labeled "[BOT] " fill. Bots follow player rules, no hidden advantage. |
 | 11 Teams | Not in v1. |
 | 12 Fairness | Everyone starts with equal stats. Permanent power is not built. |
-| 13 Saving | Not in v1 (Phase 5). `Config.Rewards.persist = false`. |
+| 13 Saving | Phase 5, piece 17: one DataStore record per player, session lock, autosave 60 s, save on leave and shutdown. Works only in a published game with API access on. Unproven until carter does the leave / rejoin test (`plans/handoffs/17-saving-test.md`). |
 | 14 Defeat | Eliminated players see a defeat summary and spectate. Join mid-match: spectate until next match. Disconnect: eliminated, no killer credit. Simultaneous final elimination: draw, both rank 1 (window 0.1 s). |
 | 15 Audio and shake | Original, set by piece 10. Camera shake can be turned off. |
 

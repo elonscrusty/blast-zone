@@ -313,7 +313,7 @@ Config.Bots = {
 }
 
 Config.Rewards = {
-	currencyName = "Credits", -- in-game only; persistence is Phase 5
+	currencyName = "Credits", -- saving goes through Profiles (piece 17); the earn rules are piece 18
 	participation = 10,
 	perElimination = 5,
 	placementBonus = { 30, 15, 8 }, -- 1st, 2nd, 3rd
@@ -334,6 +334,19 @@ Config.Perf = {
 	maxDamageNumbers = 12,
 	maxLiveEffects = 40,
 	maxDebrisParts = 0, -- containers burst as particles, not physical parts
+}
+
+-- Piece 17: saving player progress (DataStore). Read by src/server/Profile only.
+Config.Profile = {
+	storeName = "BlastZoneProfiles_v1", -- changing this starts everyone from nothing: never rename
+	autosaveSeconds = 60, -- also refreshes the session lock
+	minSecondsBetweenWrites = 6, -- DataStore allows one write per key about every 6 s
+	lockStaleSeconds = 180, -- a lock older than this belongs to a crashed server
+	loadLockTries = 6, -- how many times a load waits for another server to let go
+	lockRetrySeconds = 3,
+	receiptsKept = 100, -- newest once-only grant keys remembered per player
+	shutdownSeconds = 25, -- BindToClose allows 30
+	flags = { "introSeen" }, -- the only flags a client may set (piece 20)
 }
 
 Config.Net = {
