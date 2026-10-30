@@ -62,6 +62,19 @@ Bindings.held = {
 	touchAim = "fireStick",
 }
 
+-- Gamepad buttons for the menus (they are not combat actions, so they never clash with them).
+-- Shoulders also flip spectate targets and nudge settings sliders. Both only happen while controls
+-- are off or a menu is open, when weapon swap is not in use. (The D-pad is left to the upgrade
+-- cards, which read it themselves.)
+Bindings.menu = {
+	settings = "ButtonSelect", -- open or close settings from anywhere
+	back = "ButtonB", -- close the menu on top
+	spectatePrev = "ButtonL1",
+	spectateNext = "ButtonR1",
+	sliderLess = "ButtonL1",
+	sliderMore = "ButtonR1",
+}
+
 -- Which action a key / button triggers, built once.
 local lookup: { [string]: string } = {}
 for _, name in Bindings.actionOrder do

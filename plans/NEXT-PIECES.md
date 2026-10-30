@@ -25,3 +25,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 17 | Saving player progress (DataStore profiles, session lock, once-only grants) | 19 | PR up | this PR |
 | 20 | First-time intro, save error messages, release checklist | 7, 25 | PR up | piece 20 PR |
 | 18 | Coins + unlock track (looks only) + combined claim strip on the results screen | 19 | PR up | this PR |
+| 15 | Phone refinement (floating sticks, pick chips) + full controller support | 20 | PR up | #18 |

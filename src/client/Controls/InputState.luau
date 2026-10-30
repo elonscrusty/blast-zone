@@ -12,6 +12,7 @@ export type Device = "keyboard" | "touch" | "gamepad"
 
 export type InputState = {
 	enabled: boolean,
+	modal: boolean, -- a menu has the player's attention: input is ignored and held input is cleared
 	device: Device,
 	keys: { [string]: boolean },
 	touchMove: { x: number, y: number },
@@ -27,9 +28,15 @@ export type InputState = {
 
 local InputStateModule = {}
 
+-- Input only counts when controls are on and no menu is open.
+local function live(s: InputState): boolean
+	return s.enabled and not s.modal
+end
+
 function InputStateModule.new(): InputState
 	return {
 		enabled = true,
+		modal = false,
 		device = "keyboard",
 		keys = {},
 		touchMove = { x = 0, y = 0 },
@@ -76,9 +83,30 @@ function InputStateModule.noteDevice(s: InputState, device: Device): boolean
 	return true
 end
 
+-- A menu opened or closed. Either way nothing held carries over. Returns true if it changed.
+function InputStateModule.setModal(s: InputState, modal: boolean): boolean
+	if s.modal == modal then
+		return false
+	end
+	s.modal = modal
+	InputStateModule.reset(s)
+	return true
+end
+
+-- The gamepad was unplugged. Whatever it held is dropped, and if it was the device in use the
+-- player is handed back to the touch screen or the keyboard (touch wins on a phone).
+-- Returns the device now in use.
+function InputStateModule.padDisconnected(s: InputState, hasTouch: boolean): Device
+	InputStateModule.reset(s)
+	if s.device == "gamepad" then
+		s.device = if hasTouch then "touch" else "keyboard"
+	end
+	return s.device
+end
+
 -- Key or button went down. Returns the one-shot action it triggers, if any.
 function InputStateModule.keyDown(s: InputState, code: string): string?
-	if not s.enabled then
+	if not live(s) then
 		return nil
 	end
 	local already = s.keys[code] == true
@@ -103,13 +131,13 @@ local function anyDown(s: InputState, codes: { string }): boolean
 end
 
 function InputStateModule.setTouchMove(s: InputState, x: number, y: number)
-	if s.enabled then
+	if live(s) then
 		s.touchMove = { x = x, y = y }
 	end
 end
 
 function InputStateModule.setTouchAim(s: InputState, x: number, y: number, active: boolean)
-	if not s.enabled then
+	if not live(s) then
 		return
 	end
 	local ax, ay = InputMath.applySensitivity(x, y, s.aimSensitivity)
@@ -117,14 +145,14 @@ function InputStateModule.setTouchAim(s: InputState, x: number, y: number, activ
 end
 
 function InputStateModule.setPadMove(s: InputState, x: number, y: number)
-	if s.enabled then
+	if live(s) then
 		local dx, dy = InputMath.deadzone(x, y)
 		s.padMove = { x = dx, y = dy }
 	end
 end
 
 function InputStateModule.setPadAim(s: InputState, x: number, y: number)
-	if s.enabled then
+	if live(s) then
 		local dx, dy = InputMath.deadzone(x, y)
 		local ax, ay = InputMath.applySensitivity(dx, dy, s.aimSensitivity)
 		s.padAim = { x = ax, y = ay }
@@ -132,7 +160,7 @@ function InputStateModule.setPadAim(s: InputState, x: number, y: number)
 end
 
 function InputStateModule.setPadTrigger(s: InputState, amount: number)
-	if s.enabled then
+	if live(s) then
 		s.padTrigger = if amount == amount then math.clamp(amount, 0, 1) else 0
 	end
 end
@@ -145,7 +173,7 @@ function InputStateModule.setPointer(
 	originX: number,
 	originY: number
 )
-	if not s.enabled then
+	if not live(s) then
 		return
 	end
 	local x, y, valid = InputMath.aimFromPointer(px, py, originX, originY)
@@ -153,7 +181,7 @@ function InputStateModule.setPointer(
 end
 
 function InputStateModule.setMouseDown(s: InputState, down: boolean)
-	if s.enabled then
+	if live(s) then
 		s.mouseDown = down
 	end
 end
@@ -161,7 +189,7 @@ end
 -- Movement as x right, y forward (screen up), length at most 1. The touch stick wins while it is
 -- touched, then a pushed gamepad stick, then the keyboard.
 function InputStateModule.move(s: InputState): (number, number)
-	if not s.enabled then
+	if not live(s) then
 		return 0, 0
 	end
 	if s.touchMove.x ~= 0 or s.touchMove.y ~= 0 then
@@ -182,7 +210,7 @@ end
 -- Aim as a unit vector (x right, y up) plus whether anything is aiming. The device that was used
 -- last wins when several could aim.
 function InputStateModule.aim(s: InputState): (number, number, boolean)
-	if not s.enabled then
+	if not live(s) then
 		return 0, 0, false
 	end
 	if s.device == "touch" then
@@ -203,7 +231,7 @@ end
 
 -- Call once per frame: fire state needs the "on" / "off" gap between frames.
 function InputStateModule.firing(s: InputState): boolean
-	if not s.enabled then
+	if not live(s) then
 		s.firingStick = false
 		return false
 	end
