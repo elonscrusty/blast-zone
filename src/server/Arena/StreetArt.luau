@@ -39,7 +39,7 @@ function StreetArt.classify(id: string): string?
 		return "hedge"
 	elseif starts("bench") then
 		return "bench"
-	elseif starts("pond") then
+	elseif starts("pond") or starts("pool") then
 		return "pond"
 	elseif starts("bandstand") or starts("gazebo") then
 		return "bandstand"
