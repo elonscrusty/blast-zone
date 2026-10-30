@@ -26,6 +26,14 @@ One file can fill several cues: `fire_pistol_other` uses `fire_pistol`, `slide_o
 | `fire_pistol_other` | Someone else's shot (uses the pistol sound) |
 | `fire_mortar` | Mortar launch: low thump with a whistle, under 1 s |
 | `explosion` | Mortar blast: punchy explosion boom, 1 to 2 s |
+| `fire_breaker` | Breaker shot: heavy shotgun boom with a pump clack, under 1 s |
+| `fire_breaker_other` | Someone else's Breaker (uses the Breaker sound) |
+| `fire_hornet` | Hornet shot: tiny quick sci-fi pop, under 0.15 s (repeats 11 times a second) |
+| `fire_hornet_other` | Someone else's Hornet (uses the Hornet sound) |
+| `fire_longline` | Longline shot: sharp rifle crack with a short echo, under 1.5 s |
+| `fire_longline_other` | Someone else's Longline (uses the Longline sound) |
+| `gun_drop` | A gun pops out of a box: metal clunk on the floor, under 0.6 s |
+| `gun_swap` | You pick up a gun: confident slide-and-lock click, under 0.5 s |
 | `reload_start` | Magazine slide out, click |
 | `reload_end` | Magazine in, slide clack |
 | `hit_confirm` | You hit someone: short tick or ping, under 0.2 s |
