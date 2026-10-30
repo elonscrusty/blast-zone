@@ -37,9 +37,8 @@ function BigMapModel.step(
 	autoCloseSeconds: number
 ): boolean
 	if m.open then
-		if not allowed then
-			m.open = false
-		elseif autoCloseSeconds > 0 and now - m.openedAt >= autoCloseSeconds then
+		local peekOver = autoCloseSeconds > 0 and now - m.openedAt >= autoCloseSeconds
+		if not allowed or peekOver then
 			m.open = false
 		end
 	end
