@@ -420,10 +420,7 @@ end
 
 -- The colors a fighter wears: bots take the Crash Dummy body and legs, everything else stays.
 function Looks.paletteFor(def: LookDef, bot: { body: string, legs: string }?): { [string]: string }
-	local out = {}
-	for role, hex in def.palette do
-		out[role] = hex
-	end
+	local out = table.clone(def.palette)
 	if bot ~= nil then
 		out.body = bot.body
 		out.head = bot.body
