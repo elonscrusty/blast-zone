@@ -78,7 +78,12 @@ function CombatFx.tracer(from: Vector3, to: Vector3, weaponId: string)
 	end
 	local mortar = weaponId == Config.Weapons.Explosive.id
 	local color = if mortar then GOLD else CYAN
-	local width = if mortar then 0.4 else 0.14
+	-- Shape tells the guns apart: thin shotgun pellets, a thick rifle line, the rest in between.
+	local width = if mortar
+		then 0.4
+		elseif weaponId == "longline" then 0.24
+		elseif weaponId == "breaker" or weaponId == "hornet" then 0.09
+		else 0.14
 	local p = newPart(
 		Enum.PartType.Block,
 		color,

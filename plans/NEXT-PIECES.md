@@ -20,3 +20,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
+| 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |
