@@ -90,6 +90,7 @@ local Defs: { Def } = {
 
 	-- ===== 06 zone =====
 	tell("06", "ZoneState", "ZoneState"),
+	ask("06", "ZoneStateRequest", {}, 1, 2), -- a client that joined late asks for the live circle
 
 	-- ===== 07 containers, pickups, run xp =====
 	ask("07", "PickupRequest", { { name = "pickupId", kind = "id" } }, 10, 10),
