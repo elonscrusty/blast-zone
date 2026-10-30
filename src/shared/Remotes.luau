@@ -32,7 +32,13 @@ function Remotes.build(): Folder
 	return f
 end
 
+local cache: { [string]: RemoteEvent } = {}
+
 function Remotes.get(name: string): RemoteEvent
+	local cached = cache[name]
+	if cached ~= nil and cached.Parent ~= nil then
+		return cached -- every shot, hit and pickup goes through here: no tree lookups
+	end
 	if RemoteDefs.byName[name] == nil then
 		error("Unknown remote '" .. tostring(name) .. "'. Add it to RemoteDefs first.", 2)
 	end
@@ -44,6 +50,7 @@ function Remotes.get(name: string): RemoteEvent
 	if ev == nil or not ev:IsA("RemoteEvent") then
 		error("Remote '" .. name .. "' missing", 2)
 	end
+	cache[name] = ev
 	return ev
 end
 

@@ -75,6 +75,12 @@ local function seeContainer(inst: Instance)
 	if not inst:IsA("BasePart") then
 		return
 	end
+	-- Containers removed without breaking (a match reset) never get a ContainerBroken message: drop them here.
+	for id, seen in containers do
+		if seen.part.Parent == nil then
+			containers[id] = nil
+		end
+	end
 	local id = inst:GetAttribute("ContainerId")
 	local tier = inst:GetAttribute("Tier")
 	if typeof(id) == "string" and typeof(tier) == "string" then

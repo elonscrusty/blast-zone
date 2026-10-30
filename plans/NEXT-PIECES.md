@@ -21,3 +21,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
 | 12 | Audio: sounds + music (silent until ids are added, see plans/AUDIO-IDS.md) | 22 | PR up | this PR |
+| 16 | Performance and stability: leaks, per-frame work, edge-case tests, speed checklist | 16, 23, 26 | PR up | this PR |

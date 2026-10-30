@@ -16,13 +16,14 @@ local Net = {}
 
 local limiters: { [string]: any } = {}
 local started = false
-local lastWarn: { [string]: number } = {}
+local lastWarn: { [number]: { [string]: number } } = {} -- by userId, so a leaving player takes theirs along
 
 local function warnThrottled(player: Player, name: string, why: string)
-	local key = tostring(player.UserId) .. name
+	local mine: { [string]: number } = lastWarn[player.UserId] or {}
+	lastWarn[player.UserId] = mine
 	local now = os.clock()
-	if (lastWarn[key] or -10) + 5 < now then
-		lastWarn[key] = now
+	if (mine[name] or -10) + 5 < now then
+		mine[name] = now
 		warn(`[Net] {player.Name} -> {name}: {why}`)
 	end
 end
@@ -34,6 +35,7 @@ function Net.init()
 	started = true
 	Remotes.build()
 	Players.PlayerRemoving:Connect(function(player)
+		lastWarn[player.UserId] = nil
 		for _, limiter in limiters do
 			limiter:forget(player.UserId)
 		end

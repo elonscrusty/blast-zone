@@ -15,6 +15,7 @@ local Combatants = require("./Combatants")
 local ContainerLink = require("./ContainerLink")
 local Shells = require("./Shells")
 local ShotCaster = require("./ShotCaster")
+local WeaponState = require("./WeaponState")
 
 local firearm = Config.Weapons.Firearm
 local explosive = Config.Weapons.Explosive
@@ -179,19 +180,26 @@ function Firing.switch(id: string, slot: number): (boolean, string?)
 end
 
 -- Every frame: finish reloads whose time is up, keep health attributes on respawned bodies.
+local function statsOfSlot(id: string): (number) -> WeaponState.Stats
+	return function(slot: number)
+		return Combatants.slotStats(id, slot)
+	end
+end
+
 function Firing.step()
 	local now = os.clock()
-	for _, c in Combatants.all() do
-		local done = c.weapons:update(now, function(slot: number)
-			return Combatants.slotStats(c.id, slot)
-		end)
-		if #done > 0 then
-			Firing.sendAmmo(c.id)
+	Combatants.forEach(function(c)
+		-- A fighter with nothing reloading costs one table read here: no stats sheet, no list.
+		if next(c.weapons.reloadEndsAt) ~= nil then
+			local done = c.weapons:update(now, statsOfSlot(c.id))
+			if #done > 0 then
+				Firing.sendAmmo(c.id)
+			end
 		end
 		if Combatants.model(c.id) ~= c.mirrored then
 			Combatants.mirror(c.id)
 		end
-	end
+	end)
 end
 
 return Firing

@@ -86,11 +86,26 @@ local function consider(inst: Instance)
 	end
 end
 
-function HealthBars.start()
-	for _, d in Workspace:GetDescendants() do
-		consider(d)
+-- Fighters sit at the top of Workspace (or in Workspace.Participants), so only those places are watched.
+-- Listening to every descendant meant a callback for every spark, damage number and orb that ever appeared.
+local function watch(holder: Instance)
+	for _, child in holder:GetChildren() do
+		consider(child)
 	end
-	Workspace.DescendantAdded:Connect(consider)
+	holder.ChildAdded:Connect(consider)
+end
+
+function HealthBars.start()
+	watch(Workspace)
+	local folder = Workspace:FindFirstChild("Participants")
+	if folder ~= nil then
+		watch(folder)
+	end
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "Participants" then
+			watch(child)
+		end
+	end)
 end
 
 return HealthBars

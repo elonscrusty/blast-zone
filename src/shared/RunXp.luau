@@ -56,6 +56,11 @@ function RunXp.resetAll(self: any)
 	self._state = {}
 end
 
+-- A participant left the match for good: their ledger entry goes with them.
+function RunXp.forget(self: any, id: string)
+	self._state[id] = nil
+end
+
 function RunXp.get(self: any, id: string): State?
 	return self._state[id]
 end
