@@ -148,7 +148,7 @@ Config.Arena = {
 	containerSpots = 12,
 	parkEntrancesMin = 2,
 	-- Piece 04. Which graybox layout is built (A, B or C, see src/server/Arena/Layout*.luau).
-	layout = "A",
+	layout = "C", -- carter picked C (Arcade Row); A and B stay as extra maps
 	occluderTag = "ArenaOccluder", -- parts the camera may fade for the local player only
 	-- Local roof / wall fade (piece 04). Transparency targets, 0 = solid, 1 = gone.
 	fade = {

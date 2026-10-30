@@ -307,3 +307,10 @@ Harness.test("arena visibility: people in a room you are not in are hidden", fun
 	)
 	Harness.truthy(not Visibility.hidesOccupant(buildings, nil, 0, 0), "in the open")
 end)
+
+Harness.test("arena: the chosen layout exists", function()
+	Harness.truthy(
+		specs[Config.Arena.layout] ~= nil,
+		"Config.Arena.layout must name a layout in src/server/Arena"
+	)
+end)
