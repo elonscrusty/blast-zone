@@ -10,6 +10,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(script.Parent.Parent.Core.Net)
 local CombatFx = require("./CombatFx")
+local CosmeticLook = require(script.Parent.Parent.Progression.CosmeticLook)
 local GunModels = require("./GunModels")
 local HealthBars = require("./HealthBars")
 
@@ -203,7 +204,7 @@ function CombatClientSystem.start()
 		if mortar then
 			CombatFx.shell(s.shooterId, s.origin, s.endPos, explosive.projectileSpeed)
 		else
-			CombatFx.tracer(s.origin, s.endPos, s.weaponId)
+			CombatFx.tracer(s.origin, s.endPos, s.weaponId, CosmeticLook.tracerColor(s.shooterId))
 			if s.hitKind ~= "none" then
 				CombatFx.impact(s.endPos, s.hitKind)
 			end

@@ -71,13 +71,13 @@ local function atCap(): boolean
 	return live >= Config.Perf.maxLiveEffects
 end
 
-function CombatFx.tracer(from: Vector3, to: Vector3, weaponId: string)
+function CombatFx.tracer(from: Vector3, to: Vector3, weaponId: string, shooterColor: Color3?)
 	local len = (to - from).Magnitude
 	if len < 0.2 or atCap() then
 		return
 	end
 	local mortar = weaponId == Config.Weapons.Explosive.id
-	local color = if mortar then GOLD else CYAN
+	local color = if mortar then GOLD else (shooterColor or CYAN) -- shooterColor: their chosen shot look (piece 18)
 	local width = if mortar then 0.4 else 0.14
 	local p = newPart(
 		Enum.PartType.Block,
