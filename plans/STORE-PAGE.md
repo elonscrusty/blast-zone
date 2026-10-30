@@ -7,19 +7,19 @@ The game name is still the placeholder `Circuit District` (`Config.Game.Name`).
 
 | Idea | Icon (512x512) | Thumbnail (1920x1080) | What it shows |
 | --- | --- | --- | --- |
-| C1 Showdown ⭐ | `icon-C1.png` | `thumb-C1.png` | Game view, closer: you slide and fire, a bot blows apart, wall closing |
-| C2 Last Two | `icon-C2.png` | `thumb-C2.png` | Sudden death: you vs the last bot, red wall almost shut, sparks |
-| C3 Loot Rush | `icon-C3.png` | `thumb-C3.png` | Gold crate bursts open, you dash for it, bots chase |
-| A Hero Shot | `icon-A.png` | `thumb-A.png` | Your fighter aiming the A++ pistol, Neon Night street, Crash Dummy bot behind |
-| B Gun Glow | `icon-B.png` | `thumb-B.png` | The A++ pistol firing up close, brass flying, a bot down the street |
-| C Zone Closing | `icon-C.png` | `thumb-C.png` | The game camera: you vs 3 Crash Dummies, red zone wall, crates, XP orbs |
+| C1 Showdown ⭐ | `icon-C1.png` | `thumb-C1.png` | Game view, closer: you slide and fire, a player gets knocked out, wall closing |
+| C2 Last Two | `icon-C2.png` | `thumb-C2.png` | Sudden death: you vs the last player, red wall almost shut, sparks |
+| C3 Loot Rush | `icon-C3.png` | `thumb-C3.png` | Gold crate bursts open, you dash for it, other players chase |
+| A Hero Shot | `icon-A.png` | `thumb-A.png` | Your fighter aiming the A++ pistol, Neon Night street, another player behind |
+| B Gun Glow | `icon-B.png` | `thumb-B.png` | The A++ pistol firing up close, brass flying, another player down the street |
+| C Zone Closing | `icon-C.png` | `thumb-C.png` | The game camera: you vs 3 players, red zone wall, crates, XP orbs |
 
 - carter liked C but wanted it cooler, so C1-C3 are the cooler takes. Pick ONE icon.
 - Use 3 or more thumbnails: the picked one first, the others after it.
 - Thumbnails say "Neon Lockdown". If you keep another name, open `art/store/preview.html`,
   tap the name, and ask a thread to re-render the PNGs.
 - All art is built from the game's own looks (gun parts copied from `src/client/Combat/GunModels.luau`,
-  Crash Dummy colors from `src/server/Bots/BotTuning.luau`, palette from `Config.Palette`).
+  palette from `Config.Palette`).
 
 ## Name ideas
 
@@ -41,7 +41,7 @@ Every match is a free-for-all. Run, slide and shoot your way through the streets
 - Smash purple crates for better loot
 - Pick up XP orbs and choose a power-up card when you level up
 - Slide under fire to dodge shots
-- Not enough players? Crash Dummy bots fill every match, so you never wait
+- Matches fill up fast, so you never wait long
 - Earn Volts and unlock new stuff
 
 Made for phones first. Works on PC and controller too.
@@ -55,7 +55,7 @@ that needs the coins PR (#17) merged first. Remove that line if it is not in yet
 ## Genre and search words
 
 - Genre: **Shooter**. If Roblox shows a sub-genre list, pick the closest one (Battle Royale or Arena).
-- Roblox has no free tags. Search words already sit in the description: free-for-all, zone, loot, slide, bots, neon city.
+- Roblox has no free tags. Search words already sit in the description: free-for-all, zone, loot, slide, neon city.
 
 ## Upload steps (carter does these; no settings were changed by Claude)
 
