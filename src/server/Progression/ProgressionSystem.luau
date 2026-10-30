@@ -124,6 +124,14 @@ function ProgressionSystem.equip(player: Player, itemId: string): boolean
 	return service ~= nil and service.equip(player, itemId)
 end
 
+-- Other server systems pay coins here (daily challenges). Once per key; false + reason when it did not pay.
+function ProgressionSystem.grant(player: Player, amount: number, key: string): (boolean, string?)
+	if (service :: any) == nil then
+		return false, "notStarted"
+	end
+	return service.grant(player, amount, key)
+end
+
 function ProgressionSystem.start()
 	local Profiles = findProfiles()
 	local store: ProgressService.Store

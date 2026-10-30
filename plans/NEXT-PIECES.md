@@ -34,3 +34,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 13 | Combat effects polish: "Sticker Punch" look (muzzle, tracers, hits, numbers, slide, crates, blast warning, camera shake) | 22, 23 | PR up | this PR |
 | 24 | Lifetime stats (wins, eliminations, matches), lobby stats card, global top-wins board (Trophy Wall, OrderedDataStore) | - | PR up | #26 |
 | 30 | Store page: 3 icon + thumbnail ideas (3D), name ideas, description, upload steps | - | PR up | store PR |
+| 25 | Daily challenges: 3 a day (easy/medium/hard), server counts, pay Scrap once, reset at midnight UTC, plain DAILY panel (look comes from the UI system) | - | PR up | daily PR |

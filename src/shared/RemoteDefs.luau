@@ -145,6 +145,10 @@ local Defs: { Def } = {
 	ask("18", "EquipRequest", { { name = "itemId", kind = "id" } }, 3, 4),
 	tell("18", "ProgressState", "ProgressState"),
 
+	-- ===== 25 daily challenges =====
+	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
+	tell("25", "DailyState", "DailyState"),
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====

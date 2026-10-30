@@ -12,11 +12,11 @@ local CoinLooks = require(Shared.Progression.CoinLooks)
 local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local TrackPanel = require(script.Parent.TrackPanel)
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 local Ui = require(script.Parent.ProgressUi)
 
 local ClaimUiSystem = {}

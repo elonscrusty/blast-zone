@@ -179,4 +179,23 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Piece 25: today's daily challenges for one player (server to client only).
+export type DailyChallengeView = {
+	id: string,
+	tier: string, -- "easy" | "medium" | "hard"
+	kind: string, -- what counts: "elims" | "crates" | "orbs" | "matches" | "top3" | "wins"
+	goal: number,
+	progress: number,
+	reward: number,
+	paid: boolean,
+}
+
+export type DailyState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	day: number, -- days since 1970 (UTC, moved by Config.Daily.resetHourUtc)
+	secondsLeft: number, -- until the next day starts
+	challenges: { DailyChallengeView },
+	justPaid: string?, -- set once, right after a challenge paid out
+}
+
 return {}

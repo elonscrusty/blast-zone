@@ -2,6 +2,7 @@
 -- The rules for coins and the track, written against a Store (the saved profile, or MemoryStore) so Lune can test
 -- them. It never trusts a client: the client may only ASK to unlock or equip; amounts come from the match.
 --   onReward   a match paid `amount` to this player. Pays once per match key; duplicates and bad numbers pay nothing.
+--   grant      the same for any other server-side key (daily challenges).
 --   unlock     buys the next tier if affordable (one change, all or nothing).
 --   equip      puts an owned item on.
 -- After every change it tells the player (`send`) and tells the world which look to show (`applyLook`).
@@ -34,6 +35,7 @@ export type Deps = {
 
 export type Service = {
 	onReward: (player: any, amount: number, matchId: number) -> boolean,
+	grant: (player: any, amount: number, key: string) -> (boolean, string?),
 	unlock: (player: any, itemId: string) -> boolean,
 	equip: (player: any, itemId: string) -> boolean,
 	push: (player: any) -> (),
@@ -117,6 +119,18 @@ function ProgressService.new(deps: Deps): Service
 			end
 		end
 		return ok
+	end
+
+	-- Coins from another server rule (daily challenges, piece 25): paid once per key, same cap as a match.
+	function service.grant(player: any, amount: number, key: string): (boolean, string?)
+		local ok, reason = store.grantOnce(player, key, function(p)
+			return ProgressRules.addCoins(p, amount, deps.maxGrant).ok
+		end)
+		if ok then
+			store.saveNow(player)
+			push(player, nil, nil)
+		end
+		return ok, reason
 	end
 
 	function service.unlock(player: any, itemId: string): boolean
