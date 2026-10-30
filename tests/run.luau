@@ -17,5 +17,6 @@ require("./controls_input.test")
 require("./hud_layout.test")
 require("./hud_model.test")
 require("./settings_model.test")
+require("./movement.test")
 
 Harness.summary()

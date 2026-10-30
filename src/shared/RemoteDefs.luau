@@ -54,6 +54,7 @@ local Defs: { Def } = {
 	),
 	tell("02", "SlideFx", "{ participantId, fromPos, toPos, duration }"),
 	tell("02", "SlideState", "{ cooldownEndsAt: number, serverNow: number }"),
+	tell("02", "SlideDenied", "{}"),
 
 	-- ===== 03 aiming + weapons + health =====
 	ask("03", "FireRequest", {

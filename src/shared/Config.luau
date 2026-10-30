@@ -72,15 +72,20 @@ Config.Movement = {
 	walkSpeed = 20, -- studs per second
 	jumpEnabled = false,
 	maxSpeedUpgradeMultiplier = 1.4, -- hard cap so stacks cannot break the camera
+	maxSlopeAngle = 55, -- steeper than this is a wall, not a ramp: no accidental climbing
 }
 
 Config.Camera = {
 	pitchDegrees = 55,
-	distance = 62,
+	distance = 46,
 	fieldOfView = 55,
-	yawDegrees = 0, -- stable heading
-	followSmoothingSeconds = 0.08, -- small on purpose: avoid "disconnected" feel
+	yawDegrees = 0, -- stable heading (0 = looking toward -Z)
+	followSmoothingSeconds = 0.06, -- small on purpose: avoid "disconnected" feel
 	aimLookAheadStuds = 0, -- optional framing from aim, off until it proves useful
+	snapDistance = 30, -- farther than this (respawn, spectate swap) the view jumps instead of gliding
+	narrowAspect = 1.6, -- screens narrower than this (phone held upright) see farther
+	narrowAspectFloor = 0.5,
+	maxWiden = 0.35, -- most extra distance (a fraction) for the narrowest screens
 }
 
 Config.Weapons = {
@@ -151,6 +156,16 @@ Config.Slide = {
 	invulnerable = false,
 	stationaryFallback = "facing", -- no movement input: slide the way the character faces
 	stopsWhenBlocked = true,
+	minCooldown = 1.5, -- upgrades can never shave the cooldown below this
+	minDistance = 2, -- a wall closer than this: no slide, and no cooldown is spent
+	skin = 0.15, -- gap left between the player and the wall
+	groundStep = 3.5, -- how often along the path the server checks there is still floor
+	maxDrop = 3, -- floor farther below the feet than this counts as a hole
+	clearance = 1, -- low curbs under this height do not stop the slide
+	bodyWidth = 2.4,
+	endGrace = 0.35, -- server checks where the player ended up this long after the slide
+	endTolerance = 4,
+	trailFadeSeconds = 0.3,
 }
 
 Config.Arena = {
