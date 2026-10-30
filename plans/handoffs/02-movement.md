@@ -8,4 +8,4 @@
 - Tests: `tests/movement.test.luau` (directions, wall/floor/edge limits, timing, cooldown, camera, speed cap). Nothing run in Studio.
 - Untested until carter plays: how the slide and camera feel, `SlideMotion` against real walls, the Blockcast sweep sizes, trail look.
 - Left: camera shake (piece 10 setting exists), the two trail looks carter does not pick (dust, ghost copies) are not built as skins, no general speed-hack check (only the slide end check).
-- Open: camera look (A tall, B close, C sky) is set to A until carter picks; change `Config.Camera` and `Config.Slide` only.
+- Carter picked look A (tall view, 55 degrees, distance 46, cyan zip streak). B (close, 45 degrees, 12 studs, dust puff) and C (sky, 65 degrees, 16 studs, ghost copies) become skins later; their numbers are in the preview, not built.
