@@ -18,6 +18,7 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | 17 | `src/server/Profile/`, `src/shared/Profile/`, `tests/{profile,fake_datastore}*`; own blocks `Config.Profile` and the 17 remotes |
 | 10 | `src/client/Hud/`, `src/client/Controls/`, `src/client/Settings/` |
 | 24 | `src/server/Stats/`, `src/client/Stats/`, `src/shared/Stats/`, `tests/stats*.test.luau`; `Config.Stats`, the 24 block in `RemoteDefs` |
+| V16 | `src/server/Power/`, `src/client/Power/`, `src/shared/Power/`, `tests/power.test.luau`; `Config.Power`, the V16 block in `RemoteDefs` (video 3 gap #16, power rating: show-off number only, never read by combat) |
 | 19 | `src/server/Lobby/`, `src/client/Lobby/`, `src/shared/Loadout*.luau`, `src/shared/LobbyLayout.luau`, `tests/lobby.test.luau`; added `StatBook.addModifier` |
 
 Each piece adds its own tests as `tests/<name>.test.luau` and ONE `require("./<name>.test")` line in `tests/run.luau`
