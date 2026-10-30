@@ -37,12 +37,18 @@ TrackDefs.tiers = {
 	item("tracer_white", "tracer", "White Shot", "#EAF2FA", 540),
 }
 
--- Gifts from account levels (shared/Level/LevelDefs). Not for sale: cost -1 means "owned only when granted".
+-- Gifts from account levels (shared/Level/LevelDefs) and prizes from chests (shared/Chest/ChestDefs). Not for sale:
+-- cost -1 means "owned only when granted".
 TrackDefs.gifts = {
 	item("trail_violet", "trail", "Violet Dash", "#8E5CF0", -1),
 	item("tracer_violet", "tracer", "Violet Shot", "#8E5CF0", -1),
 	item("trail_ice", "trail", "Ice Slip", "#B9E6FF", -1),
 	item("tracer_pink", "tracer", "Pink Pop", "#FF6FB5", -1),
+	-- Chest prizes (looks only).
+	item("trail_lime", "trail", "Lime Flash", "#A8E64A", -1),
+	item("tracer_lime", "tracer", "Lime Shot", "#A8E64A", -1),
+	item("trail_sunset", "trail", "Sunset Dash", "#FF8A3D", -1),
+	item("tracer_sunset", "tracer", "Sunset Shot", "#FF8A3D", -1),
 }
 
 local byId: { [string]: Item } = {}

@@ -1,0 +1,10 @@
+# G19 Chests with a reveal (video 3 gap 19)
+- Done: free chests you earn by playing, opened in the lobby with a reveal (chest shakes, bursts, prizes come out, "tap to continue"). Two kinds: Street (2 prizes) and Neon (3 prizes). First place gives Neon, top 3 gives Street, every 4th finished match gives a Street Chest (`Config.Chest`). Never bought, never Robux.
+- Prizes are Scrap or looks only (4 new looks in `TrackDefs.gifts`: Lime Flash/Shot, Sunset Dash/Shot). A look you already own turns into Scrap. Nothing changes damage, speed, health or ammo.
+- Odds are public: every row's weight is out of 100 in `shared/Chest/ChestDefs`, and the chest screen prints them BEFORE you open (`ChestText.oddsLines`). A test checks the totals and that 20000 rolls land near them.
+- Server decides: `server/Chest/ChestSystem` earns chests from `MatchSystem.RewardGranted` (once per match key), rolls with the server's Random, and takes the chest and pays the prizes in ONE profile change (`ChestRules.open`), so a double tap or a crash cannot keep and pay. Client only sends `ChestRequest` / `ChestOpenRequest` (kind id, rate limited, kind checked). Saved in `data.chests` (owned, meter, opened); without the profile module it runs in memory ("Test mode: not saved").
+- For other pieces: `ChestSystem.award(player, "street"|"neon", onceKey)` gives a chest (daily login days, missions, level gifts can call it).
+- Pure logic in `shared/Chest/` (ChestDefs, ChestRules, ChestService, ChestReveal timing, ChestText, ChestMemoryStore); tests in `tests/chest.test.luau`.
+- Screen is logic only (`client/Chest/ChestUiSystem`, built from `Ui/Components` and Tokens roles; CHESTS button in new lobby slot `chests`, right column grew upward). Reveal motion has 3 tries in `ChestReveal.styles` (A Lid Pop, B Drop Burst, C Card Flip); `Config.Chest.revealStyle` picks one. Reduce flashes uses `reduceMotionStyle`.
+- Not tested until carter plays: how the reveal feels on a phone, whether 20 stored chests is the right cap, the numbers (meter 4, prize sizes).
+- Left: the real look (Claude Design), sounds for shake/burst/rare prize, a "new chest" dot on the results screen.

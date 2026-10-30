@@ -145,6 +145,14 @@ function ProgressionSystem.grant(player: Player, amount: number, key: string): (
 	return service.grant(player, amount, key)
 end
 
+-- Sends a player's coins, looks and level again. Other server systems call this after they changed the progression
+-- table themselves (chests pay Scrap and looks in their own change), so the screens catch up.
+function ProgressionSystem.refresh(player: Player)
+	if (service :: any) ~= nil then
+		service.push(player)
+	end
+end
+
 -- The run XP a player earned in a finished match (LevelSystem calls this). Once per match; false + nothing paid otherwise.
 function ProgressionSystem.onXp(player: Player, xp: number, matchId: number): boolean
 	return (service :: any) ~= nil and service.onXp(player, xp, matchId)

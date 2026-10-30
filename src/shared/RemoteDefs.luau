@@ -173,6 +173,11 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== G19 chests with a reveal =====
+	ask("G19", "ChestRequest", {}, 1, 2), -- a client asks for its chests (the server also sends them unasked)
+	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
+	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
 

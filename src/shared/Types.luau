@@ -214,6 +214,34 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Gap 19: chests. One prize out of an opened chest (a repeated look turns into Scrap, dupe = true).
+export type ChestPrize = {
+	rowId: string,
+	kind: string, -- "scrap" | "look"
+	rarity: string, -- "common" | "rare" | "epic"
+	name: string,
+	amount: number?,
+	itemId: string?,
+	dupe: boolean,
+}
+
+export type ChestReveal = {
+	id: number, -- goes up with every chest the player opens, so the screen never plays one twice
+	kind: string, -- the chest kind that was opened
+	prizes: { ChestPrize },
+}
+
+export type ChestState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	owned: { [string]: number }, -- chest kind -> how many waiting
+	meter: number, -- finished matches toward the next free Street Chest
+	meterGoal: number,
+	opened: number,
+	justAwarded: { string }?, -- chest kinds earned just now (set once)
+	reveal: ChestReveal?, -- set once, right after an open
+	denied: string?, -- why the last open was refused
+}
+
 -- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
 export type LoadoutState = {
 	selection: { [string]: string }, -- slot -> item id
