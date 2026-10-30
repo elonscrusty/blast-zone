@@ -1,0 +1,9 @@
+# G23 Ranked ladder (video 3 gap 23: points, tiers, ranked switch)
+- Done: rank points, 6 placeholder tiers (Spark..Neon, 3 steps each, `Config.Ranked`), a 3-match warm-up ("Unranked"), a saved ranked on/off switch (default off). Saved as `data.ranked` through Profiles (no schema change); every match is written once with receipt keys `<match>:rk` and `<match>:rs`.
+- Points: 1st +30, last -18, straight line between, +3 per elimination (cap 15), a draw for 1st counts as 2nd. Needs 4+ fighters (bots count) or it shows as practice. Bots-only matches (under 2 real players) gain half and can't lift you into tier 3+. Losses stop at your tier start (`dropTiers = false`).
+- Leaving mid-fight keeps the loss: the last-place loss is taken when the fight begins (the "stake") and handed back when the match is scored.
+- Server: `src/server/Ranked/RankedSystem.luau` (snapshot at spawn, kills from `Damage.Eliminated`, scoring from `MatchSystem.RewardGranted`). Rules: `src/shared/Ranked/RankedRules.luau`, waiting-and-retry book: `RankedBook.luau`. Remotes: `RankedRequest`, `RankedToggle` (checked and rate limited), `RankedUpdate` (`Types.RankedPayload`).
+- Client: `src/client/Ranked/RankedClient` holds the standing (`get()`, `Changed`, `setEnabled(on)`). NO screen on purpose: Claude Design draws the rank card, the ranked switch (touch button in a `LobbyMenu` slot) and the tier badges, and the result line from `payload.last`. Tier names are placeholders for carter's pick. Use `UiLayers`.
+- Tested: `tests/ranked.test.luau` (30 cases, incl. the real profile store with a fake DataStore: leave and rejoin, paid once). stylua, lune (1001) and rojo build clean; selene runs in CI.
+- Not run in Roblox. With no Profile piece the ladder works for the session only.
+- Left: the screens; tier names/badges pick; a season rollover date (`Config.Ranked.season`); optional level gate for the switch; ranked-only rewards (looks, never Robux).

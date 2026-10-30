@@ -844,6 +844,39 @@ Config.Stats = {
 	},
 }
 
+-- Gap 23 (ranked ladder): rank points, tiers and a ranked on/off switch. Server only counts; saved in the profile as
+-- data.ranked. A match counts for a player who had the switch ON when the fight began. Tier names and looks are
+-- placeholders until carter picks. The rules are in shared/Ranked/RankedRules.
+Config.Ranked = {
+	profileKey = "ranked", -- saved inside the player's profile as data.ranked (piece 17)
+	season = 1, -- a new season keeps `seasonKeep` of the points and asks for the warm-up matches again
+	seasonKeep = 0.5,
+	qualifyMatches = 3, -- warm-up: the tier shows as "Unranked" until this many counted matches
+	minField = 4, -- fighters (bots too) a match needs to count; fewer = practice
+	settleSeconds = 1, -- after the first spawn the server waits this long, then fixes who is ranked and takes the stakes
+	-- Points for one match: last place gets lastPoints, first place winPoints, in between on a straight line.
+	winPoints = 30,
+	lastPoints = -18,
+	killPoints = 3, -- per elimination, capped at maxKillPoints (so farming bots stays small)
+	maxKillPoints = 15,
+	-- A match with fewer than 2 real players is bots-only: gains are scaled, and cannot lift you into
+	-- tier number `soloCeilingTier` or higher (tiers are counted from 1).
+	soloScale = 0.5,
+	soloCeilingTier = 3,
+	dropTiers = false, -- false: losses never take you below the start of your tier. true: you can fall back down
+	maxPoints = 100000, -- sanity cap
+	divisions = 3, -- steps inside every tier except the top one
+	-- `from` = points where the tier starts. First tier starts at 0. The last tier has no divisions.
+	tiers = {
+		{ id = "spark", name = "Spark", from = 0 },
+		{ id = "wire", name = "Wire", from = 100 },
+		{ id = "fuse", name = "Fuse", from = 250 },
+		{ id = "relay", name = "Relay", from = 450 },
+		{ id = "surge", name = "Surge", from = 700 },
+		{ id = "neon", name = "Neon", from = 1000 },
+	} :: { { id: string, name: string, from: number } },
+}
+
 -- Piece 14: Neon Night city art and the day-to-night lighting. Visual only, nothing here changes
 -- collision, shots, spawns or the zone.
 Config.Art = {

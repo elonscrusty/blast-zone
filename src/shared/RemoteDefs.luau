@@ -222,6 +222,11 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== G23 ranked ladder =====
+	ask("G23", "RankedRequest", {}, 1, 2), -- a client that just started asks for its standing
+	ask("G23", "RankedToggle", { { name = "on", kind = "boolean" } }, 2, 3), -- the ranked switch
+	tell("G23", "RankedUpdate", "RankedPayload"),
 }
 
 local Index: { [string]: Def } = {}
