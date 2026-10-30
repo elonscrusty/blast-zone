@@ -1,5 +1,5 @@
 --!strict
--- Sprint breath and who may run, as plain numbers (piece 44). One state per fighter, stepped by the
+-- Sprint breath and who may run, as plain numbers (piece 45). One state per fighter, stepped by the
 -- server every tick. The client only asks to start or stop; nothing here trusts it beyond `want`.
 
 local SprintRules = {}

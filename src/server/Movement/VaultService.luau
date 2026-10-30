@@ -1,5 +1,5 @@
 --!strict
--- The server's hop over low cover (piece 44). Same shape as the slide: the player's own client
+-- The server's hop over low cover (piece 45). Same shape as the slide: the player's own client
 -- carries the body (it owns its character), the server makes its own plan from where the body is,
 -- says yes or no, and checks where the body ended up. The move watch is told how far the hop may
 -- carry the player, so a real hop is never mistaken for a cheat.

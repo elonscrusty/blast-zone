@@ -1,5 +1,5 @@
 --!strict
--- The hop's rules as plain numbers (piece 44), so Lune can test them. The Roblox side (VaultCast)
+-- The hop's rules as plain numbers (piece 45), so Lune can test them. The Roblox side (VaultCast)
 -- only supplies "what did the ray hit".
 
 local VaultRules = {}

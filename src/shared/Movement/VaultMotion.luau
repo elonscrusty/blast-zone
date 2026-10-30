@@ -1,5 +1,5 @@
 --!strict
--- Carries a body over cover along an arc (piece 44). Used by the client for its own character (the
+-- Carries a body over cover along an arc (piece 45). Used by the client for its own character (the
 -- owner moves it). For the length of the hop the body's parts join the "Vaulting" collision group,
 -- which touches nothing, and a velocity constraint steers the body along the arc, so walls and
 -- gravity do not matter until it lands. Groups are put back when the hop ends or is cancelled.

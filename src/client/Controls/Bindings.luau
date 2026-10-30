@@ -24,7 +24,7 @@ Bindings.actions = {
 	},
 	-- Heal pack (piece 42). Q is already Swap here, so F; the pad uses D-pad Down (Left/Up/Right are the cards).
 	heal = { keyboard = { "F" }, gamepad = { "DPadDown" }, touch = "heal", label = "Use heal pack" },
-	-- Sprint (piece 44): press to start running, press again (or run out of breath) to stop. A toggle,
+	-- Sprint (piece 45): press to start running, press again (or run out of breath) to stop. A toggle,
 	-- so a thumb on the move stick never has to hold anything else. Pad: click the left stick.
 	sprint = {
 		keyboard = { "LeftShift" },

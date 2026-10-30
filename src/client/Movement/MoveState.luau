@@ -1,5 +1,5 @@
 --!strict
--- What the local player's feet are doing (piece 44): sprint breath and slide charges. Written only
+-- What the local player's feet are doing (piece 45): sprint breath and slide charges. Written only
 -- by MoveSystem from the server's SprintState and SlideState; read by the touch buttons (and any
 -- HUD Claude Design draws). Never decides anything.
 

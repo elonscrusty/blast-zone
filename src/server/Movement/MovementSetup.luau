@@ -42,7 +42,7 @@ function MovementSetup.setSpeed(humanoid: Humanoid, moveSpeed: number)
 		MoveRules.clampSpeed(moveSpeed, cfg.walkSpeed, cfg.maxSpeedUpgradeMultiplier)
 end
 
--- Speed for this moment: the upgraded run speed, times the sprint boost while sprinting (piece 44).
+-- Speed for this moment: the upgraded run speed, times the sprint boost while sprinting (piece 45).
 -- The sprint boost has its own hard cap so upgrade stacks cannot push it past it.
 function MovementSetup.setSprintSpeed(humanoid: Humanoid, moveSpeed: number, running: boolean)
 	local cfg = Config.Movement

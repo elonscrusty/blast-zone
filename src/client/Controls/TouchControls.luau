@@ -4,6 +4,7 @@
 -- Sticks measure how far the finger moved from where it first touched, so they work the same on
 -- every phone and notch. With "Floating sticks" on (carter's pick) the stick appears under the
 -- thumb anywhere in its zone and goes back to a faint ring at rest; off, it stays in its corner.
+-- A drag on the free side of the screen (not the aim stick, not a button) turns the camera.
 -- Pick chips appear by the aim thumb while an upgrade offer is up, so the move thumb never lifts.
 -- Shown only on touch devices while controls are on.
 
@@ -210,6 +211,40 @@ local function makeStick(
 	end)
 end
 
+-- Turning the camera: a finger dragged sideways on the free side of the screen. It needs no ring
+-- or button, so there is nothing to find with a thumb.
+local function makeLook(zone: Frame)
+	local tracked: InputObject? = nil
+	local lastX = 0
+
+	zone.InputBegan:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.Touch and tracked == nil then
+			Controls.noteDevice("touch")
+			tracked = input
+			lastX = input.Position.X
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input: InputObject)
+		if tracked ~= nil and input == tracked then
+			Controls.addLook(input.Position.X - lastX)
+			lastX = input.Position.X
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if tracked ~= nil and input == tracked then
+			tracked = nil
+		end
+	end)
+	Controls.Cleared:connect(function()
+		tracked = nil
+	end)
+	zone:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not zone.Visible then
+			tracked = nil
+		end
+	end)
+end
+
 local function makeButton(name: string, text: string, fillHex: string, action: string): TextButton
 	local look = UiKit.look()
 	local panel, shadow = UiKit.sticker(root, root, name .. "Frame", fillHex, 0.5)
@@ -258,6 +293,7 @@ local function build()
 	root.Active = false
 	root.Parent = gui
 
+	makeLook(makeZone("lookZone")) -- first, so the sticks and buttons sit on top of it
 	local moveZone = makeZone("moveZone")
 	local fireZone = makeZone("fireZone")
 	makeStick("moveStick", moveZone, nil, look.panel, function(x, y, _active)
@@ -285,7 +321,7 @@ local function build()
 	})
 	healCount.ZIndex = 4
 
-	-- Sprint toggle (piece 44): the veil drops as breath runs out. Placeholder look.
+	-- Sprint toggle (piece 45): the veil drops as breath runs out. Placeholder look.
 	makeButton("sprint", "RUN", look.panel, "sprint")
 	do
 		local sprint = pieces.sprint
@@ -336,7 +372,7 @@ local function build()
 		maxTextSize = 26,
 	})
 	slideText.ZIndex = 4
-	-- How many slides are ready (piece 44); only shown when there is more than one charge.
+	-- How many slides are ready (piece 45); only shown when there is more than one charge.
 	slideCount = UiKit.label(slide, "Charges", {
 		text = "",
 		size = UDim2.fromScale(0.4, 0.3),

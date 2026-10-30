@@ -1,0 +1,11 @@
+# 44 Turn the camera (carter: "i need to be able to turn my camera in the game")
+- Why it was locked: the camera read `Config.Camera.yawDegrees` (a constant 0) and walking and the minimap did too. Nothing could change it. Aim, slide, hit arrows and the zone arrow already used the real camera, so they follow a turn.
+- Now: the heading lives in `src/client/Movement/CameraHeading.luau` (starts at `yawDegrees`). `CameraSystem` turns it each frame from `Controls.takeLook(dt)`; `MoveSystem` (walk, slide) and the minimap zone circle read it, so stick-up always walks away from the camera.
+- PC: hold the right mouse button and drag. The pointer is held still meanwhile so mouse aim stays put (`ControlsSystem`).
+- Phone: drag a thumb on the free right side (above and around the aim stick, never on it or a button). New `lookZone` in `Hud/Layout.luau`, built first in `TouchControls` so the sticks and buttons win the touch. Mirrors for left-handed play.
+- Gamepad: the right stick already aims, so hold L2 and push it sideways to turn (aim pauses while L2 is held). Fire stays R2.
+- Numbers: `Config.Camera.lookDegreesPerPixel` (0.3), `padTurnDegreesPerSecond` (150), `maxTurnPerFrame` (40). Drag right = look right. Pitch, distance and glide are untouched (carter's camera A feel).
+- Server: untouched. The heading is a client look only; shots, slides and movement still send world directions the server checks.
+- Tests: `tests/movement.test.luau` (turn maths, wrap, caps, walking follows), `tests/controls_input.test.luau` (drag, L2, clears), `tests/hud_layout.test.luau` (zone). stylua, lune and rojo build clean; selene cannot fetch its Roblox std here, CI runs it.
+- Not tested until carter plays: how the speeds feel, RMB cursor lock on Windows, the thumb zone on a real phone.
+- Left (not asked): a "camera turn speed" setting, a reset-view button, turning while spectating.

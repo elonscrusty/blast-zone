@@ -34,7 +34,7 @@ Layout.regions = {
 	slide = { x = 690, y = 138, w = 60, h = 60 } :: Rect,
 	reload = { x = 578, y = 208, w = 50, h = 50 } :: Rect,
 	heal = { x = 24, y = 148, w = 52, h = 52 } :: Rect, -- piece 42: use a heal pack; above the move stick
-	sprint = { x = 84, y = 148, w = 52, h = 52 } :: Rect, -- piece 44: toggle running; beside heal, above the move stick
+	sprint = { x = 84, y = 148, w = 52, h = 52 } :: Rect, -- piece 45: toggle running; beside heal, above the move stick
 	settings = { x = 16, y = 80, w = 44, h = 44 } :: Rect, -- gear; just under 48 so it stays out of the way
 	-- Upgrade pick chips (only drawn while an offer is up): a row above the aim thumb that mirrors
 	-- the three cards, so a pick never needs the move thumb. Over the open street, not the card band.
@@ -49,6 +49,10 @@ Layout.regions = {
 Layout.zones = {
 	moveZone = { x = 8, y = 150, w = 192, h = 196 } :: Rect,
 	fireZone = { x = 580, y = 150, w = 192, h = 196 } :: Rect,
+	-- The free side of the screen turns the camera when dragged (right-hand play; mirrored for
+	-- left-hand play). It sits under the fire zone and every button, so only a touch that lands on
+	-- neither one turns the view. It stops above the card band and starts right of the player.
+	lookZone = { x = 452, y = 0, w = 328, h = 270 } :: Rect,
 }
 
 -- Circles keep their shape on any screen; everything else scales by height too.

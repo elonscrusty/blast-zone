@@ -1,4 +1,4 @@
-# 44 Fast Feet (video 3 bundle C: run, hop low walls, 2 slides; carter said "do them all")
+# 45 Fast Feet (video 3 bundle C: run, hop low walls, 2 slides; carter said "do them all")
 - Done: a RUN toggle (key Left Shift, pad left-stick click, touch RUN button beside HEAL). The server owns the breath bar (`Config.Sprint`: 40% faster, 3 s of breath, 4 s to refill, a shot slows you for 0.5 s) and sets the real walk speed, so the move watch already agrees with it.
 - Done: the Slide button also hops low cover when a hoppable thing is right in front (`Config.Vault`). Walls, fences, rails and low cover up to 4.5 studs tall are tagged `Vaultable` in `ArenaBuilder`; nothing taller can be hopped.
 - Done: 2 slide charges (`Config.Slide.charges`), each back after the normal cooldown, one at a time. `SlideBook` holds the charges; `SlideState` now also carries `charges` and `maxCharges`. The old cooldown dial still works (ready while any charge is ready); the slide button shows the charge count.

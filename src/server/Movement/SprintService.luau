@@ -1,5 +1,5 @@
 --!strict
--- The server's sprint (piece 44). The client only says "I want to run" or "I stopped"; the server
+-- The server's sprint (piece 45). The client only says "I want to run" or "I stopped"; the server
 -- keeps the breath bar, decides who really runs (alive, in a fight, moving, not just shot), and
 -- sets the real walk speed. That walk speed is what the move watch reads, so a faster run is never
 -- mistaken for cheating and a client cannot fake one.

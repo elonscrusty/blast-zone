@@ -1,5 +1,5 @@
 --!strict
--- "Can this body hop over what is in front of it, and where does it land?" (piece 44). The server
+-- "Can this body hop over what is in front of it, and where does it land?" (piece 45). The server
 -- makes the real plan; the client makes the same plan so the hop starts at once and agrees.
 -- Only parts tagged Vaultable count (low walls, fences, cars). Reads collision only.
 

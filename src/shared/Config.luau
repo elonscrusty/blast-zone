@@ -115,7 +115,11 @@ Config.Camera = {
 	pitchDegrees = 55,
 	distance = 46,
 	fieldOfView = 55,
-	yawDegrees = 0, -- stable heading (0 = looking toward -Z)
+	yawDegrees = 0, -- starting heading (0 = looking toward -Z); the player can turn it (see below)
+	-- Turning the view. The heading is only a client look; the server never uses it.
+	lookDegreesPerPixel = 0.3, -- mouse (right-button drag) and touch (drag on the free right side)
+	padTurnDegreesPerSecond = 150, -- gamepad: hold L2 and push the right stick sideways
+	maxTurnPerFrame = 40, -- one hitch or a huge swipe can never whip the view around
 	followSmoothingSeconds = 0.06, -- small on purpose: avoid "disconnected" feel
 	aimLookAheadStuds = 0, -- optional framing from aim, off until it proves useful
 	snapDistance = 30, -- farther than this (respawn, spectate swap) the view jumps instead of gliding
@@ -278,7 +282,7 @@ Config.Slide = {
 	distance = 14,
 	duration = 0.25,
 	cooldown = 5, -- seconds for ONE charge to come back
-	charges = 2, -- piece 44: slides you can chain before waiting (1 = the old single slide)
+	charges = 2, -- piece 45: slides you can chain before waiting (1 = the old single slide)
 	invulnerable = false,
 	stationaryFallback = "facing", -- no movement input: slide the way the character faces
 	stopsWhenBlocked = true,
@@ -294,7 +298,7 @@ Config.Slide = {
 	trailFadeSeconds = 0.3,
 }
 
--- Piece 44: sprint. Press the sprint button to start, press again to stop. The server decides: speed,
+-- Piece 45: sprint. Press the sprint button to start, press again to stop. The server decides: speed,
 -- breath and when it may run. Shooting breaks the run for a moment. All placeholders until carter plays.
 Config.Sprint = {
 	enabled = true,
@@ -309,7 +313,7 @@ Config.Sprint = {
 	sendSeconds = 0.25, -- breath updates go to the player at most this often
 }
 
--- Piece 44: hop over low cover. Pressing Slide against a hoppable thing in front of you hops it
+-- Piece 45: hop over low cover. Pressing Slide against a hoppable thing in front of you hops it
 -- (the Slide button does both, so no new button). Server plans the hop and checks where you land.
 Config.Vault = {
 	enabled = true,
@@ -359,7 +363,7 @@ Config.Arena = {
 Config.Tags = {
 	BlocksShots = "BlocksShots",
 	LowCover = "LowCover",
-	Vaultable = "Vaultable", -- piece 44: low walls, fences and cars a fighter can hop over
+	Vaultable = "Vaultable", -- piece 45: low walls, fences and cars a fighter can hop over
 	Roof = "Roof",
 	Interior = "Interior",
 	Spawn = "ArenaSpawn",
@@ -386,7 +390,7 @@ Config.Attributes = {
 Config.CollisionGroups = {
 	Participants = "Participants", -- do not collide with each other
 	Projectiles = "Projectiles",
-	Vaulting = "Vaulting", -- piece 44: a body hopping over cover touches nothing until it lands
+	Vaulting = "Vaulting", -- piece 45: a body hopping over cover touches nothing until it lands
 }
 
 -- Piece 07. Supply containers come in three loot tiers. The color tells the tier from far away:

@@ -262,3 +262,16 @@ Harness.test("the zone warning counts whole seconds up, never negative", functio
 		"ZONE CLOSING IN 0"
 	)
 end)
+
+Harness.test("the camera-turn zone is the free right side, under the stick and buttons", function()
+	local look = Layout.zones.lookZone
+	Harness.truthy(look.x >= Layout.PlayerBox.x + Layout.PlayerBox.w, "starts left of the player")
+	Harness.truthy(look.x + look.w <= Layout.WIDTH and look.y >= 0, "off screen")
+	-- it reaches under the aim stick's zone so the stick (created later) wins the touch
+	Harness.eq(Layout.overlaps(look, Layout.zones.fireZone), true)
+	-- but a thumb sitting on the move side never turns the camera
+	Harness.eq(Layout.overlaps(look, Layout.zones.moveZone), false)
+	-- mirrored for left-handed play it is the move side's opposite, still clear of the player
+	Harness.eq(Layout.overlaps(Layout.mirror(look), Layout.PlayerBox), false)
+	Harness.eq(Layout.overlaps(Layout.mirror(look), Layout.zones.fireZone), false)
+end)

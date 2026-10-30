@@ -141,7 +141,7 @@ function ArenaBuilder.build(layout: Layout.Layout): Built
 			CollectionService:AddTag(p, Tags.LowCover)
 		end
 		if VAULT_KINDS[s.kind] and s.h <= Config.Vault.maxHeight then
-			CollectionService:AddTag(p, Tags.Vaultable) -- low enough to hop over (piece 44)
+			CollectionService:AddTag(p, Tags.Vaultable) -- low enough to hop over (piece 45)
 		end
 		if s.occluder then
 			CollectionService:AddTag(p, Config.Arena.occluderTag)
