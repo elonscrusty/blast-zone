@@ -13,6 +13,8 @@ local EffectiveStats = require(Core.EffectiveStats)
 
 local MovementSetup = require("./MovementSetup")
 local SlideService = require("./SlideService")
+local SprintService = require("./SprintService")
+local VaultService = require("./VaultService")
 
 local MovementSystem = {}
 MovementSystem.order = 100
@@ -50,6 +52,8 @@ function MovementSystem.start()
 		end
 	end)
 	SlideService.start()
+	SprintService.start()
+	VaultService.start()
 end
 
 return MovementSystem

@@ -24,6 +24,14 @@ Bindings.actions = {
 	},
 	-- Heal pack (piece 42). Q is already Swap here, so F; the pad uses D-pad Down (Left/Up/Right are the cards).
 	heal = { keyboard = { "F" }, gamepad = { "DPadDown" }, touch = "heal", label = "Use heal pack" },
+	-- Sprint (piece 45): press to start running, press again (or run out of breath) to stop. A toggle,
+	-- so a thumb on the move stick never has to hold anything else. Pad: click the left stick.
+	sprint = {
+		keyboard = { "LeftShift" },
+		gamepad = { "ButtonL3" },
+		touch = "sprint",
+		label = "Sprint",
+	},
 	-- Upgrade picks. The card interface (piece 08) listens for these and also has tap targets.
 	upgrade1 = {
 		keyboard = { "One" },
@@ -46,7 +54,8 @@ Bindings.actions = {
 } :: { [string]: Binding }
 
 -- Stable order for UI lists and tests.
-Bindings.actionOrder = { "slide", "reload", "swap", "heal", "upgrade1", "upgrade2", "upgrade3" }
+Bindings.actionOrder =
+	{ "slide", "reload", "swap", "heal", "sprint", "upgrade1", "upgrade2", "upgrade3" }
 
 Bindings.held = {
 	moveKeys = {

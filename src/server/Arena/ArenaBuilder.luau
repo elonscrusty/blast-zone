@@ -11,6 +11,9 @@ local Layout = require("./Layout")
 local Tags = Config.Tags
 local Pal = Config.Palette
 
+-- Which solids a fighter can hop over, if they are low enough (Config.Vault.maxHeight).
+local VAULT_KINDS: { [string]: boolean } = { cover = true, rail = true, fence = true }
+
 local ArenaBuilder = {}
 
 export type Built = { folder: Folder, layout: Layout.Layout }
@@ -136,6 +139,9 @@ function ArenaBuilder.build(layout: Layout.Layout): Built
 			CollectionService:AddTag(p, Tags.BlocksShots)
 		elseif s.blocksMove then
 			CollectionService:AddTag(p, Tags.LowCover)
+		end
+		if VAULT_KINDS[s.kind] and s.h <= Config.Vault.maxHeight then
+			CollectionService:AddTag(p, Tags.Vaultable) -- low enough to hop over (piece 45)
 		end
 		if s.occluder then
 			CollectionService:AddTag(p, Config.Arena.occluderTag)

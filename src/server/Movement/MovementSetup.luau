@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local MoveRules = require(Shared.Movement.MoveRules)
+local SprintRules = require(Shared.Movement.SprintRules)
 
 local MovementSetup = {}
 
@@ -39,6 +40,15 @@ function MovementSetup.setSpeed(humanoid: Humanoid, moveSpeed: number)
 	local cfg = Config.Movement
 	humanoid.WalkSpeed =
 		MoveRules.clampSpeed(moveSpeed, cfg.walkSpeed, cfg.maxSpeedUpgradeMultiplier)
+end
+
+-- Speed for this moment: the upgraded run speed, times the sprint boost while sprinting (piece 45).
+-- The sprint boost has its own hard cap so upgrade stacks cannot push it past it.
+function MovementSetup.setSprintSpeed(humanoid: Humanoid, moveSpeed: number, running: boolean)
+	local cfg = Config.Movement
+	local normal = MoveRules.clampSpeed(moveSpeed, cfg.walkSpeed, cfg.maxSpeedUpgradeMultiplier)
+	local cap = cfg.walkSpeed * cfg.maxSpeedUpgradeMultiplier * Config.Sprint.speedMultiplier
+	humanoid.WalkSpeed = SprintRules.speed(normal, running, Config.Sprint.speedMultiplier, cap)
 end
 
 return MovementSetup
