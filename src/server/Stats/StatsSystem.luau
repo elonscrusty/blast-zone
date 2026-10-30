@@ -190,10 +190,16 @@ function StatsSystem.start()
 	end)
 
 	MatchSystem.RewardGranted:connect(
-		function(participantId: string, _amount: number, place: number)
+		function(
+			participantId: string,
+			_amount: number,
+			place: number,
+			_matchId: number,
+			won: boolean?
+		)
 			local userId = if Ids.isPlayer(participantId) then Ids.userIdOf(participantId) else nil
 			if userId then
-				book:earn(userId, StatsRules.matchDelta(place))
+				book:earn(userId, StatsRules.matchDelta(place, won == true))
 			end
 		end
 	)

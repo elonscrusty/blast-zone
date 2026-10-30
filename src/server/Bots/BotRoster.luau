@@ -15,6 +15,16 @@ function BotRoster.botsToAdd(tuning: Tuning, humans: number, bots: number): numb
 	return math.max(0, target - humans - bots)
 end
 
+-- How many people the fill rules count. Once someone has pressed Play, only people who pressed Play
+-- count: a friend idling in the lobby must not hold a lone queued player there forever. Before anyone
+-- pressed Play, everyone in the server counts, so bots can be ready the moment a lone player taps.
+function BotRoster.lobbyHumans(inServer: number, queued: number): number
+	if queued > 0 then
+		return queued
+	end
+	return inServer
+end
+
 export type Fill = {
 	since: number?,
 	filled: boolean,

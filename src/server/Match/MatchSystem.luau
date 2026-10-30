@@ -5,7 +5,8 @@
 -- For other pieces:
 --   MatchSystem.requestBots(n)       piece 09: ask for n bots in Waiting/Countdown. Returns how many were accepted.
 --   MatchSystem.SpawnAssigned        Signal(participant, point, lookAt): fired at Spawning for everyone, bots included.
---   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId): once per player per match.
+--   MatchSystem.RewardGranted        Signal(participantId, amount, place, matchId, won): once per player per match.
+--                                    won is true only for the one winner; a draw shares place 1 but nobody won.
 --   MatchSystem.queuePlayer(player)  piece 26: queue a player for the next match, same as pressing PLAY.
 --   MatchSystem.isQueued(player)     piece 26: true when the player pressed PLAY / PLAY AGAIN (or was queued).
 --   MatchSystem.kickIdle(player)     piece 39: take an idle player out of the fight (no reward) or off the queue.
@@ -172,13 +173,13 @@ local world: MatchController.World = {
 		end
 	end,
 
-	grantReward = function(id, amount, place, matchId)
+	grantReward = function(id, amount, place, matchId, won)
 		local player = playerById[id]
 		if player then
 			-- In-game Credits only for now (Config.Rewards.persist = false). Saving comes later and must use SaveRetry.
 			player:SetAttribute("Credits", (player:GetAttribute("Credits") or 0) + amount)
 		end
-		MatchSystem.RewardGranted:fire(id, amount, place, matchId)
+		MatchSystem.RewardGranted:fire(id, amount, place, matchId, won)
 	end,
 
 	toServerTime = serverTime,

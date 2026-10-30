@@ -46,7 +46,8 @@ export type World = {
 	sendSpectate: (id: string, targetId: string?, targetName: string?) -> (),
 	-- Idle removal: take this player's body out of the fight and put them in the lobby (piece 39).
 	benchPlayer: ((id: string) -> ())?,
-	grantReward: (id: string, amount: number, place: number, matchId: number) -> (),
+	-- won: this id is the one winner (a draw shares place 1 but nobody won).
+	grantReward: (id: string, amount: number, place: number, matchId: number, won: boolean) -> (),
 	toServerTime: (t: number) -> number, -- clock time -> workspace:GetServerTimeNow() time
 	random: ((n: number) -> number)?,
 	log: ((message: string) -> ())?,
@@ -118,7 +119,7 @@ function MatchController.new(deps: Deps): Controller
 	local settleUntil: number? = nil
 	local resultsStartedAt: number? = nil
 	local result: Result? = nil
-	local pendingRewards: { [string]: { amount: number, place: number } } = {}
+	local pendingRewards: { [string]: { amount: number, place: number, won: boolean } } = {}
 	local spectateTarget: { [string]: string } = {}
 	local killedBy: { [string]: string } = {} -- victim id -> killer id; a spectator first watches who got them
 	local ledger = rules.newLedger()
@@ -312,6 +313,7 @@ function MatchController.new(deps: Deps): Controller
 				pendingRewards[row.participantId] = {
 					amount = rules.rewardFor(row.placement, row.eliminations, cfg.Rewards),
 					place = row.placement,
+					won = res.outcome == "win" and res.winnerId == row.participantId,
 				}
 			end
 		end
@@ -375,7 +377,7 @@ function MatchController.new(deps: Deps): Controller
 		if not ledger:commit(matchId, id, pending.amount) then
 			return false
 		end
-		world.grantReward(id, pending.amount, pending.place, matchId)
+		world.grantReward(id, pending.amount, pending.place, matchId, pending.won)
 		return true
 	end
 
@@ -452,7 +454,11 @@ function MatchController.new(deps: Deps): Controller
 			finish("timeout")
 		elseif
 			p == phases.Active
-			and (alive <= M.finalPressureAliveCount or now - start >= M.finalPressureAtSeconds)
+			-- By count only once someone is out: a two-player match must not open in Final pressure.
+			and (
+				(alive <= M.finalPressureAliveCount and alive < startedTotal)
+				or now - start >= M.finalPressureAtSeconds
+			)
 		then
 			setPhase(phases.FinalPressure, nil, "final_pressure")
 		end
@@ -652,7 +658,13 @@ function MatchController.new(deps: Deps): Controller
 		table.remove(humanOrder, table.find(humanOrder, id) :: number)
 		spectateTarget[id] = nil
 		local p = registry:get(id)
-		if p then
+		local over = phase() == phases.Finished or phase() == phases.Results
+		if p and over then
+			-- The match is already decided: leaving now is not a forfeit. Pay what the results screen
+			-- showed while the player is still here (the client may not have claimed yet).
+			grant(id, ctx:getMatchId())
+			registry:remove(id)
+		elseif p then
 			-- Leaving counts as being out at this moment, with no killer credit (Config.Policies.disconnect).
 			local forfeit = p.alive
 			table.insert(departed, {

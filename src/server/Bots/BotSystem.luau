@@ -60,8 +60,36 @@ local function warnOnce(key: string, text: string)
 	end
 end
 
+-- MatchSystem, found on first use (nil while it is missing).
+local function findMatchSystem(): any?
+	local matchFolder = Server:FindFirstChild("Match")
+	local matchModule = matchFolder and matchFolder:FindFirstChild("MatchSystem")
+	if not matchModule then
+		warnOnce("match", "Match/MatchSystem not found: cannot ask for bots yet")
+		return nil
+	end
+	local ok, matchSystem = pcall(require, matchModule)
+	if not ok or type(matchSystem) ~= "table" or type(matchSystem.requestBots) ~= "function" then
+		warnOnce("match", "MatchSystem.requestBots is missing")
+		return nil
+	end
+	return matchSystem
+end
+
+-- People who count for the fill: those who pressed Play, or everyone when nobody has yet
+-- (BotRoster.lobbyHumans). An idle friend in the lobby must not stop bots joining.
 local function humanCount(): number
-	return #Players:GetPlayers()
+	local players = Players:GetPlayers()
+	local queued = 0
+	local matchSystem = findMatchSystem()
+	if matchSystem and type(matchSystem.isQueued) == "function" then
+		for _, player in players do
+			if matchSystem.isQueued(player) then
+				queued += 1
+			end
+		end
+	end
+	return BotRoster.lobbyHumans(#players, queued)
 end
 
 local function isWaiting(): boolean
@@ -341,15 +369,8 @@ local function askForBots(count: number): number
 	if count <= 0 then
 		return 0
 	end
-	local matchFolder = Server:FindFirstChild("Match")
-	local matchModule = matchFolder and matchFolder:FindFirstChild("MatchSystem")
-	if not matchModule then
-		warnOnce("match", "Match/MatchSystem not found: cannot ask for bots yet")
-		return 0
-	end
-	local ok, matchSystem = pcall(require, matchModule)
-	if not ok or type(matchSystem) ~= "table" or type(matchSystem.requestBots) ~= "function" then
-		warnOnce("match", "MatchSystem.requestBots is missing")
+	local matchSystem = findMatchSystem()
+	if not matchSystem then
 		return 0
 	end
 	local accepted = matchSystem.requestBots(count)
