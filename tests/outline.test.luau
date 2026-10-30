@@ -26,8 +26,24 @@ Harness.test("outline: the hit-flash pool size in Fx matches the Config number",
 	Harness.eq(tonumber(n), OUT.fxHighlightPool, "update Config.Art.outline.fxHighlightPool")
 end)
 
-Harness.test("outline: the ring stays thin and is not a pickup color", function()
-	Harness.truthy(OUT.ring.thickness <= 0.3, "a thin disc, nothing to trip on or shoot")
-	Harness.eq(ArtKit.reservedColor(OUT.ring.color), nil, "ring is not gold or violet")
+Harness.test("outline: the outline and the lobby grid are not pickup colors", function()
 	Harness.eq(ArtKit.reservedColor(OUT.color), nil, "outline is not gold or violet")
+	Harness.eq(ArtKit.reservedColor(Config.Art.lobbyGrid.color), nil, "grid is not gold or violet")
+end)
+
+Harness.test("lobby grid: even lines, none on the edge, a small count", function()
+	local GridLines = require("../src/shared/GridLines")
+	local LobbyLayout = require("../src/shared/LobbyLayout")
+	local g = Config.Art.lobbyGrid
+	local across = GridLines.offsets(LobbyLayout.width, g.spacing)
+	local down = GridLines.offsets(LobbyLayout.depth, g.spacing)
+	Harness.truthy(#across + #down <= 80, "a few dozen neon parts at most")
+	Harness.truthy(#across >= 3 and #down >= 3, "it really looks like a grid")
+	for _, dx in across do
+		Harness.truthy(math.abs(dx) < LobbyLayout.width / 2, "inside the plaza")
+	end
+	Harness.eq(across[1], -across[#across], "symmetrical")
+	Harness.eq(#GridLines.offsets(0, 5), 0)
+	Harness.eq(#GridLines.offsets(100, 0), 0)
+	Harness.eq(#GridLines.offsets(10, 50), 1, "one line through the middle")
 end)

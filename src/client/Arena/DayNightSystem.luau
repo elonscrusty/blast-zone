@@ -64,6 +64,9 @@ function DayNightSystem.start()
 	local correction = find(Lighting, "NeonColor", "ColorCorrectionEffect") :: ColorCorrectionEffect
 	bloom.Size = 24
 	bloom.Threshold = 1.1
+	-- stars for the night: the default sky box with a tuned star count
+	local sky = find(Lighting, "NeonSky", "Sky") :: Sky
+	sky.StarCount = Config.Art.stars
 
 	-- neon parts, found by tag so late arrivals (streaming) join in
 	local neons: { [BasePart]: Neon } = {}
