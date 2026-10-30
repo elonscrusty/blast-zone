@@ -25,6 +25,7 @@ local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
 local EffectiveStats = require(Core.EffectiveStats)
+local SpawnShields = require(Core.SpawnShields)
 
 local BotBrain = require("./BotBrain")
 local BotPorts = require("./BotPorts")
@@ -47,6 +48,10 @@ local runner: BotRunner.Runner? = nil
 local sightParams: RaycastParams? = nil
 local sightParamsAt = -10
 local sightGroundY = 0
+local pickupCache: { BotBrain.Pickup } = {}
+local pickupCacheAt = -10
+local PICKUP_CACHE_SECONDS = 0.1 -- every bot thinking in the same moment shares one scan
+local STEP_SECONDS = 1 / 30 -- bots move and think at 30 Hz; thinkInterval is much longer anyway
 
 local function warnOnce(key: string, text: string)
 	if not warned[key] then
@@ -55,8 +60,36 @@ local function warnOnce(key: string, text: string)
 	end
 end
 
+-- MatchSystem, found on first use (nil while it is missing).
+local function findMatchSystem(): any?
+	local matchFolder = Server:FindFirstChild("Match")
+	local matchModule = matchFolder and matchFolder:FindFirstChild("MatchSystem")
+	if not matchModule then
+		warnOnce("match", "Match/MatchSystem not found: cannot ask for bots yet")
+		return nil
+	end
+	local ok, matchSystem = pcall(require, matchModule)
+	if not ok or type(matchSystem) ~= "table" or type(matchSystem.requestBots) ~= "function" then
+		warnOnce("match", "MatchSystem.requestBots is missing")
+		return nil
+	end
+	return matchSystem
+end
+
+-- People who count for the fill: those who pressed Play, or everyone when nobody has yet
+-- (BotRoster.lobbyHumans). An idle friend in the lobby must not stop bots joining.
 local function humanCount(): number
-	return #Players:GetPlayers()
+	local players = Players:GetPlayers()
+	local queued = 0
+	local matchSystem = findMatchSystem()
+	if matchSystem and type(matchSystem.isQueued) == "function" then
+		for _, player in players do
+			if matchSystem.isQueued(player) then
+				queued += 1
+			end
+		end
+	end
+	return BotRoster.lobbyHumans(#players, queued)
 end
 
 local function isWaiting(): boolean
@@ -94,6 +127,13 @@ local function makeWorld(): BotRunner.World
 		isActive = function()
 			return MatchContext:isCombat()
 		end,
+		fightSeconds = function()
+			-- Calm start counts from the start of Active; FinalPressure means full strength.
+			if MatchContext:getPhase() == MatchPhase.Active then
+				return MatchContext:phaseElapsed()
+			end
+			return math.huge
+		end,
 		selfState = function(id)
 			local root = rootOf(id)
 			local combat = BotPorts.combat()
@@ -119,6 +159,7 @@ local function makeWorld(): BotRunner.World
 				reloading = st.reloading,
 				canFire = st.canFire,
 				slideReady = movement ~= nil and movement.slideReady(id),
+				gunId = st.gunId,
 			}
 		end,
 		others = function(id)
@@ -127,16 +168,22 @@ local function makeWorld(): BotRunner.World
 				if p.id ~= id then
 					local root = rootOf(p.id)
 					if root then
-						table.insert(
-							out,
-							{ id = p.id, pos = { x = root.Position.X, z = root.Position.Z } }
-						)
+						table.insert(out, {
+							id = p.id,
+							pos = { x = root.Position.X, z = root.Position.Z },
+							shielded = SpawnShields:isShielded(p.id),
+						})
 					end
 				end
 			end
 			return out
 		end,
 		pickups = function()
+			local clock = os.clock()
+			if clock - pickupCacheAt < PICKUP_CACHE_SECONDS then
+				return pickupCache
+			end
+			pickupCacheAt = clock
 			local out: { BotBrain.Pickup } = {}
 			local serverNow = Workspace:GetServerTimeNow()
 			for _, part in CollectionService:GetTagged("Pickup") do
@@ -157,7 +204,23 @@ local function makeWorld(): BotRunner.World
 					end
 				end
 			end
+			pickupCache = out
 			return out
+		end,
+		gunDrops = function()
+			local combat = BotPorts.combat()
+			local list = combat and combat.gunDrops and combat.gunDrops()
+			local out: { BotBrain.GunDrop } = {}
+			for _, d in list or {} do
+				table.insert(out, { id = d.dropId, gunId = d.gunId, pos = { x = d.x, z = d.z } })
+			end
+			return out
+		end,
+		claimGun = function(id, dropId)
+			local combat = BotPorts.combat()
+			if combat and combat.claimGun then
+				combat.claimGun(id, dropId)
+			end
 		end,
 		zone = function()
 			local zoneSystem = BotPorts.zone()
@@ -165,11 +228,21 @@ local function makeWorld(): BotRunner.World
 			if sample then
 				-- While it closes, head for where it is going to be.
 				local radius = math.min(sample.radius, sample.toRadius)
-				return { center = { x = sample.centerX, z = sample.centerZ }, radius = radius }
+				return {
+					center = { x = sample.centerX, z = sample.centerZ },
+					radius = radius,
+					shrinking = sample.toRadius < sample.radius - 0.01,
+				}
 			end
 			return nil
 		end,
 		weaponRange = function(id)
+			-- The gun in hand (a found gun reaches differently from the pistol).
+			local combat = BotPorts.combat()
+			local st = combat and combat.state(id)
+			if st and st.range then
+				return st.range
+			end
 			return EffectiveStats:get(id).firearm.range
 		end,
 		canSee = function(a, b)
@@ -269,10 +342,14 @@ local function collectNearby()
 		return
 	end
 	local reach = Config.Pickups.collectRadius
+	local orbs = CollectionService:GetTagged("Pickup") -- once for every bot, not once per bot
+	if #orbs == 0 then
+		return
+	end
 	for id in rigs do
 		local root = rootOf(id)
 		if root and Participants:isAlive(id) then
-			for _, part in CollectionService:GetTagged("Pickup") do
+			for _, part in orbs do
 				local pickupId = part:GetAttribute("PickupId")
 				if
 					type(pickupId) == "string"
@@ -292,15 +369,8 @@ local function askForBots(count: number): number
 	if count <= 0 then
 		return 0
 	end
-	local matchFolder = Server:FindFirstChild("Match")
-	local matchModule = matchFolder and matchFolder:FindFirstChild("MatchSystem")
-	if not matchModule then
-		warnOnce("match", "Match/MatchSystem not found: cannot ask for bots yet")
-		return 0
-	end
-	local ok, matchSystem = pcall(require, matchModule)
-	if not ok or type(matchSystem) ~= "table" or type(matchSystem.requestBots) ~= "function" then
-		warnOnce("match", "MatchSystem.requestBots is missing")
+	local matchSystem = findMatchSystem()
+	if not matchSystem then
 		return 0
 	end
 	local accepted = matchSystem.requestBots(count)
@@ -325,7 +395,7 @@ end
 
 local function autoFillTick()
 	local result = BotRoster.updateFill(tuning, fill, os.clock(), isWaiting(), humanCount())
-	if result.action == "countdown" then
+	if result.action == "countdown" and result.alone then
 		showBanner(result.secondsLeft)
 	else
 		showBanner(nil)
@@ -366,8 +436,13 @@ function BotSystem.start()
 	end)
 	local activeRunner = runner :: BotRunner.Runner
 	local sinceCollect = 0
+	local sinceStep = 0
 	RunService.Heartbeat:Connect(function(dt)
-		activeRunner:step()
+		sinceStep += dt
+		if sinceStep >= STEP_SECONDS then
+			sinceStep = 0
+			activeRunner:step()
+		end
 		sinceCollect += dt
 		if sinceCollect >= 0.25 then
 			sinceCollect = 0

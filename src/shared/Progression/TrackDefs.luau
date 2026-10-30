@@ -37,11 +37,23 @@ TrackDefs.tiers = {
 	item("tracer_white", "tracer", "White Shot", "#EAF2FA", 540),
 }
 
+-- Gifts from account levels (shared/Level/LevelDefs). Not for sale: cost -1 means "owned only when granted".
+TrackDefs.gifts = {
+	item("trail_violet", "trail", "Violet Dash", "#8E5CF0", -1),
+	item("tracer_violet", "tracer", "Violet Shot", "#8E5CF0", -1),
+	item("trail_ice", "trail", "Ice Slip", "#B9E6FF", -1),
+	item("tracer_pink", "tracer", "Pink Pop", "#FF6FB5", -1),
+}
+
 local byId: { [string]: Item } = {}
 for _, it in TrackDefs.defaults do
 	byId[it.id] = it
 end
 for _, it in TrackDefs.tiers do
+	byId[it.id] = it
+end
+
+for _, it in TrackDefs.gifts do
 	byId[it.id] = it
 end
 

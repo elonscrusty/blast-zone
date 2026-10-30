@@ -13,6 +13,11 @@ local tags = Config.Tags
 
 local ShotCaster = {}
 
+-- One params object for every cast (bullets, shells, blasts, bot eyes): casts never overlap, and making
+-- a new one for each of them was the most common allocation in a fight.
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+
 local function taggedAncestor(inst: Instance, tag: string): Instance?
 	local cur: Instance? = inst
 	while cur ~= nil and cur ~= workspace do
@@ -52,8 +57,6 @@ function ShotCaster.cast(
 	ignore: { Instance },
 	except: Instance?
 ): (number?, Instance?)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
 	local list = table.clone(ignore)
 	params.FilterDescendantsInstances = list
 	local ray = Vector3.new(dirX, 0, dirZ) * dist

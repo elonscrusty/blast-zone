@@ -17,6 +17,8 @@ The shared rules every piece builds against. Change them only through piece 01 /
 | 09 | `src/server/Bots/` |
 | 17 | `src/server/Profile/`, `src/shared/Profile/`, `tests/{profile,fake_datastore}*`; own blocks `Config.Profile` and the 17 remotes |
 | 10 | `src/client/Hud/`, `src/client/Controls/`, `src/client/Settings/` |
+| 24 | `src/server/Stats/`, `src/client/Stats/`, `src/shared/Stats/`, `tests/stats*.test.luau`; `Config.Stats`, the 24 block in `RemoteDefs` |
+| 19 | `src/server/Lobby/`, `src/client/Lobby/`, `src/shared/Loadout*.luau`, `src/shared/LobbyLayout.luau`, `tests/lobby.test.luau`; added `StatBook.addModifier` |
 
 Each piece adds its own tests as `tests/<name>.test.luau` and ONE `require("./<name>.test")` line in `tests/run.luau`
 (add the line in alphabetical order to keep merges easy). Edit only your block in `src/shared/RemoteDefs.luau`
@@ -106,3 +108,68 @@ Only `src/server/Profile/Profiles.luau` talks to DataStore. Read the header of t
 `get`, `update(player, fn)`, `grantOnce(player, key, fn)` (use `matchReceiptKey(matchId)` for match rewards), `getFlag/setFlag`,
 `saveNow`, `retryLoad`, and the `Loaded` / `Released` / `StatusChanged` signals. A profile that did not load is nil and
 refuses every write; never fall back to defaults. Items are saved by stable lowercase ids. Details: `plans/handoffs/17-saving.md`.
+
+## Screen layers (piece 22)
+
+Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never a bare number.
+`tests/ui_layers.test.luau` fails the build if a file in `src/client` makes a ScreenGui without `UiLayers`.
+
+| Layer | Value | What goes there |
+| --- | --- | --- |
+| `ZoneTint` | 5 | zone screen edges and arrow (no taps) |
+| `TouchControls` | 9 | thumb sticks and buttons |
+| `Hud` | 10 | health, minimap, timer, gear |
+| `Calm` | 15 | between-fight widgets that are not lobby buttons |
+| `Popups` | 20 | upgrade cards, bots banner |
+| `Spectate` | 30 | spectate arrows |
+| `MatchFlow` | 50 | lobby, countdown, banners, results |
+| `MatchFlowExtra` | 55 | add-ons drawn over results (coins strip) |
+| `Modal` | 100 | full panels with a dim: settings, track, loadout, shop |
+| `Onboarding` | 110 | first-time intro (blocks everything) |
+| `Toast` | 120 | short messages like "Saved" (no taps) |
+
+- Full panels also call `ModalGate.opened(name, closeFn)` when shown and `ModalGate.closed(name)` when hidden,
+  so only one panel is open at a time.
+- Lobby buttons never get their own ScreenGui or numbers. Put them in a slot:
+  `button.Size = UDim2.fromScale(1, 1); button.Parent = LobbyMenu.slot("track")`. Slots live in
+  `src/client/Ui/LobbyLayout.luau` (`status`, `play`, `settings`, `track`, `looks`); add a slot there and the tests
+  check it fits on every phone. The top of the lobby (above `LobbyLayout.bannerBottom`) is for banners.
+- Pieces placed with `UiKit.place` keep their distance to their screen edge in height units, so phones from 16:9
+  to 21:9 get the same spacing; tablets get the 16:9 layout shrunk.
+- Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;
+  #17 coin strip `55` -> `UiLayers.MatchFlowExtra`, track panel `60` -> `UiLayers.Modal` (+ `ModalGate`),
+  lobby TRACK button -> `LobbyMenu.slot("track")`; #20 look picker `15` -> `UiLayers.Calm` (or `LobbyMenu.slot("looks")`).
+
+## Look and logic (UI system)
+
+Claude Design makes the whole UI, so a screen's **look** and its **logic** live apart and a new design drops in
+without touching game code.
+
+| Layer | Files | May do | Must not do |
+| --- | --- | --- | --- |
+| Look | `src/client/Ui/Tokens.luau`, `src/client/Ui/Skins/*` | colours, fonts, text sizes, corners, shadows, motion | know about any screen |
+| Parts | `src/client/Ui/Components.luau` (+ `Hud/UiKit`, `Hud/Theme` for older code) | build screen, panel, text, button, bar, modal from **roles** | hold game state |
+| Layout | `Hud/Layout.luau`, `Ui/LobbyLayout.luau`, `Ui/UiLayers.luau` | where things sit, which layer | colours or fonts |
+| View | `*View.luau`, `*Panel.luau`, the drawing half of a `*System` | put parts in layout spots, show a model | pick a colour, font or size; decide anything |
+| Model / System | `*Model.luau`, `*System.luau` logic, `Core/Net` | read remotes, keep state, send requests | make Instances for looks |
+
+- A view asks for a role (`"accent"`, `"title"`, `"primary"`), never `Color3.fromRGB`, a `"#RRGGBB"` hex, `Enum.Font.*`
+  or `Config.Palette`. `tests/ui_tokens.test.luau` fails on new files that do. 3D world art (guns, effects, zone wall,
+  coin model) keeps its own colours and is listed there as `WORLD_ART`.
+- Older screens are listed as `LEGACY`. When you touch one, move it onto `Ui/Components` and delete its line.
+  The test fails if a listed file is already clean, so the list only shrinks.
+- Every skin has every key in `Tokens.COLOR_KEYS` etc. and passes `Tokens.check` (fonts are Roblox built-ins, ink on
+  panel 4.5:1 contrast, text on gold or coral 3:1). New skins come from Claude Design JSON through
+  `lune run tools/import-design design/<id>.json` (template: `design/skin-template.json`).
+- Full panels use `Components.modal` (Modal layer + `ModalGate` + DONE). Buttons use `Components.button`
+  (never under `Tokens.MIN_TOUCH` = 48 design points; tap, click and gamepad A all fire `onPress`).
+- Every screen and its states, data and remotes: `plans/UI-SCREENS.md`. Brief for Claude Design:
+  `plans/UI-DESIGN-BRIEF.md`. Bringing it back: `plans/UI-BRING-BACK.md`.
+
+
+## Map vote (piece 33)
+
+`MapVoteSystem.setPool({ { id, name } })` sets the maps that can be picked (the rotation). The arena builder calls
+`MapVoteSystem.takeWinner()` once per match, right before it builds the next map (end of Countdown): it locks the vote and
+returns the winner's id, or nil if nobody voted (keep the normal rotation). Calling it again gives the same answer.
+Remotes: `MapVoteRequest(mapId)` (server checks the window and the pool), `MapVoteState` (server tells everyone).

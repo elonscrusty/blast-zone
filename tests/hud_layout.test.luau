@@ -59,6 +59,62 @@ Harness.test("every thumb target is at least 48 points on a 780x360 phone", func
 	end
 end)
 
+Harness.test(
+	"touch zones are on screen, clear of the card band, the gear and the player",
+	function()
+		for name, zone in Layout.zones :: any do
+			Harness.truthy(Layout.inside(zone), name .. " is off screen")
+			Harness.eq(
+				Layout.overlaps(zone, Layout.CardsBand),
+				false,
+				name .. " is in the card band"
+			)
+			Harness.eq(
+				Layout.overlaps(Layout.mirror(zone), Layout.CardsBand),
+				false,
+				name .. " mirrored is in the card band"
+			)
+			Harness.eq(Layout.overlaps(zone, Layout.PlayerBox), false, name .. " covers the player")
+			Harness.eq(Layout.overlaps(zone, regions.settings), false, name .. " covers the gear")
+			Harness.eq(Layout.overlaps(zone, regions.vitals), false, name .. " covers the health")
+		end
+		-- a stick must fit inside its zone with room to float
+		Harness.truthy(Layout.zones.moveZone.w > regions.moveStick.w + 40)
+		Harness.truthy(Layout.zones.fireZone.w > regions.fireStick.w + 40)
+		Harness.truthy(Layout.zones.moveZone.h > regions.moveStick.h + 40)
+	end
+)
+
+Harness.test("the zones each hold their stick's resting place", function()
+	for stick, zone in { moveStick = "moveZone", fireStick = "fireZone" } do
+		local r, z = regions[stick], Layout.zones[zone]
+		Harness.truthy(
+			r.x >= z.x - 20 and r.x + r.w <= z.x + z.w + 20,
+			stick .. " rests far outside its zone"
+		)
+	end
+end)
+
+Harness.test(
+	"the pick chips sit in a row by the aim thumb, and the cards band stays free",
+	function()
+		local row = { regions.chip1, regions.chip2, regions.chip3 }
+		for i, chip in row do
+			Harness.eq(chip.y, row[1].y, "chips are not in one row")
+			Harness.eq(
+				Layout.overlaps(chip, Layout.CardsBand),
+				false,
+				"chip " .. i .. " in card band"
+			)
+			if i > 1 then
+				Harness.truthy(chip.x > row[i - 1].x, "chips are out of order")
+			end
+		end
+		-- left to right is 1, 2, 3 like the cards; mirrored play keeps the order readable too
+		Harness.truthy(Layout.mirror(regions.chip1).x > Layout.mirror(regions.chip3).x)
+	end
+)
+
 Harness.test("circles are round", function()
 	for name in Layout.circles :: any do
 		Harness.near(regions[name].w, regions[name].h, 1e-9, name)

@@ -107,7 +107,7 @@ local Defs: { Def } = {
 		"{ matchId, victimId, victimName, killerId?, killerName?, cause, placement, eliminations, survivedSeconds }"
 	),
 	tell("05", "Announce", "{ kind: 'banner'|'kill'|'win', text: string }"),
-	tell("05", "SpectateTarget", "{ participantId? }"),
+	tell("05", "SpectateTarget", "{ participantId?, name? }"),
 	tell("05", "Results", "ResultsPayload"),
 
 	-- ===== 06 zone =====
@@ -153,13 +153,44 @@ local Defs: { Def } = {
 	ask("18", "EquipRequest", { { name = "itemId", kind = "id" } }, 3, 4),
 	tell("18", "ProgressState", "ProgressState"),
 
+	-- ===== 25 daily challenges =====
+	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
+	tell("25", "DailyState", "DailyState"),
+
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
+
+	-- ===== 38 weather =====
+	ask("38", "WeatherRequest", {}, 1, 2), -- a client that joined late asks what the weather is
+	tell("38", "WeatherState", "WeatherState"),
+
+	-- ===== 19 lobby + loadout =====
+	ask("19", "LoadoutEquip", {
+		{ name = "slot", kind = "id", maxLen = 12 },
+		{ name = "itemId", kind = "id", maxLen = 24 },
+	}, 3, 4),
+	ask("19", "LoadoutSync", {}, 1, 2),
+	tell("19", "LoadoutState", "LoadoutState"),
+
+	-- ===== 33 map vote =====
+	ask(
+		"33",
+		"MapVoteRequest",
+		{ { name = "mapId", kind = "id", maxLen = Config.MapVote.maxMapIdLength } },
+		2,
+		3
+	),
+	ask("33", "MapVoteStateRequest", {}, 1, 2), -- a client that just started asks for the running count
+	tell("33", "MapVoteState", "MapVoteState (open, maps with counts, yourVote?, nextMapId?)"),
 
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
 	ask("N11", "SetLookRequest", { { name = "look", kind = "string", maxLen = 16 } }, 2, 3),
+
+	-- ===== 24 stats + top-wins board =====
+	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
+	tell("24", "StatsUpdate", "StatsPayload"),
 }
 
 local Index: { [string]: Def } = {}

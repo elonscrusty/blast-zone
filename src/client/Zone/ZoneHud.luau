@@ -4,6 +4,8 @@
 
 local Players = game:GetService("Players")
 
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+
 local Hud = {}
 Hud.__index = Hud
 
@@ -49,7 +51,7 @@ function Hud.new(): Hud
 	gui.Name = "ZoneHud"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 5
+	gui.DisplayOrder = UiLayers.ZoneTint
 	gui.Enabled = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 

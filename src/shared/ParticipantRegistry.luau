@@ -117,7 +117,13 @@ function Registry.aliveList(self: any): { Participant }
 end
 
 function Registry.aliveCount(self: any): number
-	return #self:aliveList()
+	local n = 0
+	for _, p in self._byId do
+		if p.alive then
+			n += 1
+		end
+	end
+	return n
 end
 
 -- Once only: returns false when already eliminated or unknown (no double elimination).
@@ -147,10 +153,15 @@ function Registry.remove(self: any, id: string): Participant?
 	return p
 end
 
--- Match reset: forget everyone.
+-- Match reset: forget everyone. Each one is announced through Removed, so every system that keeps
+-- per-participant records (health, upgrades, XP, slide cooldowns) drops them and nothing piles up across matches.
 function Registry.clear(self: any)
+	local gone = self:list()
 	self._byId = {}
 	self._order = {}
+	for _, p in gone do
+		self.Removed:fire(p)
+	end
 end
 
 return Registry

@@ -13,6 +13,7 @@ local CoinView = require(script.Parent.CoinView)
 local ProgressClient = require(script.Parent.ProgressClient)
 local ProgressText = require(script.Parent.ProgressText)
 local Ui = require(script.Parent.ProgressUi)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local TrackPanel = {}
 
@@ -162,7 +163,7 @@ local function build()
 	local g = Instance.new("ScreenGui")
 	g.Name = "TrackPanel"
 	g.ResetOnSpawn = false
-	g.DisplayOrder = 60
+	g.DisplayOrder = UiLayers.Modal
 	g.IgnoreGuiInset = true
 	g.Enabled = false
 	g.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -190,7 +191,7 @@ local function build()
 	limit.MaxSize = Vector2.new(760, 460)
 	limit.Parent = panel
 
-	local title = Ui.label(panel, "Title", "UNLOCK TRACK", 40)
+	local title = Ui.label(panel, "Title", "REWARDS", 40)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Position = UDim2.new(0, 16, 0, 8)
 	title.Size = UDim2.new(0.5, 0, 0, 44)

@@ -10,6 +10,7 @@ local Config = require(Shared.Config)
 local Looks = require(Shared.Character.Looks)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local LookPickerSystem = {}
 
@@ -31,7 +32,7 @@ function LookPickerSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "LookPicker"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 15
+	gui.DisplayOrder = UiLayers.Calm
 	gui.Enabled = true
 
 	local row = Instance.new("Frame")

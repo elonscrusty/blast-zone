@@ -141,6 +141,15 @@ Harness.test("cycleTarget: next, previous, wraps, unknown start", function()
 	Harness.eq(MatchRules.cycleTarget({}, "a", 1), nil)
 end)
 
+Harness.test("pickWatchTarget: keeps target, then the killer, then the first survivor", function()
+	local ids = { "a", "b", "c" }
+	Harness.eq(MatchRules.pickWatchTarget(ids, "b", "c"), "b")
+	Harness.eq(MatchRules.pickWatchTarget(ids, "gone", "c"), "c")
+	Harness.eq(MatchRules.pickWatchTarget(ids, nil, "dead"), "a")
+	Harness.eq(MatchRules.pickWatchTarget(ids, nil, nil), "a")
+	Harness.eq(MatchRules.pickWatchTarget({}, "a", "b"), nil)
+end)
+
 Harness.test("formatTime", function()
 	Harness.eq(MatchRules.formatTime(125.4), "2:05")
 	Harness.eq(MatchRules.formatTime(0), "0:00")

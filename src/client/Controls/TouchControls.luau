@@ -1,16 +1,23 @@
 --!strict
 -- On-screen controls for phones, in look B: move stick (left), aim-and-fire stick (right),
--- Slide, Reload, and a tap target over the weapon panel to swap weapons.
+-- Slide, Reload, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
 -- Sticks measure how far the finger moved from where it first touched, so they work the same on
--- every phone and notch. Shown only on touch devices while controls are on.
+-- every phone and notch. With "Floating sticks" on (carter's pick) the stick appears under the
+-- thumb anywhere in its zone and goes back to a faint ring at rest; off, it stays in its corner.
+-- Pick chips appear by the aim thumb while an upgrade offer is up, so the move thumb never lifts.
+-- Shown only on touch devices while controls are on.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Layout = require(script.Parent.Parent.Hud.Layout)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
 local Settings = require(script.Parent.Parent.Settings.Settings)
+local Ids = require(ReplicatedStorage:WaitForChild("Shared").Ids)
+local Net = require(script.Parent.Parent.Core.Net)
 local Controls = require(script.Parent.Controls)
+local ChipModel = require("./ChipModel")
 local InputMath = require("./InputMath")
 
 local TouchControls = {}
@@ -23,37 +30,67 @@ local slideText: TextLabel
 local visible = false
 local wasSlideReady = true
 
+local homeOf: { [string]: () -> () } = {} -- puts a floating stick back at its resting place
+
 local function applyLayout()
 	local left = Settings.flag("leftHanded")
 	local scale = Settings.number("touchScale")
 	for name, obj in pieces do
-		local rect = if name == "weapon" then Layout.regions.weapon else Layout.regions[name]
-		UiKit.place(obj, rect, left)
-		local found = obj:FindFirstChild("TouchScale")
-		local s: UIScale
-		if found and found:IsA("UIScale") then
-			s = found
+		local zone = Layout.zones[name]
+		if zone then
+			UiKit.place(obj, zone, left) -- a catch area: no scaling, it must not shrink
 		else
-			s = Instance.new("UIScale")
-			s.Name = "TouchScale"
-			s.Parent = obj
+			local rect = Layout.regions[name]
+			local index = tonumber(string.match(name, "^chip(%d)$"))
+			if index then
+				rect = Layout.regions[Layout.chipName(index, left)]
+			end
+			UiKit.place(obj, rect, left)
+			local found = obj:FindFirstChild("TouchScale")
+			local s: UIScale
+			if found and found:IsA("UIScale") then
+				s = found
+			else
+				s = Instance.new("UIScale")
+				s.Name = "TouchScale"
+				s.Parent = obj
+			end
+			s.Scale = scale
 		end
-		s.Scale = scale
 	end
+end
+
+-- The area that catches a thumb for a stick. Created before the buttons so they sit on top: a
+-- touch on a button is a button, any other touch in the zone is the stick.
+local function makeZone(name: string): Frame
+	local zone = Instance.new("Frame")
+	zone.Name = name
+	zone.BackgroundTransparency = 1
+	zone.BorderSizePixel = 0
+	zone.Active = true
+	zone.Parent = root
+	pieces[name] = zone
+	return zone
 end
 
 -- A stick. `onChange(x, y, active)` gets a vector of length 0..1 with y UP.
 local function makeStick(
 	name: string,
+	zone: Frame,
 	label: string?,
 	fillHex: string,
 	onChange: (number, number, boolean) -> ()
 )
 	local look = UiKit.look()
 	local base, shadow = UiKit.sticker(root, root, name, fillHex, 0.5)
-	base.BackgroundTransparency = 0.25
 	UiKit.followShadow(base, shadow, root)
 	pieces[name] = base
+
+	local function dim()
+		-- A faint ring shows where to start; once it is under a thumb it is solid.
+		base.BackgroundTransparency = if Settings.flag("floatingSticks") then 0.6 else 0.25
+	end
+	dim()
 
 	if label then
 		UiKit.label(base, "Label", {
@@ -81,23 +118,35 @@ local function makeStick(
 	ks.Parent = knob
 	UiKit.styleStroke(ks, root)
 
-	-- Catches the finger. Bigger than the picture so a thumb that drifts is not lost.
-	local zone = Instance.new("Frame")
-	zone.Name = "Zone"
-	zone.AnchorPoint = Vector2.new(0.5, 0.5)
-	zone.Position = UDim2.fromScale(0.5, 0.5)
-	zone.Size = UDim2.fromScale(1.5, 1.5)
-	zone.BackgroundTransparency = 1
-	zone.Active = true
-	zone.Parent = base
-
 	local tracked: InputObject? = nil
 	local startX, startY = 0, 0
+
+	local function goHome()
+		UiKit.place(base, Layout.regions[name], Settings.flag("leftHanded"))
+	end
+	homeOf[name] = goHome
 
 	local function release()
 		tracked = nil
 		knob.Position = UDim2.fromScale(0.5, 0.5)
+		goHome()
+		dim()
 		onChange(0, 0, false)
+	end
+
+	-- Floating: put the stick under the finger, kept inside its zone so it is never half off screen.
+	local function floatUnder(input: InputObject)
+		local radius = base.AbsoluteSize.X / 2
+		local zp, zs, rp = zone.AbsolutePosition, zone.AbsoluteSize, root.AbsolutePosition
+		local cx = if zs.X > 2 * radius
+			then math.clamp(input.Position.X, zp.X + radius, zp.X + zs.X - radius)
+			else zp.X + zs.X / 2
+		local cy = if zs.Y > 2 * radius
+			then math.clamp(input.Position.Y, zp.Y + radius, zp.Y + zs.Y - radius)
+			else zp.Y + zs.Y / 2
+		base.AnchorPoint = Vector2.new(0.5, 0.5)
+		base.Position = UDim2.fromOffset(cx - rp.X, cy - rp.Y)
+		base.BackgroundTransparency = 0.25
 	end
 
 	local function move(input: InputObject)
@@ -113,9 +162,12 @@ local function makeStick(
 
 	zone.InputBegan:Connect(function(input: InputObject)
 		if input.UserInputType == Enum.UserInputType.Touch and tracked == nil then
+			Controls.noteDevice("touch") -- first: a device change clears sticks, so it comes before we hold this one
 			tracked = input
 			startX, startY = input.Position.X, input.Position.Y
-			Controls.noteDevice("touch")
+			if Settings.flag("floatingSticks") then
+				floatUnder(input)
+			end
 			move(input)
 		end
 	end)
@@ -129,10 +181,26 @@ local function makeStick(
 			release()
 		end
 	end)
-	-- Hiding the stick mid-touch must not leave it "held".
-	base:GetPropertyChangedSignal("Visible"):Connect(function()
-		if not base.Visible and tracked ~= nil then
+	-- Focus lost, a menu opened, a gamepad took over: let go even though the finger is still down.
+	Controls.Cleared:connect(function()
+		if tracked ~= nil then
 			release()
+		end
+	end)
+	-- Hiding the stick mid-touch must not leave it "held".
+	zone:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not zone.Visible and tracked ~= nil then
+			release()
+		end
+	end)
+	Settings.Changed:connect(function(key: string)
+		if key == "floatingSticks" then
+			if tracked ~= nil then
+				release() -- switching style mid-touch: let go, no half-moved stick
+			else
+				goHome()
+				dim()
+			end
 		end
 	end)
 end
@@ -173,7 +241,7 @@ local function build()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "TouchControls"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 9
+	gui.DisplayOrder = require(script.Parent.Parent.Ui.UiLayers).TouchControls
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Enabled = false
@@ -185,10 +253,12 @@ local function build()
 	root.Active = false
 	root.Parent = gui
 
-	makeStick("moveStick", nil, look.panel, function(x, y, _active)
+	local moveZone = makeZone("moveZone")
+	local fireZone = makeZone("fireZone")
+	makeStick("moveStick", moveZone, nil, look.panel, function(x, y, _active)
 		Controls.setTouchMove(x, y)
 	end)
-	makeStick("fireStick", "FIRE", look.danger, function(x, y, active)
+	makeStick("fireStick", fireZone, "FIRE", look.danger, function(x, y, active)
 		Controls.setTouchAim(x, y, active)
 	end)
 
@@ -237,6 +307,55 @@ local function build()
 		Controls.trigger("swap")
 	end)
 	pieces.weapon = swap
+
+	-- Upgrade pick chips: 1 2 3 by the aim thumb, shown while an offer is up. A tap is the same
+	-- action as the key (upgradeN); the cards and the server decide if it counts.
+	local chipState = ChipModel.new()
+	local chips: { Frame } = {}
+	local function showChips(count: number)
+		for i, chip in chips do
+			local want = i <= count
+			if chip.Visible ~= want then
+				chip.Visible = want
+				if want then
+					UiKit.pop(chip, 1.25)
+				end
+			end
+		end
+	end
+	for i = 1, 3 do
+		local chip = makeButton("chip" .. i, tostring(i), look.accent, "upgrade" .. i)
+		local frame = chip.Parent :: Frame
+		frame.Visible = false
+		local number = frame:FindFirstChild("Label")
+		if number and number:IsA("TextLabel") then
+			number.Size = UDim2.fromScale(0.8, 0.7)
+			local cap = number:FindFirstChildOfClass("UITextSizeConstraint")
+			if cap then
+				cap.MaxTextSize = 40
+			end
+		end
+		table.insert(chips, frame)
+	end
+	Net.on("UpgradeOffer", function(payload: any)
+		showChips(ChipModel.applyOffer(chipState, payload))
+	end)
+	Net.on("UpgradeApplied", function()
+		ChipModel.clear(chipState)
+		showChips(0)
+	end)
+	Net.on("MatchState", function(state: any)
+		if type(state) ~= "table" or not ChipModel.fighting((state :: any).phase) then
+			ChipModel.clear(chipState)
+			showChips(0)
+		end
+	end)
+	Net.on("Eliminated", function(info: any)
+		if type(info) == "table" and info.victimId == Ids.player(Players.LocalPlayer.UserId) then
+			ChipModel.clear(chipState) -- an eliminated player picks nothing
+			showChips(0)
+		end
+	end)
 
 	applyLayout()
 	Settings.Changed:connect(function(key: string)

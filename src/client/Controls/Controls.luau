@@ -26,6 +26,9 @@ local state = InputState.new()
 Controls.Action = Signal.new()
 -- Fires the new device name when the player switches (touch <-> keyboard <-> gamepad).
 Controls.DeviceChanged = Signal.new()
+-- Fires whenever everything held was dropped (focus lost, menu opened, controls off, device
+-- changed, pad unplugged). On-screen sticks listen so a finger still down cannot bring it back.
+Controls.Cleared = Signal.new()
 
 function Controls.getMove(): (number, number)
 	return InputState.move(state)
@@ -94,11 +97,37 @@ end
 -- ===== used by ControlsSystem, TouchControls and HudSystem (not by other pieces) =====
 
 function Controls.setEnabled(enabled: boolean)
-	InputState.setEnabled(state, enabled)
+	if state.enabled ~= enabled then
+		InputState.setEnabled(state, enabled)
+		Controls.Cleared:fire()
+	end
 end
 
 function Controls.reset()
 	InputState.reset(state)
+	Controls.Cleared:fire()
+end
+
+-- A menu (settings, results, a card screen) has the player's attention: movement, aim, fire and
+-- action keys are ignored until it closes.
+function Controls.setModal(modal: boolean)
+	if InputState.setModal(state, modal) then
+		Controls.Cleared:fire()
+	end
+end
+
+function Controls.isModal(): boolean
+	return state.modal
+end
+
+-- The gamepad was unplugged.
+function Controls.padDisconnected(hasTouch: boolean)
+	local before = state.device
+	local after = InputState.padDisconnected(state, hasTouch)
+	Controls.Cleared:fire()
+	if after ~= before then
+		Controls.DeviceChanged:fire(after)
+	end
 end
 
 function Controls.setAimSensitivity(value: number)
@@ -107,6 +136,7 @@ end
 
 function Controls.noteDevice(device: InputState.Device)
 	if InputState.noteDevice(state, device) then
+		Controls.Cleared:fire()
 		Controls.DeviceChanged:fire(device)
 	end
 end

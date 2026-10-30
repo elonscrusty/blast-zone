@@ -13,4 +13,9 @@ Participants.Enrolled:connect(function(p)
 	ledger:reset(p.id)
 end)
 
+-- Cleared with the roster (and on disconnect), so the ledger never keeps people from old matches.
+Participants.Removed:connect(function(p)
+	ledger:forget(p.id)
+end)
+
 return ledger

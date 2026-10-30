@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local SpectateClientSystem = {}
 SpectateClientSystem.order = 200
@@ -72,18 +73,37 @@ local function makeButton(parent: Instance, text: string, x: number, step: numbe
 	end)
 end
 
+-- Placeholder look; Claude Design replaces it. Shows who you are watching, under the arrows.
+local function makeLabel(parent: Instance): TextLabel
+	local label = Instance.new("TextLabel")
+	label.Name = "SpectateName"
+	label.AnchorPoint = Vector2.new(0.5, 0)
+	label.Position = UDim2.new(0.5, 0, 0, 12 + Config.Settings.minTouchTarget + 6)
+	label.Size = UDim2.fromOffset(200, 24)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromHex(Config.Palette.Cyan)
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.Text = ""
+	label.Parent = parent
+	return label
+end
+
 function SpectateClientSystem.start()
 	local screen = Instance.new("ScreenGui")
 	screen.Name = "Spectate"
 	screen.ResetOnSpawn = false
+	screen.DisplayOrder = UiLayers.Spectate -- was unset (0), so the HUD and thumbs drew over the arrows
 	screen.IgnoreGuiInset = false
 	screen.Enabled = false
 	screen.Parent = player:WaitForChild("PlayerGui")
 	makeButton(screen, "<", -48, -1)
 	makeButton(screen, ">", 48, 1)
+	local label = makeLabel(screen)
 
-	Net.on("SpectateTarget", function(payload: { participantId: string? })
+	Net.on("SpectateTarget", function(payload: { participantId: string?, name: string? })
 		targetId = payload.participantId
+		label.Text = if payload.name then `Watching {payload.name}` else ""
 		player:SetAttribute("SpectateTargetId", targetId)
 		screen.Enabled = targetId ~= nil
 		follow()

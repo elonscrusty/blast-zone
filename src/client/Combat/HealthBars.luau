@@ -14,7 +14,22 @@ local HealthBars = {}
 local CORAL = Color3.fromHex(Config.Palette.DangerCoral)
 local NAVY = Color3.fromHex(Config.Palette.Navy)
 
+-- Every fighter's model by participant id, so a hit can find who it landed on without scanning the map.
+local models: { [string]: Model } = {}
+
+function HealthBars.modelOf(id: string): Model?
+	local model = models[id]
+	if model ~= nil and model.Parent ~= nil then
+		return model
+	end
+	return nil
+end
+
 local function attach(model: Model)
+	local id = model:GetAttribute(Config.Attributes.ParticipantId)
+	if typeof(id) == "string" then
+		models[id] = model
+	end
 	if model:FindFirstChild("CombatHealthBar") ~= nil then
 		return
 	end
@@ -86,11 +101,26 @@ local function consider(inst: Instance)
 	end
 end
 
-function HealthBars.start()
-	for _, d in Workspace:GetDescendants() do
-		consider(d)
+-- Fighters sit at the top of Workspace (or in Workspace.Participants), so only those places are watched.
+-- Listening to every descendant meant a callback for every spark, damage number and orb that ever appeared.
+local function watch(holder: Instance)
+	for _, child in holder:GetChildren() do
+		consider(child)
 	end
-	Workspace.DescendantAdded:Connect(consider)
+	holder.ChildAdded:Connect(consider)
+end
+
+function HealthBars.start()
+	watch(Workspace)
+	local folder = Workspace:FindFirstChild("Participants")
+	if folder ~= nil then
+		watch(folder)
+	end
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "Participants" then
+			watch(child)
+		end
+	end)
 end
 
 return HealthBars

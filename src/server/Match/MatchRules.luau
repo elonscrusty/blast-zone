@@ -226,6 +226,22 @@ function MatchRules.cycleTarget(
 	return aliveIds[(index - 1 + step) % n + 1]
 end
 
+-- Who a spectator should watch right now. Keep the current target while they are alive; else the player who
+-- eliminated the viewer (if still alive); else the first survivor. Nil when nobody is alive.
+function MatchRules.pickWatchTarget(
+	aliveIds: { string },
+	currentId: string?,
+	preferredId: string?
+): string?
+	if currentId and table.find(aliveIds, currentId) then
+		return currentId
+	end
+	if preferredId and table.find(aliveIds, preferredId) then
+		return preferredId
+	end
+	return aliveIds[1]
+end
+
 -- 125.4 -> "2:05"
 function MatchRules.formatTime(seconds: number): string
 	local total = math.max(0, math.floor(seconds))

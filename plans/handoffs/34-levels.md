@@ -1,0 +1,10 @@
+# 34 Player levels and free rewards
+- Account level comes from the run XP of each match (the same XP as the upgrade bar). It is added to `data.progression.accountXp` when the match pays (`MatchSystem.RewardGranted`), once per match with its own receipt (`<match key>:xp`), so it never blocks or repeats the Scrap payout.
+- Server only, nothing trusts a client: `src/server/Progression/LevelSystem.luau` remembers the latest run XP per participant (the ledger forgets people early) and calls `ProgressionSystem.onXp`. Bots are skipped. Cap per match: `Config.Level.maxXpPerMatch`.
+- Curve in `Config.Level`: leaving level L costs `firstCost + costStep*(L-1)`, top level 50. Pure rules: `src/shared/Level/LevelRules.luau`. The gifts: `LevelDefs.gifts` (levels 3, 5, 8, 10, 15, 20, 30, 40, 50: Scrap or a look). Never Robux, never power. Change a gift's level only before the game is live.
+- Gift looks are `TrackDefs.gifts` (cost -1: not for sale, owned only when granted). They show up as owned and can be worn through the normal `EquipRequest`; they are not worn automatically.
+- Saved in the profile progression table: `accountXp`, `claimedLevels` (milestone levels already given). Old saves get both filled in. All the changes of one match are one atomic update.
+- `ProgressState` now also has `level`, `intoLevel`, `forNext`, `gifts` (gift ids, kept out of `unlocked`) and `levelUp` (set once after a match: from, to, gifts). `ProgressionSystem.getAccountLevel(player)` for other pieces.
+- No UI yet on purpose: carter picks the look first (3 ideas with 3D previews). Hooks for Claude Design: read `ProgressClient.get()`; use `UiLayers` for every DisplayOrder and a `LobbyMenu` slot for any lobby button.
+- Tests: `tests/level.test.luau` (curve, gifts once, bad numbers, old saves, pay-once next to Scrap). Lune: 617 pass. StyLua clean, rojo build ok. Selene could not run here (it cannot download the Roblox API list); CI runs it.
+- Not run in Roblox. Saving is unproven until carter's leave/rejoin test (see 17-saving-test).

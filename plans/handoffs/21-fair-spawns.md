@@ -1,0 +1,11 @@
+# 21 Fair spawns + bot tuning
+- Why: in playtest the player lost 60 HP within ~6 s of spawning (spawns 40 apart, bot sight 60, reaction 0.35 s).
+- Spawn shield: `Config.SpawnShield` (3 s). Everyone alive (bots too) gets it when Active starts; glow = Roblox ForceField named `SpawnShieldField`, body attribute `SpawnShield` = true while on.
+- Firing your gun ends your own shield (`Combat/Firing.fire`, `dropOnFire`). Hits on a shielded target are dropped at the damage door with reason "shielded".
+- Code: `src/shared/SpawnShield.luau` (pure book), `src/server/Core/SpawnShields.luau` (server book), `src/server/Spawns/SpawnShieldSystem.luau` (give/clear/glow).
+- Damage door: new `DamageRouter:addGuard(fn)`; a guard returns a reason to drop a hit. A guard that errors never blocks damage.
+- Calm start: `Config.Bots.warmup` (30 s; sight 30, reaction 0.9 s, aim error 14 deg at start). `Bots/BotWarmup.luau` slides to full numbers; FinalPressure = full strength.
+- Bots skip shielded targets (`Body.shielded`), so they don't waste shots or lock onto a fresh spawn.
+- Tests: `tests/spawn_fair.test.luau` (shield timing, door guard, warm-up curve, calm bots don't shoot a 40-stud spawn).
+- Not run in Studio. Not built: bot difficulty levels in the lobby (carter's other option).
+- If still too hard: raise `SpawnShield.seconds` or `warmup.seconds`, or lower `warmup.sightRange`.

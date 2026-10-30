@@ -282,7 +282,7 @@ end)
 Harness.test("auto-fill resets when a friend joins or the match starts", function()
 	local fill = BotRoster.newFill()
 	BotRoster.updateFill(T, fill, 100, true, 1)
-	Harness.eq(BotRoster.updateFill(T, fill, 105, true, T.aloneBelow).action, "none")
+	Harness.eq(BotRoster.updateFill(T, fill, 105, true, T.fillTo).action, "none")
 	-- friend left again: the count restarts from full
 	local r = BotRoster.updateFill(T, fill, 106, true, 1)
 	Harness.eq(r.secondsLeft, T.autoFillDelay)
@@ -297,6 +297,25 @@ Harness.test("auto-fill resets when a friend joins or the match starts", functio
 		"nobody here is not alone"
 	)
 end)
+
+Harness.test(
+	"a part-full lobby is topped up after the shorter wait, with no alone banner",
+	function()
+		local fill = BotRoster.newFill()
+		local r = BotRoster.updateFill(T, fill, 100, true, T.aloneBelow)
+		Harness.eq(r.action, "countdown")
+		Harness.eq(r.alone, false)
+		Harness.eq(r.secondsLeft, T.topUpDelay)
+		r = BotRoster.updateFill(T, fill, 100 + T.topUpDelay, true, T.aloneBelow)
+		Harness.eq(r.action, "fill")
+		Harness.eq(BotRoster.botsToAdd(T, T.aloneBelow, 0), T.fillTo - T.aloneBelow)
+		Harness.eq(
+			BotRoster.updateFill(T, BotRoster.newFill(), 1, true, T.fillTo).action,
+			"none",
+			"a full lobby needs no bots"
+		)
+	end
+)
 
 Harness.test("Add bots now: only when alone and waiting, with a cooldown", function()
 	local ok = BotRoster.checkAddNow(T, true, 1, 50, nil)
@@ -490,4 +509,11 @@ Harness.test("clear removes every bot and stops them", function()
 	runner:clear()
 	Harness.eq(runner:count(), 0)
 	Harness.eq(count(log, "move"), 2)
+end)
+
+Harness.test("auto-fill counts only people who pressed Play once anyone has", function()
+	Harness.eq(BotRoster.lobbyHumans(2, 1), 1, "an idle friend does not count")
+	Harness.eq(BotRoster.lobbyHumans(1, 0), 1, "nobody queued yet: everyone counts")
+	Harness.eq(BotRoster.lobbyHumans(3, 0), 3)
+	Harness.eq(BotRoster.lobbyHumans(3, 3), 3)
 end)

@@ -16,6 +16,7 @@ local Emotes = require(Shared.Character.Emotes)
 local MatchPhase = require(Shared.MatchPhase)
 local RemoteDefs = require(Shared.RemoteDefs)
 local Net = require(script.Parent.Parent.Core.Net)
+local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
 
 local EmoteWheelSystem = {}
 EmoteWheelSystem.order = 220
@@ -81,7 +82,7 @@ function EmoteWheelSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "EmoteWheel"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 16 -- just above the look picker (15), under settings (40) and results (50)
+	gui.DisplayOrder = UiLayers.Calm -- with the look picker, under panels and results
 	gui.Enabled = false
 
 	-- Bottom right, inside a 16 point gutter. Everything else is placed from the button's centre.

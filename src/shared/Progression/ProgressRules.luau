@@ -13,6 +13,8 @@ export type Progression = {
 	unlocked: { [string]: boolean },
 	equipped: { [string]: string },
 	grantedKeys: { [string]: number },
+	accountXp: number, -- piece 34: lifetime run XP; the account level comes from it (LevelRules)
+	claimedLevels: { [string]: boolean }, -- milestone levels whose gift was already given ("5", "10", ...)
 }
 
 export type Result = { ok: boolean, reason: string? }
@@ -24,7 +26,15 @@ end
 local OK: Result = { ok = true, reason = nil }
 
 function ProgressRules.new(): Progression
-	return { coins = 0, totalEarned = 0, unlocked = {}, equipped = {}, grantedKeys = {} }
+	return {
+		coins = 0,
+		totalEarned = 0,
+		unlocked = {},
+		equipped = {},
+		grantedKeys = {},
+		accountXp = 0,
+		claimedLevels = {},
+	}
 end
 
 -- Fills in anything missing or the wrong type, in place, and returns the same table. Unknown extra keys and
@@ -37,7 +47,10 @@ function ProgressRules.fill(raw: any): Progression
 	if type(p.totalEarned) ~= "number" or p.totalEarned ~= p.totalEarned or p.totalEarned < 0 then
 		p.totalEarned = 0
 	end
-	for _, key in { "unlocked", "equipped", "grantedKeys" } do
+	if type(p.accountXp) ~= "number" or p.accountXp ~= p.accountXp or p.accountXp < 0 then
+		p.accountXp = 0
+	end
+	for _, key in { "unlocked", "equipped", "grantedKeys", "claimedLevels" } do
 		if type(p[key]) ~= "table" then
 			p[key] = {}
 		end
@@ -78,6 +91,17 @@ function ProgressRules.nextTier(p: Progression): TrackDefs.Item?
 		end
 	end
 	return nil
+end
+
+-- How many tiers have been bought (0 to #tiers). Other screens use this as the "reward level".
+function ProgressRules.level(p: Progression): number
+	local n = 0
+	for _, tier in TrackDefs.tiers do
+		if p.unlocked[tier.id] then
+			n += 1
+		end
+	end
+	return n
 end
 
 -- Adds coins from a finished match. `maxGrant` is a sanity cap so a bug upstream cannot mint a fortune.
