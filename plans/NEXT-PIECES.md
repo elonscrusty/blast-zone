@@ -33,7 +33,7 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 22 | UI layers: Settings over lobby, one panel at a time, lobby slots, phone-shape spacing | 20 | PR up | piece 22 PR |
 | 13 | Combat effects polish: "Sticker Punch" look (muzzle, tracers, hits, numbers, slide, crates, blast warning, camera shake) | 22, 23 | PR up | this PR |
 | 24 | Lifetime stats (wins, eliminations, matches), lobby stats card, global top-wins board (Trophy Wall, OrderedDataStore) | - | PR up | #26 |
-| 30 | Store page: 3 icon + thumbnail ideas (3D), name ideas, description, upload steps | - | PR up | store PR |
+| 30 | Store page: 6 icon + thumbnail ideas (3D, C1 Showdown picked), name ideas, description, upload steps | - | PR up | #27 |
 | 25 | Daily challenges: 3 a day (easy/medium/hard), server counts, pay Scrap once, reset at midnight UTC, plain DAILY panel (look comes from the UI system) | - | PR up | daily PR |
 | 29 | Emotes in the lobby (12, all free: carter said "all of them") + pick-your-own winner pose on the results screen | - | PR up | own PR |
 | 23 | More guns: Breaker shotgun, Hornet SMG, Longline rifle, found in containers (carter picked all 3) | 9, 13 | PR up | see handoff 23 |
