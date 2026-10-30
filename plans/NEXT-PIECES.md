@@ -53,3 +53,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 14 | City art pass: Neon Night, day to night in one match | 12 | PR up | #42 |
 | 40 | Player analytics (match start/end, deaths by cause, onboarding funnel, gun picks; server only) | - | PR up | handoff 40 |
 | 41 | Whole-match tests: a pretend server with bots plays full matches (lobby, crates, guns, zone, winner, coins, reset); 4 seam bugs fixed | - | PR up | piece 41 PR |
+| 42 | One lobby layout: banner, map vote, invite, look picker and button words all live in LobbyLayout slots (playtest overlap fix) | - | PR up | handoff 42 |

@@ -130,10 +130,13 @@ Every `ScreenGui` sets `DisplayOrder` from `src/client/Ui/UiLayers.luau`, never 
 
 - Full panels also call `ModalGate.opened(name, closeFn)` when shown and `ModalGate.closed(name)` when hidden,
   so only one panel is open at a time.
-- Lobby buttons never get their own ScreenGui or numbers. Put them in a slot:
-  `button.Size = UDim2.fromScale(1, 1); button.Parent = LobbyMenu.slot("track")`. Slots live in
-  `src/client/Ui/LobbyLayout.luau` (`status`, `play`, `settings`, `track`, `looks`); add a slot there and the tests
-  check it fits on every phone. The top of the lobby (above `LobbyLayout.bannerBottom`) is for banners.
+- Everything shown in the lobby (buttons, the bots banner, the map vote row, invite, look picker) never gets its own
+  ScreenGui or numbers. Make a root Frame and dock it: `LobbyMenu.dock(root, "invite")` (fills the slot; show and hide
+  with `root.Visible`), then `LobbyMenu.fitText(button)` so words shrink to fit. Slots live in
+  `src/client/Ui/LobbyLayout.luau` (`status`, `play`, `settings`, `track`, `looks`, `loadout`, `daily`, `invite`,
+  `banner`, `vote`); add a slot there and the tests check it fits, touches nothing, and stays on screen on every
+  phone, including short wide ones (1914 x 604). The top group (`banner`, `vote`) stays above `LobbyLayout.bannerBottom`.
+  Docked pieces only show while the lobby is up (so INVITE no longer shows while spectating).
 - Pieces placed with `UiKit.place` keep their distance to their screen edge in height units, so phones from 16:9
   to 21:9 get the same spacing; tablets get the 16:9 layout shrunk.
 - Open PRs to switch when they land: #16 intro `55` -> `UiLayers.Onboarding`, save strip `52` -> `UiLayers.Toast`;

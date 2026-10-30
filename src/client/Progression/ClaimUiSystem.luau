@@ -42,6 +42,7 @@ function ClaimUiSystem.start()
 	trackSlot.Size = UDim2.fromScale(1, 1)
 	trackSlot.Parent = LobbyMenu.slot("track") -- LobbyMenu hangs on the MatchFlow lobby, layer 50
 	trackSlot.Visible = false
+	LobbyMenu.fitText(trackButton)
 	trackButton.Activated:Connect(TrackPanel.toggle)
 
 	-- ===== results strip =====

@@ -57,6 +57,32 @@ function LobbyMenu.slot(name: string): Frame
 	return f
 end
 
+-- Puts a piece's own root frame into a slot and makes it fill the slot. Use this instead of a
+-- ScreenGui of your own: the slot is where the layout says your piece goes, and nothing else
+-- is allowed there. Show and hide with root.Visible (the slot is only on screen in the lobby).
+function LobbyMenu.dock(root: GuiObject, slotName: string)
+	root.AnchorPoint = Vector2.zero
+	root.Position = UDim2.fromScale(0, 0)
+	root.Size = UDim2.fromScale(1, 1)
+	root.Parent = LobbyMenu.slot(slotName)
+end
+
+-- Keeps a button's words inside the button on any screen: one line, shrunk to fit width and height.
+function LobbyMenu.fitText(label: TextButton | TextLabel, maxSize: number?)
+	label.TextScaled = true
+	label.TextWrapped = false
+	label.TextXAlignment = Enum.TextXAlignment.Center
+	local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+		or Instance.new("UITextSizeConstraint")
+	limit.MinTextSize = 8
+	limit.MaxTextSize = maxSize or 28
+	limit.Parent = label
+	local pad = label:FindFirstChildOfClass("UIPadding") or Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0.06, 0)
+	pad.PaddingRight = UDim.new(0.06, 0)
+	pad.Parent = label
+end
+
 -- Called once by the match screen with its lobby frame.
 function LobbyMenu.attach(parent: GuiObject)
 	local h = holder or build()

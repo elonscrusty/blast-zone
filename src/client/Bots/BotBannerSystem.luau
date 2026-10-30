@@ -3,13 +3,12 @@
 -- decides everything (BotFillState shows it, AddBotsRequest asks); this only draws and asks.
 -- Phone first: the button is a big touch target and works with a mouse or a controller too.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(script.Parent.Parent.Core.Net)
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local BotBannerSystem = {}
 
@@ -20,21 +19,14 @@ local function color(name: string): Color3
 end
 
 function BotBannerSystem.start()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "BotBanner"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = UiLayers.Popups
-	gui.IgnoreGuiInset = false
-	gui.Enabled = false
-
+	-- Lives in the lobby layout's "banner" slot (Ui/LobbyLayout), so it can never sit on another piece.
 	local panel = Instance.new("Frame")
-	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.new(0.5, 0, 0, 8) -- top band; the lobby menu starts under it (LobbyLayout.bannerBottom)
-	panel.Size = UDim2.new(0.9, 0, 0, 108)
+	panel.Name = "BotBanner"
 	panel.BackgroundColor3 = color("Navy")
 	panel.BackgroundTransparency = 0.1
 	panel.BorderSizePixel = 0
-	panel.Parent = gui
+	panel.Visible = false
+	LobbyMenu.dock(panel, "banner")
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 12)
 	corner.Parent = panel
@@ -42,31 +34,28 @@ function BotBannerSystem.start()
 	stroke.Color = color("RewardGold")
 	stroke.Thickness = 2
 	stroke.Parent = panel
-	local fit = Instance.new("UISizeConstraint") -- 90% of a small phone, never wider than 300
-	fit.MaxSize = Vector2.new(300, 108)
-	fit.Parent = panel
 
 	local text = Instance.new("TextLabel")
 	text.BackgroundTransparency = 1
-	text.Position = UDim2.fromOffset(8, 8)
-	text.Size = UDim2.new(1, -16, 0, 34)
+	text.Position = UDim2.fromScale(0.04, 0.04)
+	text.Size = UDim2.fromScale(0.92, 0.32)
 	text.Font = Enum.Font.GothamBold
-	text.TextSize = 20
 	text.TextColor3 = Color3.new(1, 1, 1)
 	text.Text = "Alone? Bots join soon"
 	text.Parent = panel
+	LobbyMenu.fitText(text, 22)
 
 	local button = Instance.new("TextButton")
 	button.AnchorPoint = Vector2.new(0.5, 1)
-	button.Position = UDim2.new(0.5, 0, 1, -10)
-	button.Size = UDim2.new(1, -24, 0, 48)
+	button.Position = UDim2.fromScale(0.5, 0.95)
+	button.Size = UDim2.fromScale(0.92, 0.58) -- 58% of the 84 point slot: over the 48 point touch minimum
 	button.BackgroundColor3 = color("RewardGold")
 	button.Font = Enum.Font.GothamBold
-	button.TextSize = 20
 	button.TextColor3 = color("Navy")
 	button.Text = "Add bots now"
 	button.AutoButtonColor = true
 	button.Parent = panel
+	LobbyMenu.fitText(button, 24)
 	local buttonCorner = Instance.new("UICorner")
 	buttonCorner.CornerRadius = UDim.new(0, 10)
 	buttonCorner.Parent = button
@@ -84,13 +73,11 @@ function BotBannerSystem.start()
 		local seconds = if type(state) == "table" then state.secondsLeft else nil
 		if type(seconds) == "number" then
 			text.Text = `Alone? Bots join in {math.max(0, math.floor(seconds))}s`
-			gui.Enabled = true
+			panel.Visible = true
 		else
-			gui.Enabled = false
+			panel.Visible = false
 		end
 	end)
-
-	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
 return BotBannerSystem

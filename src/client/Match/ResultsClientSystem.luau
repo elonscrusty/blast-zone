@@ -224,9 +224,11 @@ function ResultsClientSystem.start()
 
 	local playSlot, playButton = sticker(lobby, "Play", "PLAY", true)
 	fill(playSlot, "play")
+	LobbyMenu.fitText(playButton, 40)
 
 	local settingsSlot, settingsButton = sticker(lobby, "Settings", "SETTINGS", false)
 	fill(settingsSlot, "settings")
+	LobbyMenu.fitText(settingsButton)
 	settingsButton.Activated:Connect(function()
 		local folder = script.Parent.Parent:FindFirstChild("Settings")
 		local module = if folder then folder:FindFirstChild("SettingsPanel") else nil

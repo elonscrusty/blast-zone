@@ -10,15 +10,17 @@ local Config = require(Shared.Config)
 local Looks = require(Shared.Character.Looks)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local LookPickerSystem = {}
 
 local localPlayer = Players.LocalPlayer
+-- The looks slot is 152 design points tall: three 48 point buttons and two 4 point gaps (LobbyLayout).
+local BUTTON_SHARE = 48 / 152
+local GAP_SHARE = 4 / 152
 local NAVY = Color3.fromHex(Config.Palette.Navy)
 local CYAN = Color3.fromHex(Config.Palette.Cyan)
 local WHITE = Color3.fromRGB(243, 241, 234)
-local BUTTON = Vector2.new(104, 48) -- points: above the 48 point touch minimum
 
 -- Phases where a body is not in a fight: the buttons show only here.
 local CALM = {
@@ -29,22 +31,17 @@ local CALM = {
 }
 
 function LookPickerSystem.start()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "LookPicker"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = UiLayers.Calm
-	gui.Enabled = true
-
+	-- Lives in the lobby layout's "looks" slot (Ui/LobbyLayout): three buttons stacked, 48 points each.
 	local row = Instance.new("Frame")
+	row.Name = "LookPicker"
 	row.BackgroundTransparency = 1
-	row.AnchorPoint = Vector2.new(0.5, 1)
-	row.Position = UDim2.new(0.5, 0, 1, -12)
-	row.Size = UDim2.new(0, BUTTON.X * 3 + 16, 0, BUTTON.Y)
-	row.Parent = gui
+	row.Visible = true
+	LobbyMenu.dock(row, "looks")
 	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.Padding = UDim.new(0, 8)
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.Padding = UDim.new(GAP_SHARE, 0)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.Parent = row
 
 	local buttons: { [string]: TextButton } = {}
@@ -64,13 +61,13 @@ function LookPickerSystem.start()
 		local button = Instance.new("TextButton")
 		button.Name = name
 		button.LayoutOrder = i
-		button.Size = UDim2.fromOffset(BUTTON.X, BUTTON.Y)
+		button.Size = UDim2.fromScale(1, BUTTON_SHARE)
 		button.Text = name
 		button.Font = Enum.Font.GothamBlack
-		button.TextSize = 16
 		button.AutoButtonColor = true
 		button.BorderSizePixel = 0
 		button.Parent = row
+		LobbyMenu.fitText(button, 22)
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0, 10)
 		corner.Parent = button
@@ -89,10 +86,9 @@ function LookPickerSystem.start()
 
 	Net.on("MatchState", function(state: any)
 		if type(state) == "table" then
-			gui.Enabled = CALM[state.phase] == true
+			row.Visible = CALM[state.phase] == true
 		end
 	end)
-	gui.Parent = localPlayer:WaitForChild("PlayerGui")
 end
 
 return LookPickerSystem

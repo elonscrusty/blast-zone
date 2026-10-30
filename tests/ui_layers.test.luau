@@ -261,3 +261,92 @@ Harness.test("HUD: on a tablet everything shrinks evenly and stays on screen", f
 		)
 	end
 end)
+
+-- Where a lobby slot really lands on a screen `aspect` wide (design height units): its group first,
+-- then the slot's share of the group (this is what LobbyMenu builds).
+local function slotOnScreen(name: string, aspect: number): LobbyLayout.Rect
+	local slot = LobbyLayout.slots[name]
+	local g = Layout.onScreen(LobbyLayout.groups[slot.group], aspect)
+	local x, y, w, h = LobbyLayout.relative(name)
+	return { x = g.x + x * g.w, y = g.y + y * g.h, w = w * g.w, h = h * g.h }
+end
+
+Harness.test(
+	"lobby slots: on short wide phones too, every slot is on screen and none touch another",
+	function()
+		-- 1914 x 604 is the playtest window (landscape phone, 3.17 wide); 2.6 is a very long phone.
+		local shapes = { TABLET, 1914 / 604, 2.6, table.unpack(PHONES) }
+		local list = slotNames()
+		for _, aspect in shapes do
+			local screenW = Layout.HEIGHT * aspect
+			local placed: { [string]: LobbyLayout.Rect } = {}
+			for _, name in list do
+				local r = slotOnScreen(name, aspect)
+				placed[name] = r
+				Harness.truthy(
+					r.x >= -1e-6 and r.x + r.w <= screenW + 1e-6,
+					`{name} off screen sideways at {aspect}`
+				)
+				Harness.truthy(
+					r.y >= -1e-6 and r.y + r.h <= Layout.HEIGHT + 1e-6,
+					`{name} off screen up/down at {aspect}`
+				)
+				if LobbyLayout.slots[name].touch and aspect >= Layout.MIN_ASPECT then
+					Harness.truthy(
+						r.h >= LobbyLayout.MIN_TOUCH - 1e-6,
+						`{name} is under 48 points tall at {aspect}`
+					)
+				end
+			end
+			for i, a in list do
+				for j = i + 1, #list do
+					Harness.eq(
+						Layout.overlaps(placed[a], placed[list[j]]),
+						false,
+						`{a} sits on {list[j]} at {aspect}`
+					)
+				end
+			end
+		end
+	end
+)
+
+Harness.test("lobby groups: none overlap, and the top group stays above the menu band", function()
+	local names = {}
+	for name in LobbyLayout.groups :: any do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	for _, aspect in { TABLET, 1914 / 604, table.unpack(PHONES) } do
+		local placed = {}
+		for _, name in names do
+			placed[name] = Layout.onScreen(LobbyLayout.groups[name], aspect)
+		end
+		for i, a in names do
+			for j = i + 1, #names do
+				Harness.eq(
+					Layout.overlaps(placed[a], placed[names[j]]),
+					false,
+					`group {a} overlaps {names[j]} at {aspect}`
+				)
+			end
+		end
+	end
+	local top = LobbyLayout.groups.top
+	Harness.truthy(top.y + top.h <= LobbyLayout.bannerBottom, "banner and vote run into the menu")
+end)
+
+Harness.test(
+	"lobby slots: the vote row fits four maps and the banner holds a tap button",
+	function()
+		local vote = LobbyLayout.slots.vote.rect
+		Harness.truthy(vote.w / 4 >= LobbyLayout.MIN_TOUCH * 2, "four vote buttons are too narrow")
+		-- BotBannerSystem: the button is 58% of the banner slot's height.
+		Harness.truthy(
+			LobbyLayout.slots.banner.rect.h * 0.58 >= LobbyLayout.MIN_TOUCH,
+			"banner button too short"
+		)
+		-- LookPickerSystem: three 48 point buttons and two 4 point gaps fill the looks slot exactly.
+		Harness.near(LobbyLayout.slots.looks.rect.h, 3 * 48 + 2 * 4, 1e-6)
+	end
+)

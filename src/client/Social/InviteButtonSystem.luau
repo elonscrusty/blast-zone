@@ -14,11 +14,10 @@ local FriendInvite = require(Shared.FriendInvite)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
-local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local player = Players.LocalPlayer
 local FONT = Enum.Font.FredokaOne
-local MIN_TOUCH = Config.Settings.minTouchTarget
 
 type Look = {
 	panel: string,
@@ -54,25 +53,12 @@ InviteButtonSystem.order = 220
 function InviteButtonSystem.start()
 	local look = loadLook()
 
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "InviteFriends"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = UiLayers.MatchFlow -- lobby layer, so an open panel (Modal) covers it
-	gui.Enabled = false
-
-	-- Bottom middle, under PLAY and SETTINGS: easy for a thumb, clear of the joystick and fire button.
+	-- Lives in the lobby layout's "invite" slot (Ui/LobbyLayout): above LOADOUT in the right column.
 	local slot = Instance.new("Frame")
 	slot.Name = "InviteSlot"
 	slot.BackgroundTransparency = 1
-	slot.AnchorPoint = Vector2.new(0.5, 0.5)
-	slot.Position = UDim2.fromScale(0.5, 0.88)
-	slot.Size = UDim2.fromScale(0.24, 0.1)
-	slot.Parent = gui
-	local minSize = Instance.new("UISizeConstraint")
-	minSize.MinSize = Vector2.new(MIN_TOUCH * 3, MIN_TOUCH)
-	minSize.MaxSize = Vector2.new(320, 80)
-	minSize.Parent = slot
+	slot.Visible = false
+	LobbyMenu.dock(slot, "invite")
 
 	local shadow = Instance.new("Frame")
 	shadow.Name = "Shadow"
@@ -89,7 +75,6 @@ function InviteButtonSystem.start()
 	button.Size = UDim2.fromScale(1, 1)
 	button.Text = "+ INVITE"
 	button.Font = FONT
-	button.TextScaled = true
 	button.AutoButtonColor = true
 	button.BackgroundColor3 = Color3.fromHex(look.panel)
 	button.TextColor3 = Color3.fromHex(look.ink)
@@ -101,18 +86,19 @@ function InviteButtonSystem.start()
 	pad.PaddingTop = UDim.new(0.2, 0)
 	pad.PaddingBottom = UDim.new(0.2, 0)
 	pad.Parent = button
+	LobbyMenu.fitText(button, 24) -- reuses the padding above for the sides
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromHex(look.outline)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
 
 	local function resize()
-		local h = gui.AbsoluteSize.Y
+		local camera = workspace.CurrentCamera
+		local h = if camera then camera.ViewportSize.Y else 360
 		stroke.Thickness = math.max(2, math.floor(h * look.strokeScale + 0.5))
 		shadow.Position = UDim2.fromOffset(0, math.max(2, math.floor(h * look.shadowOffset + 0.5)))
 	end
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
-	gui.Parent = player:WaitForChild("PlayerGui")
+	slot:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
 	resize()
 
 	-- ===== when to show it =====
@@ -122,7 +108,7 @@ function InviteButtonSystem.start()
 		return character ~= nil and character:GetAttribute(Config.Attributes.ParticipantId) ~= nil
 	end
 	local function refresh()
-		gui.Enabled = FriendInvite.showButton(phase, inMatch())
+		slot.Visible = FriendInvite.showButton(phase, inMatch())
 	end
 	Net.on("MatchState", function(state: any)
 		if type(state) == "table" and type(state.phase) == "string" then

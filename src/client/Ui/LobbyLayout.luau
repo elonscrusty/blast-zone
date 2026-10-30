@@ -22,7 +22,8 @@ LobbyLayout.bannerBottom = 178
 LobbyLayout.groups = {
 	menu = { x = 280, y = 180, w = 220, h = 132 } :: Rect, -- centre column
 	side = { x = 56, y = 160, w = 104, h = 152 } :: Rect, -- left column, clear of the notch
-	right = { x = 620, y = 208, w = 104, h = 104 } :: Rect, -- right column, clear of the notch
+	right = { x = 620, y = 152, w = 104, h = 160 } :: Rect, -- right column, clear of the notch
+	top = { x = 140, y = 4, w = 500, h = 140 } :: Rect, -- banner and map vote, above the menu
 }
 
 export type Slot = { group: string, rect: Rect, touch: boolean }
@@ -32,7 +33,11 @@ LobbyLayout.slots = {
 	play = { group = "menu", rect = { x = 280, y = 208, w = 220, h = 50 }, touch = true } :: Slot,
 	settings = { group = "menu", rect = { x = 280, y = 264, w = 106, h = 48 }, touch = true } :: Slot,
 	track = { group = "menu", rect = { x = 394, y = 264, w = 106, h = 48 }, touch = true } :: Slot, -- piece 18
-	looks = { group = "side", rect = { x = 56, y = 160, w = 104, h = 152 }, touch = true } :: Slot, -- fighter looks
+	looks = { group = "side", rect = { x = 56, y = 160, w = 104, h = 152 }, touch = false } :: Slot, -- three look buttons stacked, each 48 tall (LookPicker)
+	-- Pieces that used their own spot before (and sat on top of each other) now share the layout.
+	banner = { group = "top", rect = { x = 240, y = 4, w = 300, h = 84 }, touch = false } :: Slot, -- "Alone? Bots join" + button
+	vote = { group = "top", rect = { x = 140, y = 94, w = 500, h = 48 }, touch = true } :: Slot, -- map vote row (piece 33)
+	invite = { group = "right", rect = { x = 620, y = 152, w = 104, h = 48 }, touch = true } :: Slot, -- + INVITE (piece 26)
 	loadout = { group = "right", rect = { x = 620, y = 208, w = 104, h = 48 }, touch = true } :: Slot, -- piece 19
 	daily = { group = "right", rect = { x = 620, y = 264, w = 104, h = 48 }, touch = true } :: Slot, -- piece 25
 }
