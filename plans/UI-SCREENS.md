@@ -54,10 +54,11 @@ results add-ons 55, full panels 100, first-time intro 110, toasts 120.
 | 27 | **Invite button** | lobby and while watching | normal, pressed (opens Roblox's own invite box) | INVITE | (Roblox SocialService) | MatchFlow slot | Social/InviteButtonSystem (#22) |
 | 28 | **Zone screen tint** | screen edges when outside the zone | off, outside (red edges + arrow) | arrow to safety | ZoneState | ZoneTint | Zone/ZoneHud (main) |
 | 29 | **Toasts** | top centre, no taps | short message 2 s | "Saved", notices | Notice | Toast | (new, uses Components) |
+| G20 | **Season pass** | lobby slot `season` (PASS button) opens a full panel | loading, tiers locked / TAKE / DONE, paid cell SOON (nothing sells it yet), TAKE ALL, dot on the button when something is ready, toast `TAKEN!` | TIER n/20, time left (`Ends in 3d 5h`), bar to the next tier, free and paid reward per tier (`+25 Scrap` or a look name) | SeasonRequest, SeasonClaimRequest, SeasonState | Modal + Toast | Season/SeasonUiSystem (G20) |
 
 Not on screen (no look needed): audio (#13), anti-cheat reset lock (#23), performance (#14).
 
 ## Words on buttons
 
 PLAY, PLAY AGAIN, READY!, SETTINGS, REWARDS, UNLOCK, WEAR, WORN, LOCKED, DONE, GOT IT, Skip, TRY AGAIN,
-INVITE, Add bots now. Coins are called **Scrap**. Prices come from the game's Config, never made up.
+INVITE, Add bots now, PASS, TAKE, TAKE ALL, SOON. Coins are called **Scrap**. Prices come from the game's Config, never made up.

@@ -214,6 +214,41 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Video 3 gap 20: the season pass for one player (server to client only).
+export type SeasonRewardView = {
+	kind: string, -- "scrap" | "item"
+	amount: number?, -- scrap
+	itemId: string?, -- item
+	name: string?, -- item name
+}
+
+export type SeasonTierView = {
+	tier: number,
+	xpNeeded: number, -- season XP total this tier opens at
+	free: SeasonRewardView,
+	paid: SeasonRewardView,
+	freeState: string, -- "locked" | "ready" | "claimed"
+	paidState: string, -- "locked" | "needPass" | "ready" | "claimed"
+}
+
+export type SeasonClaimView = { tier: number, row: string, reward: SeasonRewardView }
+
+export type SeasonState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	season: number,
+	secondsLeft: number, -- until the season turns
+	xp: number,
+	tier: number, -- tiers reached
+	maxTier: number,
+	intoTier: number, -- XP toward the next tier
+	forNext: number?, -- XP the next tier needs (nil at the top)
+	hasPass: boolean, -- the paid row is open
+	forSale: boolean, -- the paid row can be bought (false until carter gives the product number)
+	tiers: { SeasonTierView },
+	justClaimed: { SeasonClaimView }?, -- set once, right after claims were paid
+	denied: string?, -- why the last claim was refused
+}
+
 -- Piece 19. What the loadout screen needs: which ids are picked, which are open, and what the player has.
 export type LoadoutState = {
 	selection: { [string]: string }, -- slot -> item id

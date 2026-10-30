@@ -1,0 +1,10 @@
+# G20 Season pass (video 3 gap 20)
+- Done: a 28-day season (`Config.Season`: `startUnix`, `lengthDays`, `xpPerTier`). 20 tiers, each with a FREE and a PASS reward (Scrap or a look). List: `src/shared/Season/SeasonDefs.luau` (tier numbers and look ids are saved, never rename). Looks are `TrackDefs.passItems` (cost -1, not for sale, never power).
+- Season XP is the same run XP the account level uses: `LevelSystem.XpEarned` (new signal) -> `SeasonSystem`. Once per match key, capped, bots never count. Nothing a client sends adds XP.
+- Claiming: client asks `SeasonClaimRequest(tier, row)` (tier 0 = take all ready). Server checks reached / paid row open / not taken, pays through `ProgressionSystem.grant` or new `giveItem` (once per `s:<season>:<tier>:<row>`; a look already owned pays `Config.Season.duplicateScrap` Scrap), then marks it taken. A failed payment stays untaken and can be tried again.
+- New season (every 28 days) wipes XP, claims and the paid row. Untaken rewards are lost, so the screen shows time left.
+- Saving: `data.season` through `Profiles.update` (piece 17); no profile module = memory, "Test mode: not saved".
+- NOT for sale yet: the paid row opens only through `SeasonSystem.unlockPaid(player)`. No Robux number or price exists (`Config.Season.forSale = false`, cell says SOON). To sell it: carter gives the real product number, then one small PR adds the purchase receipt handler that calls `unlockPaid`. Do not add a prompt without that handler.
+- Remotes (G20 block): `SeasonRequest`, `SeasonClaimRequest`, `SeasonState`. Client: `src/client/Season/SeasonUiSystem.luau`, placeholder look built only from `Ui/Components`; PASS button in new lobby slot `season` (right column grew up to y 152).
+- Tests: `tests/season.test.luau` (clock, tiers, once-per-match, claim rules, retry, take all, new season, pay once, look/dup/refusals); 3 deliberate breaks made it fail. Lune 999 pass, StyLua clean, rojo build ok. Selene cannot run here (no API dump); CI runs it. Nothing run in Studio.
+- Left: the look (Claude Design), real season rewards after season 1, the buy step once carter has a product.

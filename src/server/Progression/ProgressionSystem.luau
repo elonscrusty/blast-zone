@@ -145,6 +145,19 @@ function ProgressionSystem.grant(player: Player, amount: number, key: string): (
 	return service.grant(player, amount, key)
 end
 
+-- A season pass look (piece G20): once per key; a look already owned pays Scrap instead. False + reason when not given.
+function ProgressionSystem.giveItem(
+	player: Player,
+	itemId: string,
+	key: string,
+	dupScrap: number
+): (boolean, string?)
+	if (service :: any) == nil then
+		return false, "notStarted"
+	end
+	return service.giveItem(player, itemId, key, dupScrap)
+end
+
 -- The run XP a player earned in a finished match (LevelSystem calls this). Once per match; false + nothing paid otherwise.
 function ProgressionSystem.onXp(player: Player, xp: number, matchId: number): boolean
 	return (service :: any) ~= nil and service.onXp(player, xp, matchId)

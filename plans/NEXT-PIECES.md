@@ -59,3 +59,4 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 44 | Turn the camera (bug: the view was locked): mouse right-button drag, touch drag on the free right side, gamepad L2 + right stick; walking, minimap follow the turn | 2, 10 | PR up | handoff 44 |
 | 45 | Fast Feet (video 3 bundle C): run toggle with a breath bar, hop low cover with the Slide button, 2 slide charges | 43 | PR up | fast feet PR |
 | 46 | Heroes (video 3 gaps #12 + stat cards of #13): 5 original heroes, own health + own two guns, free HERO loadout slot, server-decided, gun stat cards (logic only; looks from Claude Design) | 9, 20 | PR up | heroes PR |
+| G20 | Season pass (video 3 gap 20): 28-day seasons, 20 tiers, free row + paid row, season XP from every match, TAKE / TAKE ALL (looks and Scrap only; the paid row is not for sale yet; logic only, look from Claude Design) | 18, 34 | PR up | season pass PR |
