@@ -1,14 +1,13 @@
 --!strict
--- Draws the safe zone for this player: the world ring (Neon Wall), the warning banner, and the
--- red edges plus an arrow when standing outside. It only reads what the server sent (ZoneState)
--- and the match phase (MatchState); the server alone decides damage.
+-- Draws the safe zone for this player: the world ring (Neon Wall), and the red edges plus an
+-- arrow when standing outside. Warning text and the timer chip are piece 10's HUD. It only reads
+-- what the server sent (ZoneState) and the match phase (MatchState); the server alone decides damage.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent.Core.Net)
@@ -35,24 +34,9 @@ local function localRoot(): (BasePart?, boolean)
 	return nil, false
 end
 
-local function bannerFor(view: ZoneView.View, stageCount: number): (string, Color3)
-	local colors = ZoneHud.COLORS
-	if view.suddenDeath then
-		return "SUDDEN DEATH  STAY IN THE CIRCLE", colors.coral
-	elseif view.phase == "Warning" then
-		local seconds = math.ceil(view.secondsToClose or 0)
-		local label = if view.stage >= stageCount then "FINAL ZONE" else "ZONE"
-		return `{label} CLOSING IN {seconds}`, colors.gold
-	elseif view.phase == "Closing" then
-		return `ZONE CLOSING  {math.ceil(view.secondsToSettle or 0)}s`, colors.cyan
-	end
-	return "", colors.cyan
-end
-
 function ZoneClientSystem.start()
 	local boundary = ZoneBoundary.new()
 	local hud = ZoneHud.new()
-	local stageCount = #(Config.Zone.stages :: { any })
 
 	Net.on("ZoneState", function(state)
 		ZoneView.setState(state)
@@ -99,13 +83,6 @@ function ZoneClientSystem.start()
 			end
 		end
 		hud:setOutside(outside, heading, now)
-
-		if outside then
-			local dps = math.round(view.damagePerSecond)
-			hud:setBanner(`OUTSIDE THE ZONE  -{dps}/s`, ZoneHud.COLORS.coral)
-		else
-			hud:setBanner(bannerFor(view, stageCount))
-		end
 	end)
 end
 
