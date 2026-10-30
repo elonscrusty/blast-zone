@@ -1,12 +1,14 @@
 --!strict
--- Gets every fighter's body ready for the client's drawn animations: no Roblox walk cycle, and a defeated
--- fighter stays in one piece (the death pose is drawn on the client) instead of falling apart.
+-- Gets every fighter's body ready: dressed in its look, no Roblox walk cycle, and a defeated fighter stays
+-- in one piece (the death pose is drawn on the client) instead of falling apart.
 -- Players and bots are found the same way: a Model with a ParticipantId attribute and a Humanoid.
 
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local CharacterStyler = require(script.Parent.CharacterStyler)
 
 local CharacterSetupSystem = {}
 CharacterSetupSystem.order = 90
@@ -34,6 +36,16 @@ local function prepare(model: Model)
 	local animate = model:FindFirstChild("Animate")
 	if animate ~= nil then
 		animate:Destroy()
+	end
+	CharacterStyler.apply(model)
+	local player = Players:GetPlayerFromCharacter(model)
+	if player ~= nil then
+		-- The player's own avatar finishes loading after the body appears; dress it again over that.
+		player.CharacterAppearanceLoaded:Connect(function(character: Model)
+			if character == model then
+				CharacterStyler.apply(model)
+			end
+		end)
 	end
 	model.AncestryChanged:Once(function(_, parent)
 		if parent == nil then

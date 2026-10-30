@@ -338,6 +338,8 @@ Config.Perf = {
 
 -- Piece 11. Character poses are drawn from code (no animation assets), so these are the only knobs.
 Config.Character = {
+	defaultLook = "Runner", -- Runner, Courier or Spark (carter's pick is the default, the others are skins)
+	lookAttribute = "CharacterLook", -- set on a player or a character to wear another look
 	moveSpeedMin = 2, -- studs/s above which a fighter counts as moving
 	runForwardMin = 0.55, -- forward share of the movement (0..1) needed to look like running, else strafing
 	aimHold = 0.45, -- seconds after a shot that the fighter keeps the gun up
