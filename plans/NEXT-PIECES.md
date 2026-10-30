@@ -20,4 +20,5 @@ Source of truth: carter's design brief (game name in `Config.Game.Name`). Sectio
 | 09 | Test bots | 18 | PR up | #6 |
 | 10 | HUD, minimap + zone display, touch/desktop/controller controls, settings (cards moved to 08, results to 05) | 20 | PR up | #8 |
 | 11 | Integration: all pieces merged on one branch, checks green, BlastZone.rbxl | - | PR up | integration PR |
-| N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | this PR |
+| N11 | Original character (3 looks) + animations: move, aim/fire, reload, slide, hit, defeat, victory | 21 | PR up | own PR |
+| 18 | Coins + unlock track (looks only) + combined claim strip on the results screen | 19 | PR up | own PR |
