@@ -50,7 +50,7 @@ Config.Match = {
 	simultaneousEliminationWindow = 0.1,
 	-- Piece 05 extras
 	settleSeconds = 0.3, -- after the last rival falls, a shot already in flight can still land
-	resultsMinSeconds = 3, -- results stay up at least this long, even if everyone taps Play again at once
+	resultsMinSeconds = 1, -- Results phase lasts at least this long, even if everyone taps Play again at once
 	finalPressureAliveCount = 2, -- Final pressure starts when this few are left...
 	finalPressureAtSeconds = 150, -- ...or this long after Active begins (the zone's last warning does it too)
 	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw

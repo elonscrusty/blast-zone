@@ -9,6 +9,7 @@ require("./config.test")
 require("./core.test")
 require("./guard.test")
 require("./match_controller.test")
+require("./match_results_text.test")
 require("./match_rules.test")
 
 Harness.summary()

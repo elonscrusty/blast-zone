@@ -724,3 +724,26 @@ Harness.test(
 		Harness.eq(rig.ctx:getPhase(), "FinalPressure")
 	end
 )
+
+Harness.test("a self-kill (own blast) gives no kill credit and shows no killer", function()
+	local rig, ids = humans(2)
+	rig.untilPhase("Active")
+	rig.kill(ids[1], ids[1], "blast")
+	local e = rig.eliminated[1]
+	Harness.eq(e.victimId, ids[1])
+	Harness.eq(e.killerId, nil)
+	rig.untilPhase("Finished", 3)
+	for _, row in (rig.ctl.getResult() :: MatchController.Result).rows do
+		Harness.eq(row.eliminations, 0)
+	end
+end)
+
+Harness.test("results go out as soon as the match ends, so the banner shows at once", function()
+	local rig, ids = humans(2)
+	rig.untilPhase("Active")
+	rig.kill(ids[2], ids[1])
+	rig.untilPhase("Finished", 2)
+	Harness.eq(rig.results[ids[1]].you.placement, 1)
+	Harness.eq(rig.results[ids[2]].you.placement, 2)
+	Harness.truthy(rig.results[ids[1]].endsAt > rig.now(), "close time is in the future")
+end)

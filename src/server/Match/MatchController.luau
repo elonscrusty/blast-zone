@@ -289,27 +289,8 @@ function MatchController.new(deps: Deps): Controller
 		}
 	end
 
-	local function finish(reason: string)
-		if not setPhase(phases.Finished, M.finishedHoldSeconds, "match_over") then
-			return
-		end
-		settleUntil = nil
-		result = buildResult(reason)
-		refreshSpectators()
-	end
-
-	local function toResults()
-		local res = result :: Result
-		if not setPhase(phases.Results, M.resultsSeconds, "results") then
-			return
-		end
-		resultsStartedAt = clock()
-		for _, id in humanOrder do
-			if spectateTarget[id] ~= nil then
-				setTarget(id, nil)
-			end
-		end
-		local endsAt = ctx:getPhaseEndsAt()
+	-- The results go out the moment the match ends, so the winner banner and Play again are there straight away.
+	local function sendResults(res: Result)
 		for _, row in res.rows do
 			local forfeit = false
 			for _, d in departed do
@@ -324,6 +305,8 @@ function MatchController.new(deps: Deps): Controller
 				}
 			end
 		end
+		local holdEnds = ctx:getPhaseEndsAt() or clock()
+		local closesAt = world.toServerTime(holdEnds + M.resultsSeconds)
 		for _, id in humanOrder do
 			local mine: Row? = nil
 			for _, row in res.rows do
@@ -338,7 +321,7 @@ function MatchController.new(deps: Deps): Controller
 				draw = res.outcome ~= "win",
 				outcome = res.outcome,
 				winnerId = res.winnerId,
-				endsAt = if endsAt then world.toServerTime(endsAt) else nil,
+				endsAt = closesAt,
 				you = if mine
 					then {
 						placement = mine.placement,
@@ -348,6 +331,27 @@ function MatchController.new(deps: Deps): Controller
 					}
 					else nil,
 			})
+		end
+	end
+
+	local function finish(reason: string)
+		if not setPhase(phases.Finished, M.finishedHoldSeconds, "match_over") then
+			return
+		end
+		settleUntil = nil
+		local res = buildResult(reason)
+		result = res
+		for _, id in humanOrder do
+			if spectateTarget[id] ~= nil then
+				setTarget(id, nil) -- the results screen takes over
+			end
+		end
+		sendResults(res)
+	end
+
+	local function toResults()
+		if setPhase(phases.Results, M.resultsSeconds, "results") then
+			resultsStartedAt = clock()
 		end
 	end
 
