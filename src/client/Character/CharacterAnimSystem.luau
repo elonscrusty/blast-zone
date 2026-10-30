@@ -11,15 +11,18 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Emotes = require(Shared.Character.Emotes)
 local Pose = require(Shared.Character.Pose)
 local Net = require(script.Parent.Parent.Core.Net)
 local CharacterGun = require("./CharacterGun")
 local CharacterRig = require("./CharacterRig")
+local WinPose = require(script.Parent.Parent.Emotes.WinPose)
 
 local CharacterAnimSystem = {}
 CharacterAnimSystem.order = 130
 
 local tuning = Config.Character
+local emoteTuning = Config.Emotes
 local MAX_RIG_TRIES = 20
 local localId = "p" .. tostring(Players.LocalPlayer.UserId)
 
@@ -212,6 +215,20 @@ local function inputFor(rec: Rec, now: number): Pose.Input
 	}
 end
 
+-- The emote this body plays (server attributes, piece 29), or nil. Not while dead or moving.
+local function emoteOf(model: Model): Pose.Pose?
+	local id = model:GetAttribute(emoteTuning.attribute)
+	local at = model:GetAttribute(emoteTuning.startedAttribute)
+	if type(id) ~= "string" or type(at) ~= "number" or not isAlive(model) then
+		return nil
+	end
+	local age = Workspace:GetServerTimeNow() - at
+	if age > emoteTuning.maxSeconds then
+		return nil
+	end
+	return Emotes.compute(id, age)
+end
+
 local function step(dt: number)
 	local now = os.clock()
 	for model, rec in recs do
@@ -223,6 +240,14 @@ local function step(dt: number)
 			sweepTracks(model)
 		end
 		local target = Pose.compute(inputFor(rec, now))
+		if winnerId ~= nil and winnerId == rec.id and isAlive(model) then
+			target = Emotes.win(WinPose.of(rec.id), now) -- the winner pose this player picked (piece 29)
+		else
+			local emote = emoteOf(model)
+			if emote ~= nil then
+				target = emote
+			end
+		end
 		Pose.blend(rec.pose, target, dt, tuning.smoothing)
 		CharacterRig.apply(rec.joints, rec.pose)
 		local flash = rec.flash

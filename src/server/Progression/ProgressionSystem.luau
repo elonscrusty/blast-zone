@@ -24,6 +24,17 @@ ProgressionSystem.order = 60
 
 local service: ProgressService.Service
 local memory: ProgressService.Store? = nil
+local readStore: ProgressService.Store? = nil
+
+-- A copy of a player's progression, or nil when it is not loaded. Read-only: emotes (piece 29) use it to see
+-- how far along the track a player is. Changes still go only through the service.
+function ProgressionSystem.progressOf(player: Player): ProgressRules.Progression?
+	local store = readStore
+	if store == nil then
+		return nil
+	end
+	return store.read(player)
+end
 
 -- The real profile (piece 17), if it is in this build.
 local function findProfiles(): any?
@@ -106,6 +117,8 @@ function ProgressionSystem.start()
 		memory = mem
 		store = mem
 	end
+
+	readStore = store
 
 	local attributes = Config.Progression.attributes
 	service = ProgressService.new({

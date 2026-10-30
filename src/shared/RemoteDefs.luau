@@ -132,6 +132,9 @@ local Defs: { Def } = {
 	ask("18", "EquipRequest", { { name = "itemId", kind = "id" } }, 3, 4),
 	tell("18", "ProgressState", "ProgressState"),
 
+	-- ===== 29 emotes =====
+	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
+
 	-- ===== 10 hud: add here only if you truly need a new remote =====
 
 	-- ===== N11 character looks =====
