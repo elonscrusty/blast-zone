@@ -46,6 +46,14 @@ for _, size in SIZES do
 			{ name = layout.name, solids = solids, ground = ground, spawns = spawns, boxes = boxes }
 	end
 	local last = zone.stages[#zone.stages]
+	local stages = {}
+	for _, st in zone.stages do
+		table.insert(stages, { st.closeAt, st.closeSeconds, st.targetRadius })
+	end
+	table.insert(
+		stages,
+		{ zone.suddenDeath.startsAt, zone.suddenDeath.closeSeconds, zone.suddenDeath.targetRadius }
+	)
 	table.insert(out.sizes, {
 		id = size.id,
 		name = size.name,
@@ -55,6 +63,7 @@ for _, size in SIZES do
 		seconds = zone.suddenDeath.startsAt + zone.suddenDeath.closeSeconds,
 		radius = zone.initialRadius,
 		finalRadius = last.targetRadius,
+		stages = stages,
 		maps = maps,
 	})
 end
