@@ -374,16 +374,33 @@ function UpgradeCardsSystem.start()
 		end
 	end)
 
-	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-		if processed or current == nil then
-			return
-		end
-		local index = table.find(Config.Upgrades.desktopKeys, input.KeyCode.Name)
-			or GAMEPAD_KEYS[input.KeyCode]
-		if index ~= nil then
-			choose(index)
-		end
-	end)
+	-- Shortcuts. When the controls door exists (piece 10) it owns the keys and the D-pad and sends
+	-- the actions "upgrade1" to "upgrade3"; without it, read the keys here.
+	local controlsFolder = script.Parent.Parent:FindFirstChild("Controls")
+	local controlsModule = if controlsFolder then controlsFolder:FindFirstChild("Controls") else nil
+	local okControls, Controls = false, nil :: any
+	if controlsModule ~= nil and controlsModule:IsA("ModuleScript") then
+		okControls, Controls = pcall(require, controlsModule)
+	end
+	if okControls and Controls ~= nil then
+		Controls.Action:connect(function(name: string)
+			local index = tonumber(string.match(name, "^upgrade(%d)$"))
+			if index ~= nil and current ~= nil then
+				choose(index)
+			end
+		end)
+	else
+		UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+			if processed or current == nil then
+				return
+			end
+			local index = table.find(Config.Upgrades.desktopKeys, input.KeyCode.Name)
+				or GAMEPAD_KEYS[input.KeyCode]
+			if index ~= nil then
+				choose(index)
+			end
+		end)
+	end
 end
 
 return UpgradeCardsSystem
