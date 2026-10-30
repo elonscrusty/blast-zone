@@ -32,7 +32,7 @@ export type Rig = {
 	benched: { string },
 }
 
-local function newRig(matchOverrides: { [string]: any }?): Rig
+local function newRig(matchOverrides: { [string]: any }?, squads: any?): Rig
 	local t = 0
 	local function clock(): number
 		return t
@@ -147,6 +147,7 @@ local function newRig(matchOverrides: { [string]: any }?): Rig
 		ids = Ids,
 		clock = clock,
 		world = world,
+		squads = squads,
 	})
 	router.Eliminated:connect(function(e: any)
 		ctl.onEliminated(e)
@@ -188,8 +189,8 @@ local function newRig(matchOverrides: { [string]: any }?): Rig
 end
 
 -- N humans, all ready, no bots. Returns the rig and their ids.
-local function humans(n: number, overrides: { [string]: any }?): (Rig, { string })
-	local rig = newRig(overrides)
+local function humans(n: number, overrides: { [string]: any }?, squads: any?): (Rig, { string })
+	local rig = newRig(overrides, squads)
 	local ids = {}
 	for i = 1, n do
 		local id = rig.join(i)

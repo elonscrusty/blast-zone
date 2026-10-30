@@ -5,7 +5,7 @@
 - It closes by itself when the HUD goes away (eliminated, match over) and when a level-up offer appears (cards and chips need the space). It cannot open in the lobby or countdown.
 - Code: `Hud/BigMapMath` (world to panel maths), `Hud/BigMapModel` (open/close/auto-close rules), `Hud/BigMapView` (placeholder look from Ui/Tokens roles), wired in `Hud/HudSystem`; `HudView.mapButton` is the tap target. Layer `UiLayers.BigMap` (12). Spot: `Layout.bigMap`.
 - Binding: `Bindings.actions.map` (M, ButtonY, touch = minimap).
-- Config: `Config.BigMap.enabled`, `autoCloseSeconds` (0 = stays open until tapped; 4 = a quick peek). carter picks which.
+- Config: `Config.BigMap.enabled`, `autoCloseSeconds` = 8 (carter picked C: closes itself after 8 s; A stays open and B 4 s stay as the other settings, 0 = stays).
 - Tests: `tests/big_map.test.luau` (maths for any camera turn, corners stay on the panel, ring sizes, open/close rules, bindings, no overlap with thumbs/buttons/card band on every phone shape).
 - Not tested until carter plays: how big 220 points feels on a real phone, whether covering the player for a moment is OK.
 - Left: crates/guns/heal packs on the map, marking your own pings, the real look from Claude Design.
