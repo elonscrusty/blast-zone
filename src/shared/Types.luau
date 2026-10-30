@@ -198,4 +198,11 @@ export type DailyState = {
 	justPaid: string?, -- set once, right after a challenge paid out
 }
 
+-- Piece 38: the weather the server picked for this match. level "clear" means no rain.
+export type WeatherState = {
+	matchId: MatchId,
+	level: string, -- "clear" | one of Config.Weather.levels
+	serverNow: number,
+}
+
 return {}
