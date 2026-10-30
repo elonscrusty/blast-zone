@@ -6,6 +6,69 @@
 local FIRE_RATE = 5 -- shots per second
 local EXPLOSIVE_INTERVAL = 1.6 -- seconds between mortar shots
 
+-- Crowd size (piece 47). A match is filled with bots up to CROWD fighters. ARENA_SCALE stretches the
+-- arena (1 = the first 220-stud street, 1.3 = about 286 studs) and, with it, the safe circle and the
+-- match clock, because a longer street takes longer to cross. Change these two numbers, nothing else.
+local CROWD = 25
+local ARENA_SCALE = 1.3
+
+local function scaled(n: number): number
+	return math.floor(n * ARENA_SCALE + 0.5)
+end
+
+-- The safe circle for a map stretched by `scale`: radii follow the map, times follow the walk.
+-- At scale 1 these are the numbers the first 8-fighter matches used.
+local function zoneFor(scale: number)
+	local function r(n: number): number
+		return math.floor(n * scale + 0.5)
+	end
+	return {
+		centerX = 0,
+		centerZ = 0,
+		centerMode = "fixed",
+		initialRadius = r(156), -- the whole square, corners included
+		tickSeconds = 0.5,
+		edgeTolerance = 0.5, -- exactly on the edge counts as inside
+		stages = {
+			{
+				warnAt = r(35),
+				closeAt = r(45),
+				closeSeconds = r(20),
+				targetRadius = r(105),
+				damagePerSecond = 2,
+			},
+			{
+				warnAt = r(75),
+				closeAt = r(85),
+				closeSeconds = r(20),
+				targetRadius = r(68),
+				damagePerSecond = 4,
+			},
+			{
+				warnAt = r(115),
+				closeAt = r(125),
+				closeSeconds = r(15),
+				targetRadius = r(38),
+				damagePerSecond = 7,
+			},
+			{
+				warnAt = r(150),
+				closeAt = r(158),
+				closeSeconds = r(12),
+				targetRadius = r(14),
+				damagePerSecond = 12,
+			},
+		},
+		-- Sudden death is a rule, not a banner: the circle keeps closing and hurts much more.
+		suddenDeath = {
+			startsAt = r(170),
+			closeSeconds = r(15),
+			targetRadius = r(4),
+			damagePerSecond = 25,
+		},
+	}
+end
+
 -- What a game mode may change (piece G24, see Config.Modes). Every field is optional; a missing one means "as usual".
 export type ModeTuning = {
 	zoneTimeScale: number?, -- multiplies every zone time (warn, close, sudden death); below 1 = a faster circle
@@ -54,8 +117,8 @@ Config.Features = {
 
 -- Match lifecycle (piece 05). Times in seconds.
 Config.Match = {
-	targetParticipants = 6,
-	maxParticipants = 8,
+	targetParticipants = CROWD, -- bots top a part-full lobby up to this many fighters
+	maxParticipants = CROWD,
 	minToStart = 2,
 	fillWaitSeconds = 12, -- grace after minToStart is met, so friends can join
 	countdownSeconds = 5,
@@ -63,15 +126,15 @@ Config.Match = {
 	finishedHoldSeconds = 3,
 	resultsSeconds = 20,
 	resettingSeconds = 2,
-	targetMatchSeconds = 180,
+	targetMatchSeconds = scaled(180),
 	-- Two final eliminations closer together than this are a draw (both rank 1).
 	simultaneousEliminationWindow = 0.1,
 	-- Piece 05 extras
 	settleSeconds = 0.3, -- after the last rival falls, a shot already in flight can still land
 	resultsMinSeconds = 1, -- Results phase lasts at least this long, even if everyone taps Play again at once
 	finalPressureAliveCount = 2, -- Final pressure starts when this few are left...
-	finalPressureAtSeconds = 150, -- ...or this long after Active begins (the zone's last warning does it too)
-	maxActiveSeconds = 210, -- safety net: a match still going then ends as a draw
+	finalPressureAtSeconds = scaled(150), -- ...or this long after Active begins (the zone's last warning does it too)
+	maxActiveSeconds = scaled(210), -- safety net: a match still going then ends as a draw
 }
 
 -- Piece 33. Players vote on the next map in the lobby between matches. The server counts.
@@ -448,13 +511,14 @@ Config.Vault = {
 }
 
 Config.Arena = {
-	size = 220, -- studs, square, centered on centerX/centerZ
+	scale = ARENA_SCALE, -- piece 47: how far the layouts are stretched (1 = the 220-stud originals)
+	size = 220 * ARENA_SCALE, -- studs, square, centered on centerX/centerZ
 	centerX = 0,
 	centerZ = 0,
-	minSpawns = 8,
-	spawnMinSeparation = 40,
+	minSpawns = CROWD, -- layouts are topped up to one spawn point per fighter
+	spawnMinSeparation = 36, -- above the calm-start sight range, so nobody spawns in view
+	containerSpots = 36, -- crate points per map (topped up from the layout's own); about 1.4 per fighter
 	spawnClearRadius = 4,
-	containerSpots = 12,
 	parkEntrancesMin = 2,
 	-- Piece 04. Which graybox layout is built (A, B or C, see src/server/Arena/Layout*.luau).
 	layout = "C", -- carter picked C (Arcade Row); A and B stay as extra maps
@@ -534,7 +598,7 @@ Config.Pickups = {
 	collectRadius = 5, -- server check
 	magnetRadius = 9, -- cosmetic pull on the client; never decides ownership
 	healAmount = 25, -- when Features.healPickup is on
-	maxActive = 60,
+	maxActive = 80, -- piece 47: 25 fighters break more crates than 8 did
 	reserveSeconds = 1.5, -- the player who broke the container gets first claim on its orbs for this long
 	claimSlack = 1.5, -- extra studs the server forgives for lag when it checks a claim
 	scatterRadius = 3.5, -- orbs land on a ring this wide around the container
@@ -564,26 +628,39 @@ Config.Upgrades = {
 
 -- Safe area (piece 06). All times are seconds after Active begins.
 -- Each stage: warn, then close to targetRadius over closeSeconds, then hold.
-Config.Zone = {
-	centerX = 0,
-	centerZ = 0,
-	centerMode = "fixed",
-	initialRadius = 156, -- the whole 220 square, corners included
-	tickSeconds = 0.5,
-	edgeTolerance = 0.5, -- exactly on the edge counts as inside
-	stages = {
-		{ warnAt = 35, closeAt = 45, closeSeconds = 20, targetRadius = 105, damagePerSecond = 2 },
-		{ warnAt = 75, closeAt = 85, closeSeconds = 20, targetRadius = 68, damagePerSecond = 4 },
-		{ warnAt = 115, closeAt = 125, closeSeconds = 15, targetRadius = 38, damagePerSecond = 7 },
-		{ warnAt = 150, closeAt = 158, closeSeconds = 12, targetRadius = 14, damagePerSecond = 12 },
-	},
-	-- Sudden death is a rule, not a banner: the circle keeps closing and hurts much more.
-	suddenDeath = { startsAt = 170, closeSeconds = 15, targetRadius = 4, damagePerSecond = 25 },
-}
+-- Built by zoneFor() above so it follows ARENA_SCALE. Config.zoneAt(1) is the first 220-stud version.
+Config.Zone = zoneFor(ARENA_SCALE)
+Config.zoneAt = zoneFor
 
 Config.Bots = {
 	labelPrefix = "[BOT] ",
-	names = { "Volt", "Static", "Ohm", "Relay", "Diode", "Fuse", "Coil", "Spark" },
+	-- 24 different names: a full 25-fighter match has 24 bots and none may share a name.
+	names = {
+		"Volt",
+		"Static",
+		"Ohm",
+		"Relay",
+		"Diode",
+		"Fuse",
+		"Coil",
+		"Spark",
+		"Amp",
+		"Watt",
+		"Joule",
+		"Farad",
+		"Tesla",
+		"Gauss",
+		"Henry",
+		"Ion",
+		"Pulse",
+		"Arc",
+		"Flux",
+		"Surge",
+		"Node",
+		"Wire",
+		"Cell",
+		"Chip",
+	},
 	devDefaultCount = 3,
 	fillToMinimum = true,
 	sightRange = 60,
@@ -698,6 +775,13 @@ Config.Moments = {
 	maxNameLength = 16, -- names on banners are cut to this many letters
 }
 
+-- Big map (video 3 gap 8): tap the minimap to see the whole arena and the circle. Logic only; the
+-- look comes from the UI system. It never pauses the game.
+Config.BigMap = {
+	enabled = true,
+	autoCloseSeconds = 8, -- carter picked C: a peek that closes itself after 8 s (0 = stays open until tapped)
+}
+
 Config.Plates = {
 	enabled = true,
 	maxDistance = 90, -- studs; further fighters show no plate
@@ -751,6 +835,90 @@ Config.Loot = {
 		rayHeight = 30, -- the check starts this far above the marker's floor
 		minSeparation = 18, -- two loot spots are at least this far apart
 	},
+}
+
+-- Airdrop (video 3 gap #3): a supply crate falls into the circle during a match. A tall light beam shows
+-- everyone where. After it lands it stays shut for a short time (so fighters can race there), then
+-- bursts open and the loot lies on the street (a found gun, heal packs, XP orbs). The server decides
+-- when, where and what; clients only draw. All numbers are placeholders until carter plays.
+Config.Airdrop = {
+	enabled = true,
+	look = "B", -- carter picked B Cyan Searchlight. Skins: "A" Gold Pillar, "C" Coral Flare (see looks below)
+	count = 2, -- drops per match
+	firstAtSeconds = 45, -- seconds after the fight starts; the drops spread evenly from first to last
+	lastAtSeconds = 115,
+	jitterSeconds = 8, -- each drop moves earlier or later by up to this much
+	minGapSeconds = 25, -- two drops are never closer in time than this
+	fallSeconds = 7, -- from "incoming" until the crate touches down
+	shutSeconds = 4, -- the crate stays shut this long after touching down
+	beamFadeSeconds = 1.5, -- the beam fades after the crate opens
+	startHeight = 90, -- studs above the street where the crate comes into view
+	crateSize = 3.4,
+	crateColor = "#2A3A5C",
+	bandColor = "#FFC44D",
+	spot = {
+		insideMargin = 14, -- keep this far inside the circle (it shrinks while the crate falls)
+		tries = 40, -- random places tried before giving up on this drop
+		clearStuds = 3, -- the street must be open this far around the landing spot
+		floorTolerance = 1, -- and as high as the floor of the supply crate markers
+		rayHeight = 30, -- the check starts this far above the floor
+		minApartStuds = 40, -- two drops in one match land at least this far apart
+	},
+	loot = {
+		gun = true, -- one found gun (same pool as Config.Loot.floorGuns)
+		packs = 2, -- heal packs
+		orbs = 6, -- XP orbs
+		ringStuds = 4, -- packs and the gun lie on a ring this wide around the crate
+	},
+	beamHeight = 260, -- studs
+	-- The three looks carter was shown. Only `look` above is used; the others stay as skins.
+	looks = {
+		A = {
+			name = "Gold Pillar",
+			color = "#FFC44D",
+			coreColor = "#FFF1B8",
+			outerDiameter = 5.2,
+			coreDiameter = 2.2,
+			outerTransparency = 0.55,
+			coreTransparency = 0.1,
+			ringDiameter = 13,
+			dashes = false,
+			fallProp = "chute", -- a gold parachute above the crate
+		},
+		B = {
+			name = "Cyan Searchlight",
+			color = "#36D9E8",
+			coreColor = "#FFFFFF",
+			outerDiameter = 8,
+			coreDiameter = 0.8,
+			outerTransparency = 0.62,
+			coreTransparency = 0,
+			ringDiameter = 14,
+			dashes = false,
+			fallProp = "flame", -- a cyan rocket flame under the crate
+		},
+		C = {
+			name = "Coral Flare",
+			color = "#F15B64",
+			coreColor = "#FFB3A8",
+			outerDiameter = 3.8,
+			coreDiameter = 0.7,
+			outerTransparency = 0.45,
+			coreTransparency = 0.1,
+			ringDiameter = 12,
+			dashes = true, -- the column is cut into blinking stripes
+			fallProp = "smoke", -- a red smoke trail behind the crate
+		},
+	} :: { [string]: { [string]: any } },
+	dashHeight = 6,
+	dashGap = 3.5,
+	dashBlinkHz = 2,
+	-- Placeholder words for the "incoming" strip. Claude Design owns the real look.
+	hintText = {
+		incoming = "AIRDROP INCOMING",
+		landed = "AIRDROP - GO GO GO",
+	},
+	hintRefreshSeconds = 0.25,
 }
 
 -- Piece 47: the street breaks (carter picked "A Chunk Burst"). Cars, dumpsters, planters, benches and
@@ -814,6 +982,26 @@ Config.Level = {
 Config.Daily = {
 	resetHourUtc = 0, -- the new day starts at this hour (UTC)
 	rewards = { easy = 20, medium = 35, hard = 50 },
+}
+
+-- Gap 19: chests with a reveal. Free, earned by playing (never bought, never Robux). First place gives a Neon Chest,
+-- top 3 a Street Chest, and every `meterGoal`th finished match a Street Chest too. What can come out, and the odds
+-- (shown on the chest screen before anything is opened), are in shared/Chest/ChestDefs.
+Config.Chest = {
+	maxStored = 20, -- chests of one kind a player can hold; more are not given (the meter waits)
+	meterGoal = 4,
+	revealStyle = "A", -- "A" Lid Pop (carter picked), "B" Drop Burst, "C" Card Flip stay as skins (ChestReveal.styles)
+	reduceMotionStyle = "B", -- the quick one, used when the player turned on reduce flashes
+}
+
+-- Piece 48: weekly missions, achievements and login days. All pay Scrap (Config.Rewards.currencyName), claimed
+-- with a button. Weeks start on Monday at Config.Daily.resetHourUtc. Lists: shared/Missions/MissionDefs.
+Config.Missions = {
+	weeklyRewards = { easy = 60, medium = 90, hard = 120 }, -- the three weekly missions
+	weeklyBonus = 100, -- extra Scrap after all three weekly missions are claimed
+	-- The login row: one reward per day you come and claim. Missing days never reset it. After the last
+	-- one the row starts again. Every number stays under Config.Progression.maxMatchGrant.
+	loginRewards = { 10, 15, 20, 25, 30, 40, 100 },
 }
 
 -- Video 3 gap 20: the season pass. A season runs `lengthDays` from `startUnix` and then starts again; each season
@@ -996,6 +1184,39 @@ Config.Stats = {
 		modelName = "TopWinsBoard",
 		look = "B", -- carter picked B "Neon Tower"; "A" Trophy Wall is a skin (C Street Billboard not built yet)
 	},
+}
+
+-- Gap 23 (ranked ladder): rank points, tiers and a ranked on/off switch. Server only counts; saved in the profile as
+-- data.ranked. A match counts for a player who had the switch ON when the fight began. Tier names are carter's
+-- pick (Bronze to Gold style); looks come from Claude Design. The rules are in shared/Ranked/RankedRules.
+Config.Ranked = {
+	profileKey = "ranked", -- saved inside the player's profile as data.ranked (piece 17)
+	season = 1, -- a new season keeps `seasonKeep` of the points and asks for the warm-up matches again
+	seasonKeep = 0.5,
+	qualifyMatches = 3, -- warm-up: the tier shows as "Unranked" until this many counted matches
+	minField = 4, -- fighters (bots too) a match needs to count; fewer = practice
+	settleSeconds = 1, -- after the first spawn the server waits this long, then fixes who is ranked and takes the stakes
+	-- Points for one match: last place gets lastPoints, first place winPoints, in between on a straight line.
+	winPoints = 30,
+	lastPoints = -18,
+	killPoints = 3, -- per elimination, capped at maxKillPoints (so farming bots stays small)
+	maxKillPoints = 15,
+	-- A match with fewer than 2 real players is bots-only: gains are scaled, and cannot lift you into
+	-- tier number `soloCeilingTier` or higher (tiers are counted from 1).
+	soloScale = 0.5,
+	soloCeilingTier = 3,
+	dropTiers = false, -- false: losses never take you below the start of your tier. true: you can fall back down
+	maxPoints = 100000, -- sanity cap
+	divisions = 3, -- steps inside every tier except the top one
+	-- `from` = points where the tier starts. First tier starts at 0. The last tier has no divisions.
+	tiers = {
+		{ id = "bronze", name = "Bronze", from = 0 },
+		{ id = "silver", name = "Silver", from = 100 },
+		{ id = "gold", name = "Gold", from = 250 },
+		{ id = "platinum", name = "Platinum", from = 450 },
+		{ id = "diamond", name = "Diamond", from = 700 },
+		{ id = "champion", name = "Champion", from = 1000 },
+	} :: { { id: string, name: string, from: number } },
 }
 
 -- Video 3 gap #16: the power rating. One show-off number from things earned by playing. Nothing in combat, loot

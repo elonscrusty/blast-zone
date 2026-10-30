@@ -9,6 +9,10 @@ local Visibility = require("../src/client/Arena/Visibility")
 local ENGAGE_RANGE = Config.Weapons.Firearm.range
 local CLEAR = Analysis.RADIUS -- space a container needs around it
 local MAX_EXPOSURE = 0.8 -- a spot with cover nearby may not see more than this share of the area around it
+-- A small nook beside a fence is fine; a big cut-off part of a zone ring is not. Stretching a map
+-- moves thin hedges and fences apart a little differently, so a stretched map may keep a slightly
+-- bigger nook (20 cells = 80 square studs, about 9 x 9) than the 220-stud originals (6 cells).
+local MAX_POCKET = if Config.Arena.scale > 1 then 20 else 6
 local ZONE = Config.Zone
 local ZONE_RADII = { ZONE.initialRadius }
 for _, s in ZONE.stages do
@@ -29,8 +33,17 @@ local function inside(x: number, z: number, s: Layout.Solid, pad: number): boole
 	return x >= s.x0 - pad and x <= s.x1 + pad and z >= s.z0 - pad and z <= s.z1 + pad
 end
 
+-- The same options the game builds with (ArenaSystem): stretched, topped up to one spawn per fighter.
+local CROWD = {
+	scale = Config.Arena.scale,
+	minSpawns = Config.Arena.minSpawns,
+	minContainers = Config.Arena.containerSpots,
+	spawnClear = Config.Arena.spawnClearRadius,
+	zoneRadius = Config.Zone.initialRadius,
+}
+
 for key, spec in specs do
-	local layout = Layout.compile(spec)
+	local layout = Layout.compile(spec, CROWD)
 	local function t(name: string, fn: () -> ())
 		Harness.test(`arena {key}: {name}`, fn)
 	end
@@ -114,7 +127,10 @@ for key, spec in specs do
 					d >= Config.Arena.spawnMinSeparation,
 					`{a.id} and {b.id} only {math.floor(d)} apart`
 				)
-				if d <= ENGAGE_RANGE then
+				-- Only the layout's own spawns hide from each other. The crowd spawns added for 25
+				-- fighters cannot (they would need walls everywhere); the spawn shield and the bots'
+				-- calm start cover those.
+				if d <= ENGAGE_RANGE and i <= #spec.spawns and j <= #spec.spawns then
 					Harness.truthy(
 						Layout.shotBlocked(layout, a.x, a.z, b.x, b.z),
 						`{a.id} can shoot {b.id} at once`
@@ -150,7 +166,7 @@ for key, spec in specs do
 			Harness.truthy(#pieces >= 1, `zone ring {r} has nowhere to stand`)
 			for i = 2, #pieces do
 				Harness.truthy(
-					pieces[i] <= 6,
+					pieces[i] <= MAX_POCKET,
 					`zone ring {r} has a pocket of {pieces[i]} cells cut off`
 				)
 			end
@@ -161,10 +177,11 @@ for key, spec in specs do
 		local first = layout.spawns[1]
 		local function ok(extra: { { number } }, what: string)
 			local g = Analysis.walkGrid(layout, extra)
+			local reach = Analysis.flood(g, first.x, first.z) -- once, then ask for every crate
 			for _, c in layout.containers do
 				if Analysis.walkable(walk, c.x, c.z) then
 					Harness.truthy(
-						Analysis.reaches(g, first.x, first.z, c.x, c.z),
+						Analysis.inFlood(g, reach, c.x, c.z),
 						`{what} shut: {c.id} cut off`
 					)
 				end
@@ -191,8 +208,9 @@ for key, spec in specs do
 
 	t("no covered spot sees too much (no map-wide camping seat)", function()
 		local worst, wx, wz = 0, 0, 0
-		for x = -100, 100, 5 do
-			for z = -100, 100, 5 do
+		local reach = math.floor(layout.half) - 10
+		for x = -reach, reach, 5 do
+			for z = -reach, reach, 5 do
 				if Analysis.walkable(walk, x, z) and Analysis.nearBlocker(layout, x, z, 3.5) then
 					local e = Analysis.exposure(layout, x, z, ENGAGE_RANGE)
 					if e > worst then

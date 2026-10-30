@@ -122,6 +122,7 @@ function BotRunner.step(self: Runner)
 	for id in self.bots do
 		table.insert(ids, id)
 	end
+	local thinkGap = BotTuning.thinkGap(self.tuning, #ids, self.tuning.maxParticipants)
 	for _, id in ids do
 		local entry = self.bots[id]
 		if not entry then
@@ -138,7 +139,7 @@ function BotRunner.step(self: Runner)
 			continue
 		end
 		if now >= entry.nextThink then
-			entry.nextThink = now + self.tuning.thinkInterval
+			entry.nextThink = now + thinkGap
 			-- Building the snapshot talks to the game, so it sits inside the pcall too.
 			local ok, result = pcall(function(): BotBrain.Intent
 				local fightSeconds = world.fightSeconds

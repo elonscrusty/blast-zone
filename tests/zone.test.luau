@@ -4,7 +4,8 @@ local Config = require("../src/shared/Config")
 local ZoneModel = require("../src/server/Zone/ZoneModel")
 local ZoneView = require("../src/client/Zone/ZoneView")
 
-local cfg: any = Config.Zone
+-- the first 220-stud version: these checks use its numbers (the live zone is stretched by Config.Arena.scale)
+local cfg: any = Config.zoneAt(1)
 local timeline = ZoneModel.build(cfg)
 
 local function at(t: number)

@@ -1,0 +1,11 @@
+# 48 Big map (video 3 gap 8: tap the little map to see the whole arena)
+- Done: tap the minimap (touch), press M (keyboard) or Y (pad) and a square map opens over the middle of the screen: the whole arena, the safe circle, a ring where the next circle will end, and a dot for you. Tap the map, press the key again, or pad B to close. Your sticks and buttons stay free and the game keeps running.
+- Honest map: it shows only what the HUD already knew (arena, zone, you). No enemy dots, so it cannot give away where anyone is. The server decides nothing here and no new remote exists.
+- Turned like the minimap: the arena square is rotated with the camera (`CameraHeading`), so up on the map is up on the screen.
+- It closes by itself when the HUD goes away (eliminated, match over) and when a level-up offer appears (cards and chips need the space). It cannot open in the lobby or countdown.
+- Code: `Hud/BigMapMath` (world to panel maths), `Hud/BigMapModel` (open/close/auto-close rules), `Hud/BigMapView` (placeholder look from Ui/Tokens roles), wired in `Hud/HudSystem`; `HudView.mapButton` is the tap target. Layer `UiLayers.BigMap` (12). Spot: `Layout.bigMap`.
+- Binding: `Bindings.actions.map` (M, ButtonY, touch = minimap).
+- Config: `Config.BigMap.enabled`, `autoCloseSeconds` = 8 (carter picked C: closes itself after 8 s; A stays open and B 4 s stay as the other settings, 0 = stays).
+- Tests: `tests/big_map.test.luau` (maths for any camera turn, corners stay on the panel, ring sizes, open/close rules, bindings, no overlap with thumbs/buttons/card band on every phone shape).
+- Not tested until carter plays: how big 220 points feels on a real phone, whether covering the player for a moment is OK.
+- Left: crates/guns/heal packs on the map, marking your own pings, the real look from Claude Design.

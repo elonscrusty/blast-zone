@@ -178,11 +178,24 @@ local Defs: { Def } = {
 	ask("25", "DailyRequest", {}, 1, 2), -- a client asks for today's challenges (the server also sends them unasked)
 	tell("25", "DailyState", "DailyState"),
 
+	-- ===== G19 chests with a reveal =====
+	ask("G19", "ChestRequest", {}, 1, 2), -- a client asks for its chests (the server also sends them unasked)
+	ask("G19", "ChestOpenRequest", { { name = "kind", kind = "id", maxLen = 12 } }, 1.5, 2),
+	tell("G19", "ChestState", "ChestState (owned, meter, justAwarded?, reveal?, denied?)"),
+
 	-- ===== video 3 gap 18: Scrap Shop =====
 	ask("V3-18", "ShopRequest", {}, 1, 2), -- a client asks what is on sale today (the server also sends it unasked)
 	ask("V3-18", "ShopSeenRequest", {}, 1, 2), -- the shop was opened: the "new" dot goes away
 	ask("V3-18", "BuyRequest", { { name = "itemId", kind = "id", maxLen = 24 } }, 2, 3),
 	tell("V3-18", "ShopState", "ShopState"),
+
+	-- ===== 48 missions + login days =====
+	ask("48", "MissionsRequest", {}, 1, 2), -- a client asks for its weekly missions, awards and login row
+	ask("48", "MissionClaim", {
+		{ name = "what", kind = "id", maxLen = 8 }, -- "week" | "award" | "bonus" | "login"
+		{ name = "id", kind = "id", maxLen = 24, optional = true }, -- the mission or award id (not for bonus/login)
+	}, 2, 4),
+	tell("48", "MissionsState", "MissionsState"),
 
 	-- ===== 29 emotes =====
 	ask("29", "EmoteRequest", { { name = "emoteId", kind = "id", maxLen = 16 } }, 3, 4), -- an emote id, or "stop"
@@ -253,6 +266,14 @@ local Defs: { Def } = {
 		"{ healPacks, max, readyAt, serverNow, event?: 'picked'|'used'|'denied', reason?: string }"
 	),
 
+	-- ===== airdrop (video 3 gap #3) =====
+	ask("AD", "AirdropRequest", {}, 1, 2), -- a client that joined late asks for the drops that are running
+	tell(
+		"AD",
+		"AirdropState",
+		"AirdropState (event: 'incoming'|'opened'|'clear', dropId, matchId, pos, startedAt, landsAt, opensAt, serverNow, look)"
+	),
+
 	-- ===== 46 big moments =====
 	tell(
 		"46",
@@ -276,6 +297,11 @@ local Defs: { Def } = {
 	-- ===== 24 stats + top-wins board =====
 	ask("24", "StatsRequest", {}, 1, 2), -- a client that just started asks for its stats
 	tell("24", "StatsUpdate", "StatsPayload"),
+
+	-- ===== G23 ranked ladder =====
+	ask("G23", "RankedRequest", {}, 1, 2), -- a client that just started asks for its standing
+	ask("G23", "RankedToggle", { { name = "on", kind = "boolean" } }, 2, 3), -- the ranked switch
+	tell("G23", "RankedUpdate", "RankedPayload"),
 
 	-- ===== V16 power rating (video 3 gap #16) =====
 	ask("V16", "PowerRequest", {}, 1, 2), -- a client that just started asks for its power rating

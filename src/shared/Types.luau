@@ -195,6 +195,39 @@ export type StatsPayload = {
 	saved: boolean,
 }
 
+-- Gap 23: a player's ranked ladder standing (server to client only). `last` is set once, right after a match counted.
+export type RankedLast = {
+	matchId: number,
+	place: number,
+	kills: number,
+	delta: number,
+	counted: boolean, -- false = practice (switch was off, too few fighters, or a draw rule said no)
+	promoted: boolean,
+	demoted: boolean,
+	fromLabel: string,
+	toLabel: string,
+}
+
+export type RankedPayload = {
+	enabled: boolean, -- the ranked switch
+	points: number,
+	matches: number, -- counted this season
+	qualified: boolean, -- false while still in the warm-up matches
+	qualifyLeft: number,
+	label: string, -- "Wire II", or "Unranked" during the warm-up
+	tierId: string,
+	tierName: string,
+	step: number, -- 1..divisions (0 for the top tier)
+	intoStep: number, -- points earned inside this step
+	stepSize: number,
+	nextTierName: string?,
+	toNextTier: number?,
+	peakTierName: string,
+	season: number,
+	saved: boolean, -- false while the profile is not loaded or the last change is not written
+	last: RankedLast?,
+}
+
 -- Video 3 gap 18: the Scrap Shop. Coins and what is owned/worn come from ProgressState; this is only what is on sale.
 export type ShopOfferView = {
 	id: string,
@@ -241,6 +274,73 @@ export type DailyState = {
 	secondsLeft: number, -- until the next day starts
 	challenges: { DailyChallengeView },
 	justPaid: string?, -- set once, right after a challenge paid out
+}
+
+-- Gap 19: chests. One prize out of an opened chest (a repeated look turns into Scrap, dupe = true).
+export type ChestPrize = {
+	rowId: string,
+	kind: string, -- "scrap" | "look"
+	rarity: string, -- "common" | "rare" | "epic"
+	name: string,
+	amount: number?,
+	itemId: string?,
+	dupe: boolean,
+}
+
+export type ChestReveal = {
+	id: number, -- goes up with every chest the player opens, so the screen never plays one twice
+	kind: string, -- the chest kind that was opened
+	prizes: { ChestPrize },
+}
+
+export type ChestState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	owned: { [string]: number }, -- chest kind -> how many waiting
+	meter: number, -- finished matches toward the next free Street Chest
+	meterGoal: number,
+	opened: number,
+	justAwarded: { string }?, -- chest kinds earned just now (set once)
+	reveal: ChestReveal?, -- set once, right after an open
+	denied: string?, -- why the last open was refused
+}
+
+-- Piece 48: weekly missions, achievements and login days for one player (server to client only).
+export type MissionRow = {
+	id: string,
+	tier: string?, -- weekly missions only: "easy" | "medium" | "hard"
+	kind: string, -- what counts, same words as DailyChallengeView.kind
+	goal: number,
+	progress: number,
+	reward: number, -- Scrap
+	claimed: boolean,
+	ready: boolean, -- goal reached and not claimed yet: show a CLAIM button
+}
+
+export type MissionBonus = {
+	have: number, -- weekly missions claimed this week
+	need: number,
+	reward: number,
+	claimed: boolean,
+	ready: boolean,
+}
+
+export type LoginView = {
+	next: number, -- which day of the row the next claim is (1 up to #rewards)
+	rewards: { number },
+	canClaim: boolean, -- false once claimed today
+	count: number, -- days claimed in all
+	secondsLeft: number, -- until the next login day
+}
+
+export type MissionsState = {
+	status: string, -- "ready" | "temporary" | "loading" | "failed" | ...
+	weekSecondsLeft: number, -- until the next week of missions
+	weekly: { MissionRow },
+	bonus: MissionBonus,
+	awards: { MissionRow },
+	login: LoginView,
+	justClaimed: string?, -- set once, right after a claim: "week:<id>" | "award:<id>" | "bonus" | "login"
+	justAmount: number?, -- the Scrap that claim paid
 }
 
 -- Video 3 gap 20: the season pass for one player (server to client only).
@@ -292,6 +392,21 @@ export type WeatherState = {
 	matchId: MatchId,
 	level: string, -- "clear" | one of Config.Weather.levels
 	serverNow: number,
+}
+
+-- Airdrop: one falling crate and its beam. Times are server time (Workspace:GetServerTimeNow()).
+-- "incoming" = it is on its way (or landed and shut), "opened" = the loot is on the street,
+-- "clear" = every drop is gone (match over); a "clear" has no other fields but serverNow.
+export type AirdropState = {
+	event: string,
+	dropId: string?,
+	matchId: MatchId?,
+	pos: Vector3?,
+	startedAt: number?,
+	landsAt: number?,
+	opensAt: number?,
+	serverNow: number,
+	look: string?,
 }
 
 return {}

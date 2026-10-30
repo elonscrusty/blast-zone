@@ -31,7 +31,14 @@ local chooser: (() -> string?)? = nil
 
 local function buildMap(id: string)
 	local spec = specs[id] or specs.C
-	local layout = Layout.compile(spec)
+	-- Stretched for the crowd, then topped up to one spawn point per fighter and the crate points.
+	local layout = Layout.compile(spec, {
+		scale = Config.Arena.scale,
+		minSpawns = Config.Arena.minSpawns,
+		minContainers = Config.Arena.containerSpots,
+		spawnClear = Config.Arena.spawnClearRadius,
+		zoneRadius = Config.Zone.initialRadius,
+	})
 	built = ArenaBuilder.build(layout)
 	local folder = (built :: ArenaBuilder.Built).folder
 	if Config.Features.cityArt then
