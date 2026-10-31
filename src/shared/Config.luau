@@ -15,6 +15,11 @@ local ARENA_SCALE = 1.3
 -- a distance: the first street, the 3 minute match, is 1. Change this one number to make matches longer or shorter.
 local MATCH_PACE = 1.3
 
+-- A clock number that follows only the match pace (not the map size), for things that happen "this long into the fight".
+local function paced(n: number): number
+	return math.floor(n * MATCH_PACE + 0.5)
+end
+
 local function scaled(n: number): number
 	return math.floor(n * ARENA_SCALE * MATCH_PACE + 0.5)
 end
@@ -262,6 +267,7 @@ Config.Regen = {
 	delaySeconds = 5,
 	perSecond = 4,
 	tickSeconds = 0.5,
+	maxStepSeconds = 1, -- a server hitch never heals more than this many seconds' worth in one go
 }
 
 -- Feel pass 2: help for the phone thumb (carter, quiz 6a). Only on touch. The aim leans toward a rival who is
@@ -270,6 +276,8 @@ Config.AimAssist = {
 	enabled = true,
 	coneDegrees = 12, -- a rival this far (each side) from the aim pulls it
 	strength = 0.6, -- how much of that gap is closed (1 = snap onto the rival)
+	maxStuds = 16, -- only rivals this close can pull: about what the screen shows ahead of the hero at Config.Camera.distance (22), so it never points at someone you cannot see
+	needsClearLine = true, -- and only rivals with no wall between (the client checks with one ray)
 }
 
 -- Piece 02. Camera-relative, ground-plane, no jumping.
@@ -875,10 +883,10 @@ Config.Airdrop = {
 	enabled = true,
 	look = "B", -- carter picked B Cyan Searchlight. Skins: "A" Gold Pillar, "C" Coral Flare (see looks below)
 	count = 2, -- drops per match
-	firstAtSeconds = 45, -- seconds after the fight starts; the drops spread evenly from first to last
-	lastAtSeconds = 115,
-	jitterSeconds = 8, -- each drop moves earlier or later by up to this much
-	minGapSeconds = 25, -- two drops are never closer in time than this
+	firstAtSeconds = paced(45), -- seconds after the fight starts; the drops spread evenly from first to last (follows the 5 minute pace)
+	lastAtSeconds = paced(115),
+	jitterSeconds = paced(8), -- each drop moves earlier or later by up to this much
+	minGapSeconds = paced(25), -- two drops are never closer in time than this
 	fallSeconds = 7, -- from "incoming" until the crate touches down
 	shutSeconds = 4, -- the crate stays shut this long after touching down
 	beamFadeSeconds = 1.5, -- the beam fades after the crate opens

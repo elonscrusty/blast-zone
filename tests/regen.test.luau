@@ -113,6 +113,17 @@ Harness.test("regen: each fighter has their own wait", function()
 	Harness.eq(r:step("b", 20, 100, 7), 0, "b was hurt a moment ago")
 end)
 
+Harness.test("regen: a server hitch cannot heal in one lump", function()
+	local r = rules()
+	r:step("a", 100, 100, 0)
+	r:step("a", 20, 100, 1)
+	local first = r:step("a", 20, 100, 8) -- 7 s since the last look
+	Harness.truthy(first <= cfg.perSecond * cfg.maxStepSeconds, `a stall gave {first}`)
+	local give = r:step("a", 20, 100, 20) -- 12 s of silence
+	Harness.truthy(give <= cfg.perSecond * cfg.maxStepSeconds, `a stall gave {give}`)
+	Harness.truthy(cfg.maxStepSeconds >= cfg.tickSeconds * 2, "a normal tick is never cut short")
+end)
+
 Harness.test("regen: reset forgets a fighter", function()
 	local r = rules()
 	r:step("a", 100, 100, 0)
@@ -165,6 +176,28 @@ Harness.test(
 	end
 )
 
+-- ===== airdrops follow the 5 minute clock =====
+
+Harness.test(
+	"clock: airdrops are spread over the longer match, not bunched at the start",
+	function()
+		local a: any = Config.Airdrop
+		local pace = Config.MatchPace
+		Harness.eq(a.firstAtSeconds, math.floor(45 * pace + 0.5))
+		Harness.eq(a.lastAtSeconds, math.floor(115 * pace + 0.5))
+		Harness.eq(a.minGapSeconds, math.floor(25 * pace + 0.5))
+		Harness.truthy(
+			a.lastAtSeconds / Config.Match.targetMatchSeconds > 0.4,
+			"the last drop is not in the first 40%"
+		)
+		Harness.truthy(
+			a.lastAtSeconds + a.jitterSeconds + a.fallSeconds + a.shutSeconds
+				< Config.Match.finalPressureAtSeconds
+		)
+		Harness.truthy(a.firstAtSeconds - a.jitterSeconds > 0)
+	end
+)
+
 -- ===== aim help =====
 
 local assist = Config.AimAssist
@@ -179,7 +212,7 @@ end)
 Harness.test("aim help: a rival just off the aim pulls it toward them", function()
 	-- Aiming along +x; the rival is a little toward +z.
 	local angle = math.rad(assist.coneDegrees * 0.8)
-	local target = { x = 20 * math.cos(angle), z = 20 * math.sin(angle) }
+	local target = { x = 12 * math.cos(angle), z = 12 * math.sin(angle) }
 	local x, z, pulled = AimAssist.adjust(assist, 0, 0, 1, 0, { target }, 34)
 	Harness.eq(pulled, true)
 	local after = math.atan2(z, x)
@@ -204,7 +237,7 @@ Harness.test("aim help: too wide, too far, or behind does nothing", function()
 		0,
 		1,
 		0,
-		{ { x = 20 * math.cos(wide), z = 20 * math.sin(wide) } },
+		{ { x = 12 * math.cos(wide), z = 12 * math.sin(wide) } },
 		34
 	)
 	Harness.eq(a, false, "outside the cone")
@@ -215,8 +248,8 @@ Harness.test("aim help: too wide, too far, or behind does nothing", function()
 end)
 
 Harness.test("aim help: picks the rival closest to the aim", function()
-	local near = { x = 20 * math.cos(math.rad(3)), z = 20 * math.sin(math.rad(3)) }
-	local far = { x = 20 * math.cos(math.rad(10)), z = 20 * math.sin(math.rad(10)) }
+	local near = { x = 12 * math.cos(math.rad(3)), z = 12 * math.sin(math.rad(3)) }
+	local far = { x = 12 * math.cos(math.rad(10)), z = 12 * math.sin(math.rad(10)) }
 	local x, z = AimAssist.adjust(assist, 0, 0, 1, 0, { far, near }, 34)
 	Harness.near(math.deg(math.atan2(z, x)), 3 * assist.strength, 1e-6)
 end)
@@ -231,8 +264,71 @@ Harness.test("aim help: off means no pull, and a bad aim is left alone", functio
 	Harness.eq(z, 0)
 end)
 
+Harness.test("aim help: it never reaches past what the screen shows (no radar)", function()
+	Harness.truthy(assist.maxStuds <= Config.Camera.distance, "no more than the camera distance")
+	Harness.truthy(assist.maxStuds < Config.Weapons.Firearm.range, "shorter than the gun")
+	local angle = math.rad(3)
+	local function at(d: number)
+		return { x = d * math.cos(angle), z = d * math.sin(angle) }
+	end
+	local _, _, near = AimAssist.adjust(assist, 0, 0, 1, 0, { at(assist.maxStuds - 1) }, 34)
+	Harness.eq(near, true, "just inside")
+	local _, _, far = AimAssist.adjust(assist, 0, 0, 1, 0, { at(assist.maxStuds + 1) }, 34)
+	Harness.eq(far, false, "just outside, though the gun reaches it")
+end)
+
+Harness.test("aim help: a rival behind a wall never pulls", function()
+	local angle = math.rad(4)
+	local target = { x = 10 * math.cos(angle), z = 10 * math.sin(angle) }
+	local _, _, seen = AimAssist.adjust(assist, 0, 0, 1, 0, { target }, 34, function()
+		return true
+	end)
+	Harness.eq(seen, true)
+	local _, _, hidden = AimAssist.adjust(assist, 0, 0, 1, 0, { target }, 34, function()
+		return false
+	end)
+	Harness.eq(hidden, false)
+	Harness.truthy(assist.needsClearLine)
+end)
+
+Harness.test("aim help: the sight check only runs for rivals that could pull (cheap)", function()
+	local asked = 0
+	local targets = {
+		{ x = 10, z = 8 }, -- too wide
+		{ x = -10, z = 0 }, -- behind
+		{ x = 40, z = 0.5 }, -- too far
+		{ x = 10, z = 1 }, -- the one
+	}
+	AimAssist.adjust(assist, 0, 0, 1, 0, targets, 34, function()
+		asked += 1
+		return true
+	end)
+	Harness.eq(asked, 1)
+end)
+
+Harness.test("aim help: if the closest rival is hidden, the next one can still pull", function()
+	local a = math.rad(2)
+	local b = math.rad(8)
+	local hiddenOne = { x = 10 * math.cos(a), z = 10 * math.sin(a) }
+	local seenOne = { x = 10 * math.cos(b), z = 10 * math.sin(b) }
+	local x, z, pulled = AimAssist.adjust(
+		assist,
+		0,
+		0,
+		1,
+		0,
+		{ hiddenOne, seenOne },
+		34,
+		function(t)
+			return t == seenOne
+		end
+	)
+	Harness.eq(pulled, true)
+	Harness.near(math.atan2(z, x), b * assist.strength, 1e-6)
+end)
+
 Harness.test("aim help: strength 1 lands right on the rival", function()
-	local snap = { enabled = true, coneDegrees = 12, strength = 1 }
+	local snap: any = { enabled = true, coneDegrees = 12, strength = 1 }
 	local x, z = AimAssist.adjust(snap, 5, 5, 1, 0, { { x = 25, z = 8 } }, 34)
 	Harness.near(math.atan2(z, x), math.atan2(3, 20), 1e-9)
 end)

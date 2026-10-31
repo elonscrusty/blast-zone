@@ -4,7 +4,12 @@
 -- starts the wait again. Only whole health points are given, so the bar never shows 73.4.
 -- The server feeds it each fighter's health on a steady tick; it says how much to give back.
 
-export type Config = { enabled: boolean, delaySeconds: number, perSecond: number }
+export type Config = {
+	enabled: boolean,
+	delaySeconds: number,
+	perSecond: number,
+	maxStepSeconds: number?, -- one tick never counts more time than this (a server hitch cannot heal in one lump)
+}
 
 type Entry = { lastHealth: number, hurtAt: number, lastAt: number, carry: number }
 
@@ -25,7 +30,7 @@ function RegenRules.step(self: any, id: string, health: number, max: number, now
 		entries[id] = { lastHealth = health, hurtAt = -math.huge, lastAt = now, carry = 0 }
 		return 0
 	end
-	local dt = math.max(0, now - e.lastAt)
+	local dt = math.clamp(now - e.lastAt, 0, cfg.maxStepSeconds or math.huge)
 	e.lastAt = now
 	if health < e.lastHealth then
 		e.hurtAt = now

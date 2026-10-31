@@ -382,6 +382,10 @@ local function build()
 		sprintVeil.BorderSizePixel = 0
 		sprintVeil.Active = false
 		sprintVeil.Parent = breathClip
+		-- Always run: with the run switched off the button is never on screen, even before the first mode flip.
+		if not Config.Sprint.enabled then
+			sprint.Visible = false
+		end
 	end
 
 	-- Slide cooldown: a navy veil that drains upward, and the seconds left.
