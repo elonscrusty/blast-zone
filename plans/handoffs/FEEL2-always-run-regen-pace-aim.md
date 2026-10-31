@@ -1,0 +1,10 @@
+# FEEL2 Video feel pass 2: always run, health comes back, 5 minute match, phone aim help (carter's quiz)
+- Always run (18a): `Config.Sprint.enabled = false`. The server already refuses a run when it is off, and the RUN touch button is hidden in `TouchControls.applyMode`. Shift on a keyboard does nothing. The sprint code stays for later.
+- Health back (10a): `Config.Regen` { delaySeconds 5, perSecond 4, tickSeconds 0.5 }. Pure `shared/RegenRules` (whole points only; any drop in health, even the zone, restarts the wait). Server `Combat/RegenSystem` ticks every living fighter, players and bots, only while `MatchContext:isCombat()`, and heals through `Combatants.heal`.
+- 5 minute match (12b): `MATCH_PACE` 1.3 in Config stretches TIMES only: zone warn, close and close seconds, sudden death start, `targetMatchSeconds` (234 -> 304), `finalPressureAtSeconds`, `maxActiveSeconds`. Distances do not change. `Config.zoneAt(scale)` still gives the old pace unless given a pace.
+- Aim help (6a): `Config.AimAssist` { coneDegrees 12, strength 0.6 }. Pure `shared/AimAssist`; the phone client leans its aim toward the nearest living non-squad rival inside the cone and gun reach. Only on touch. The server still decides every hit, so this adds no power over the rules.
+- Already true, no change: fast shots (8a), auto reload (19a), red hit sign (9a), shield (11a), no respawn (14a), medium bots (15b), no fall damage (16a), no climbing (17a), medium zone speed (13b), medium shake (20b via 0.3).
+- Not done on purpose: tap-to-shoot button (7b) conflicts with the aim-and-fire stick; jump (2a) the video has none; over-shoulder (5a) we keep the video's tilted camera.
+- Tests: `tests/regen.test.luau` (regen, always run, clock, aim help); `config.test` follows the new pace. Lune 1429 pass, StyLua clean, rojo build ok. Selene in CI. Not run in Roblox.
+- Look at first when playing: whether 4 hp/s after 5 s makes fights too long, and whether the phone aim help feels like a magnet (turn `strength` down).
+- Rollback: `Config.Regen.enabled=false`, `Config.Sprint.enabled=true`, `MATCH_PACE=1`, `Config.AimAssist.enabled=false`.

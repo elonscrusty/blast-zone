@@ -8,9 +8,11 @@ local RunService = game:GetService("RunService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local AimAssist = require(Shared.AimAssist)
 local Net = require(script.Parent.Parent.Core.Net)
 local CombatFx = require("./CombatFx")
 local CosmeticLook = require(script.Parent.Parent.Progression.CosmeticLook)
+local SquadModel = require(script.Parent.Parent.Squads.SquadModel)
 local Fx = require(script.Parent.Parent.Effects.Fx)
 local GunModels = require("./GunModels")
 local HealthBars = require("./HealthBars")
@@ -26,6 +28,7 @@ local localPlayer = Players.LocalPlayer
 type Controls = {
 	isFiring: () -> boolean,
 	getAimWorld: () -> Vector3?, -- unit direction on the ground, nil when there is no aim input
+	device: () -> string, -- "keyboard" | "touch" | "gamepad"
 }
 
 -- What the server last told us about our weapons.
@@ -56,6 +59,36 @@ local function isMine(shooterId: string?): boolean
 	return shooterId ~= nil and shooterId == ("p" .. tostring(localPlayer.UserId))
 end
 
+-- Phone only: lean the aim toward a living rival who is already near where the stick points.
+local function assisted(flat: Vector3): Vector3
+	local c = controls
+	local r = root()
+	if c == nil or r == nil or not Config.AimAssist.enabled or c.device() ~= "touch" then
+		return flat
+	end
+	local me = localPlayer.Character
+	local targets: { AimAssist.Target } = {}
+	HealthBars.forEachModel(function(id: string, model: Model)
+		if model == me or model:GetAttribute("Alive") == false or SquadModel.isMate(id) then
+			return
+		end
+		local part = model:FindFirstChild("HumanoidRootPart")
+		if part ~= nil and part:IsA("BasePart") then
+			table.insert(targets, { x = part.Position.X, z = part.Position.Z })
+		end
+	end)
+	local nx, nz = AimAssist.adjust(
+		Config.AimAssist,
+		r.Position.X,
+		r.Position.Z,
+		flat.X,
+		flat.Z,
+		targets,
+		firearm.range
+	)
+	return Vector3.new(nx, 0, nz)
+end
+
 -- Where we are aiming right now, or the last aim we had (so a tap still shoots somewhere sensible).
 local function currentDir(): Vector3?
 	local c = controls
@@ -64,7 +97,7 @@ local function currentDir(): Vector3?
 		if aim ~= nil then
 			local flat = Vector3.new(aim.X, 0, aim.Z)
 			if flat.Magnitude > 0.1 then
-				lastDir = flat.Unit
+				lastDir = assisted(flat.Unit)
 				lastAimAt = os.clock()
 				return lastDir
 			end
