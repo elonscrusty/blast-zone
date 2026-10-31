@@ -47,7 +47,9 @@ end
 
 type Placed = { rect: Layout.Rect, leftHanded: boolean?, minAspect: number? }
 local placed: { [GuiObject]: Placed } = {}
-local watchingScreen = false
+local watchedParents: { [GuiBase2d]: boolean } = {}
+local watchedCamera: Camera? = nil
+local relayoutQueued = false
 
 local function applyPlacement(obj: GuiObject, entry: Placed)
 	local aspect = aspectOf(obj)
@@ -62,35 +64,71 @@ local function applyPlacement(obj: GuiObject, entry: Placed)
 	ratio.Parent = obj
 end
 
-local function watchScreen()
-	if watchingScreen then
+-- Every placed piece is laid out again from the screen it is on NOW. A real phone starts the game
+-- upright (tall), turns sideways a moment later and can turn again; a layout made for the tall screen
+-- must never survive that (it came out five times too small, piled at the bottom). Studio never turns.
+local function relayoutAll()
+	if relayoutQueued then
 		return
 	end
-	watchingScreen = true
-	local camera = workspace.CurrentCamera
-	if camera then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-			task.defer(function()
-				for obj, entry in placed do
-					applyPlacement(obj, entry)
-				end
-			end)
+	relayoutQueued = true
+	task.defer(function()
+		relayoutQueued = false
+		for obj, entry in placed do
+			applyPlacement(obj, entry)
+		end
+	end)
+end
+
+-- One watcher per parent: its size changing (a turn, a resize, the safe area) places everything inside again.
+local function watchParent(obj: GuiObject)
+	local parent = obj.Parent
+	if parent and parent:IsA("GuiBase2d") and not watchedParents[parent] then
+		watchedParents[parent] = true
+		parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayoutAll)
+		parent.Destroying:Connect(function()
+			watchedParents[parent] = nil
 		end)
 	end
 end
 
+-- The camera's own size is a second cue (and the fallback for a piece with no parent yet). The camera can
+-- be replaced, so the latest one is the one watched.
+local function watchCamera()
+	local camera = workspace.CurrentCamera
+	if camera and camera ~= watchedCamera then
+		watchedCamera = camera
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(relayoutAll)
+	end
+end
+
+local watchingScreen = false
+local function watchScreen()
+	watchCamera()
+	if watchingScreen then
+		return
+	end
+	watchingScreen = true
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+		watchCamera()
+		relayoutAll()
+	end)
+end
+
 -- Sizes and places a piece from a Layout rect. Parent must be a full-screen container. Placed again
--- when the screen turns or resizes, and when the piece moves into a screen.
+-- whenever the screen or its parent changes size (turning the phone), and when the piece moves into a screen.
 function UiKit.place(obj: GuiObject, rect: Layout.Rect, leftHanded: boolean?, minAspect: number?)
 	local isNew = placed[obj] == nil
 	local entry: Placed = { rect = rect, leftHanded = leftHanded, minAspect = minAspect }
 	placed[obj] = entry
 	applyPlacement(obj, entry)
+	watchScreen()
+	watchParent(obj)
 	if isNew then
-		watchScreen()
 		obj.AncestryChanged:Connect(function()
 			local current = placed[obj]
 			if current then
+				watchParent(obj)
 				task.defer(applyPlacement, obj, current)
 			end
 		end)

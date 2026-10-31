@@ -194,7 +194,7 @@ Harness.test(
 				placed[name] = r
 			end
 			Harness.eq(
-				Layout.overlaps(placed.menu, placed.side),
+				Layout.overlaps(placed.menu, Layout.onScreen(ScreenMap.lookPicker, aspect)),
 				false,
 				`lobby columns overlap at {aspect}`
 			)
@@ -279,7 +279,9 @@ Harness.test("screen map: lobby banners, votes and buttons never overlap on any 
 			)
 			placed[name] = r
 			-- the emote screen applies the device safe area itself (ScreenInsets), so it only needs its gutter
-			local edge = if aspect == TABLET or name == "emote"
+			local edge = if aspect == TABLET
+					or name == "emote"
+					or name == "statsCard"
 				then 8
 				else NOTCH * math.min(1, aspect / Layout.LOBBY_MIN_ASPECT)
 			Harness.truthy(
@@ -345,7 +347,7 @@ Harness.test("screen map: in a fight the airdrop line and spectate bar clear the
 end)
 
 Harness.test("lobby buttons sit under the save-message strip and inside the screen", function()
-	local STRIP = 0.16 * Layout.HEIGHT -- StatusStripView height
+	local STRIP = ScreenMap.saveStripHeight * Layout.HEIGHT -- StatusStripView height
 	for name, slot in LobbyLayout.slots :: any do
 		if slot.touch then
 			Harness.truthy(slot.rect.y >= STRIP, `{name} sits under the save strip`)

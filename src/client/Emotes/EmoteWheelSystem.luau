@@ -112,7 +112,18 @@ function EmoteWheelSystem.start()
 	main.BackgroundColor3 = NAVY
 	main.TextColor3 = GOLD
 	main.Text = "★\nEMOTE"
-	main.TextSize = 13
+	-- Fit the circle on any phone and font (a fixed 13 clipped it to "EMOT" on a real phone).
+	main.TextScaled = true
+	local fitText = Instance.new("UITextSizeConstraint")
+	fitText.MaxTextSize = 14
+	fitText.MinTextSize = 6
+	fitText.Parent = main
+	local fitPad = Instance.new("UIPadding")
+	fitPad.PaddingLeft = UDim.new(0.14, 0)
+	fitPad.PaddingRight = UDim.new(0.14, 0)
+	fitPad.PaddingTop = UDim.new(0.14, 0)
+	fitPad.PaddingBottom = UDim.new(0.14, 0)
+	fitPad.Parent = main
 	stroke(main, WHITE, 4)
 
 	local bubbles: { TextButton } = {}

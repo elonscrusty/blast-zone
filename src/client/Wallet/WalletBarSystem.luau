@@ -15,6 +15,7 @@ local WalletBarModel = require(Shared.Wallet.WalletBarModel)
 local Net = require(script.Parent.Parent.Core.Net)
 local Components = require(script.Parent.Parent.Ui.Components)
 local Tokens = require(script.Parent.Parent.Ui.Tokens)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
 
 local WalletBarSystem = {}
 WalletBarSystem.order = 230
@@ -26,18 +27,28 @@ local MAX_CHIPS = 4 -- the bar is sized for this many; more counters need a bigg
 function WalletBarSystem.start()
 	local _, root = Components.screen("WalletBar", "Calm")
 
+	-- `barBox` is the bar's box (a share of the screen between a floor and a ceiling); the bar fills it and the
+	-- "not saved" note sits to the LEFT of it, so nothing hangs under the bar over the lobby's right-hand buttons.
+	local W = ScreenMap.walletBar
+	local barBox = Instance.new("Frame")
+	barBox.Name = "BarBox"
+	barBox.AnchorPoint = Vector2.new(1, 0)
+	barBox.Position = UDim2.new(1, -W.inset, 0, W.inset)
+	barBox.Size = UDim2.fromScale(W.widthShare, W.heightShare)
+	barBox.BackgroundTransparency = 1
+	barBox.Active = false
+	barBox.Parent = root
+	local limit = Instance.new("UISizeConstraint")
+	limit.MinSize = Vector2.new(W.minW, W.minH)
+	limit.MaxSize = Vector2.new(W.maxW, W.maxH)
+	limit.Parent = barBox
+
 	local bar = Instance.new("Frame")
 	bar.Name = "Bar"
-	bar.AnchorPoint = Vector2.new(1, 0)
-	bar.Position = UDim2.new(1, -12, 0, 12)
-	bar.Size = UDim2.fromScale(0.36, 0.1)
+	bar.Size = UDim2.fromScale(1, 1)
 	bar.BackgroundTransparency = 1
 	bar.Active = false
-	bar.Parent = root
-	local limit = Instance.new("UISizeConstraint")
-	limit.MinSize = Vector2.new(190, 44)
-	limit.MaxSize = Vector2.new(420, 84)
-	limit.Parent = bar
+	bar.Parent = barBox
 	local list = Instance.new("UIListLayout")
 	list.FillDirection = Enum.FillDirection.Horizontal
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Right
@@ -45,13 +56,13 @@ function WalletBarSystem.start()
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Parent = bar
 
-	local note = Components.text(root, root, "Note", "caption", {
+	local note = Components.text(barBox, root, "Note", "caption", {
 		text = "",
 		color = "inkOnDark",
 		align = Enum.TextXAlignment.Right,
-		anchor = Vector2.new(1, 0),
-		position = UDim2.new(1, -12, 0.1, 18),
-		size = UDim2.fromScale(0.36, 0.05),
+		anchor = Vector2.new(1, 0.5),
+		position = UDim2.new(0, -W.noteGap, 0.5, 0),
+		size = UDim2.fromScale(1, W.noteHeightShare),
 	})
 
 	local chips: { [string]: Chip } = {}
