@@ -7,4 +7,4 @@
 - Already true, no change: fast shots (8a), auto reload (19a), red hit sign (9a), shield (11a), no respawn (14a), medium bots (15b), no fall damage (16a), no climbing (17a), medium zone speed (13b), medium shake (20b via 0.3).
 - Not done on purpose: tap-to-shoot button (7b, conflicts with the aim stick), jump (2a, the video has none), over-shoulder camera (5a).
 - Tests: `tests/regen.test.luau` (regen, always run, clock, airdrops, aim help). Lune 1435 pass, StyLua clean, rojo build ok. Selene in CI. Not run in Roblox.
-- Look at first when playing: whether 4 hp/s after 5 s makes fights too long, and whether aim help feels like a magnet (turn `strength` down). Rollback: `Regen.enabled=false`, `Sprint.enabled=true`, `MATCH_PACE=1`, `AimAssist.enabled=false`.
+- Carter checks when playing: does the 5 minute match feel right, does the aim help feel right or too strong (turn `strength` down), do fights drag with 4 hp/s after 5 s. Rollback: `Regen.enabled=false`, `Sprint.enabled=true`, `MATCH_PACE=1`, `AimAssist.enabled=false`.
