@@ -9,3 +9,5 @@
 - Also: EMOTE button text fits its circle (was cut to "EMOT").
 - Proof: Lune 1383 pass, StyLua clean, rojo build ok, luau-lsp strict analysis shows no new type errors. Selene runs in CI (could not fetch its Roblox std here).
 - Not proven: carter's real phone. Ask for one lobby + one fight screenshot after the batch. Known gaps: text width inside buttons (Roblox fonts) is not measured; results screen contents, modal panels and upgrade cards have their own tests, not this one.
+- Orientation: `default.project.json` sets StarterGui `ScreenOrientation = LandscapeSensor` (rojo build accepts it) so the game stops starting upright; a test guards it. If the published game still starts upright, carter sets it by hand: Creator Hub, the experience, Game Settings, Device orientation: Landscape. The re-layout fix stays either way.
+- Visible change: Roblox's own player list (top right), backpack, emote menu and health bar are hidden (`Ui/CoreGuiSystem`); the menu and chat buttons stay. To bring the player list back, drop `PlayerList` from `HIDE` in that file.

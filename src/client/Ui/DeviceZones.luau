@@ -6,7 +6,7 @@
 --
 --   Roblox top bar: a pill at the top left (Roblox menu + chat) that is drawn over every ScreenGui.
 --   Device cut-outs: the notch and rounded corners (left / right in landscape) and the home bar (bottom).
--- The game hides the Roblox player list, backpack, emote and health buttons (CoreGuiSetup), so the top right is ours.
+-- The game hides the Roblox player list, backpack, emote and health buttons (Ui/CoreGuiSystem), so the top right is ours.
 
 local DeviceZones = {}
 

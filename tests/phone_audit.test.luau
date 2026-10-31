@@ -356,6 +356,46 @@ Harness.test(
 )
 
 Harness.test(
+	"phone audit: placing is stateless and a tall upright screen gives finite, positive rects",
+	function()
+		local pieces: { Rect } =
+			{ LobbyLayout.groups.menu, LobbyLayout.groups.right, ScreenMap.statsCard }
+		for _, rect in pieces do
+			for _, left in { false, true } do
+				local first = Layout.onScreen(rect, 19.5 / 9, left, Layout.LOBBY_MIN_ASPECT)
+				-- a tall upright moment (393x852, 3:4 portrait, square) comes between, then the real landscape shape again
+				for _, tall in { 393 / 852, 768 / 1024, 1 } do
+					local t = Layout.onScreen(rect, tall, left, Layout.LOBBY_MIN_ASPECT)
+					for _, v in { t.x, t.y, t.w, t.h } do
+						Harness.truthy(
+							v == v and math.abs(v) < 1e6,
+							"NaN or huge value at a tall shape"
+						)
+					end
+					Harness.truthy(t.w > 0 and t.h > 0, "zero or negative size at a tall shape")
+				end
+				local again = Layout.onScreen(rect, 19.5 / 9, left, Layout.LOBBY_MIN_ASPECT)
+				Harness.near(again.x, first.x, 1e-9)
+				Harness.near(again.y, first.y, 1e-9)
+				Harness.near(again.w, first.w, 1e-9)
+				Harness.near(again.h, first.h, 1e-9)
+			end
+		end
+	end
+)
+
+Harness.test(
+	"phone audit: the game asks for landscape (the upright start is the root cause)",
+	function()
+		local project = fs.readFile("default.project.json")
+		Harness.truthy(
+			string.find(project, '"ScreenOrientation": "LandscapeSensor"', 1, true),
+			"StarterGui must set ScreenOrientation to LandscapeSensor in default.project.json"
+		)
+	end
+)
+
+Harness.test(
 	"phone audit: UiKit places everything again when the screen it sits in changes size",
 	function()
 		local source = fs.readFile("src/client/Hud/UiKit.luau")
