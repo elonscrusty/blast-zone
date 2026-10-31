@@ -44,6 +44,20 @@ local function build(): Frame
 		f.Position = UDim2.fromScale(x, y)
 		f.Size = UDim2.fromScale(w, hgt)
 		f.Parent = groups[slot.group]
+		-- A button in a slot is exactly the slot's size. Its own pixel minimum would make it outgrow the slot on a
+		-- phone narrower than 19.5:9 (the lobby shrinks there) and pile onto its neighbours.
+		f.ChildAdded:Connect(function(child)
+			for _, c in child:GetChildren() do
+				if c:IsA("UISizeConstraint") then
+					c:Destroy()
+				end
+			end
+			child.ChildAdded:Connect(function(c) -- a constraint added after the button was placed
+				if c:IsA("UISizeConstraint") then
+					task.defer(c.Destroy, c)
+				end
+			end)
+		end)
 		slots[name] = f
 	end
 	holder = h

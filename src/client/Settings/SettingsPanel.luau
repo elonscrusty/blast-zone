@@ -175,6 +175,7 @@ local function makeToggle(parent: Frame, def: SettingsModel.Def)
 	UiKit.circle(button)
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = UiKit.color(look.outline)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
 	UiKit.styleStroke(stroke, root, 0.7)
 	local cap = Instance.new("UITextSizeConstraint")
@@ -259,6 +260,7 @@ local function build()
 	UiKit.circle(close)
 	local cs = Instance.new("UIStroke")
 	cs.Color = UiKit.color(look.outline)
+	cs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	cs.Parent = close
 	UiKit.styleStroke(cs, root)
 	local ccap = Instance.new("UITextSizeConstraint")

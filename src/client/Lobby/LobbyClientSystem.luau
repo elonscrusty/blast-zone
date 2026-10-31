@@ -94,6 +94,7 @@ local function makeButton()
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Look.color("outline")
 	stroke.Thickness = 3
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = b
 	b.Activated:Connect(function()
 		use("loadout")

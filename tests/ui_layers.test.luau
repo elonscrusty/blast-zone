@@ -337,3 +337,16 @@ Harness.test("screen map: in a fight the airdrop line and spectate bar clear the
 		"airdrop line sits on the spectate bar"
 	)
 end)
+
+Harness.test("lobby buttons sit under the save-message strip and inside the screen", function()
+	local STRIP = 0.16 * Layout.HEIGHT -- StatusStripView height
+	for name, slot in LobbyLayout.slots :: any do
+		if slot.touch then
+			Harness.truthy(slot.rect.y >= STRIP, `{name} sits under the save strip`)
+			Harness.truthy(
+				slot.rect.y + slot.rect.h + LobbyLayout.GAP <= Layout.HEIGHT,
+				`{name} runs off the bottom`
+			)
+		end
+	end
+end)

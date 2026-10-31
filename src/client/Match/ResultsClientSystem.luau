@@ -85,7 +85,10 @@ end
 local function outline(obj: Instance, factor: number, color: Color3?)
 	local s = Instance.new("UIStroke")
 	s.Color = color or hex(look.outline)
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	-- a button gets a border; Contextual would outline its words (smeared text). Labels keep the text outline.
+	s.ApplyStrokeMode = if obj:IsA("TextButton")
+		then Enum.ApplyStrokeMode.Border
+		else Enum.ApplyStrokeMode.Contextual
 	s.Parent = obj
 	local function apply()
 		s.Thickness = math.max(2, math.floor(gui.AbsoluteSize.Y * look.strokeScale * factor + 0.5))
