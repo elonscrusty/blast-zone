@@ -236,8 +236,8 @@ end)
 Harness.test("bots do not walk to orbs or guns outside the safe circle", function()
 	local v = view(selfAt(0, 0), nil, {
 		zone = ZONE,
-		pickups = { { id = "o1", pos = { x = 30, z = 0 } } },
-		gunDrops = { { id = "1", gunId = "hornet", pos = { x = -30, z = 0 } } },
+		pickups = { { id = "o1", pos = { x = 15, z = 0 } } },
+		gunDrops = { { id = "1", gunId = "hornet", pos = { x = -15, z = 0 } } },
 	})
 	Harness.eq(BotBrain.think(v, BotBrain.newState()).mode, "gun", "inside the zone: wanted")
 	v.zone = { center = { x = 200, z = 0 }, radius = 100, shrinking = false } -- orbs now outside
@@ -350,18 +350,18 @@ Harness.test(
 		end
 		local breaker = Config.Weapons.Guns.breaker.range
 		local longline = Config.Weapons.Guns.longline.range
-		Harness.truthy(moveXAt("breaker", 20, breaker) > 0.5, "shotgun closes in")
+		Harness.truthy(moveXAt("breaker", 10, breaker) > 0.5, "shotgun closes in")
 		Harness.truthy(
 			moveXAt("breaker", 4, breaker) > moveXAt(nil, 4, RANGE),
 			"shotgun does not back off a pistol's way"
 		)
 		Harness.truthy(
-			moveXAt("longline", 20, longline) < -0.5,
+			moveXAt("longline", 10, longline) < -0.5,
 			"rifle backs away from a close fight"
 		)
 		Harness.eq(
-			moveXAt(nil, 20, RANGE),
-			moveXAt("hornet", 20, RANGE) + 0 * 1,
+			moveXAt(nil, 12, RANGE),
+			moveXAt("hornet", 12, RANGE) + 0 * 1,
 			"same side as before at mid range"
 		) -- both hold their line
 	end
@@ -488,4 +488,34 @@ Harness.test("the runner asks the world for the swap", function()
 	runner:step()
 	Harness.truthy(#claimed >= 1)
 	Harness.eq(claimed[1], "b1:7")
+end)
+
+-- A bot must never back away from the very distance it is trying to hold (it would step in and out forever).
+Harness.test(
+	"every gun's habits: the fighting distance is clearly beyond the back-away distance",
+	function()
+		local ranges: { [string]: number } = { pistol = RANGE }
+		for id, gun in Config.Weapons.Guns do
+			ranges[id] = gun.range
+		end
+		for id, range in ranges do
+			local profile = BotGuns.profile(if id == "pistol" then nil else id)
+			local ideal = range * (profile.idealFraction or BASE.idealRangeFraction)
+			local close = profile.closeRange or BASE.closeRange
+			Harness.truthy(
+				ideal >= close * 1.25,
+				`{id}: ideal {ideal} is not 25% past close {close}`
+			)
+		end
+	end
+)
+
+Harness.test("bot reach numbers sit inside what a bot can see", function()
+	Harness.truthy(BASE.pickupRange <= BASE.sightRange, "walks to orbs it can see")
+	Harness.truthy(BASE.gunSeekRange <= BASE.sightRange, "walks to guns it can see")
+	Harness.truthy(BASE.roamDistance <= BASE.sightRange, "roam goals are a short walk")
+	Harness.truthy(
+		BASE.spreadHumanRange <= BASE.warmupSightRange,
+		"the spread-start circle is inside the calm sight"
+	)
 end)

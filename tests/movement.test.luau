@@ -415,32 +415,75 @@ test("the turn speeds in Config are sane", function()
 end)
 
 -- ===== plaza walk is brisker than the arena run (video-feel pass) =====
+-- MovementSetup.apply, .setSpeed and .setSprintSpeed all call MoveRules.walkSpeed / sprintWalkSpeed.
 
-test("lobby scale: only Waiting and Countdown walk at the plaza pace", function()
-	local k = Config.Movement.lobbyWalkSpeed / Config.Movement.walkSpeed
-	near(
-		MoveRules.lobbyScale("Waiting", Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
-		k
-	)
-	near(
-		MoveRules.lobbyScale("Countdown", Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
-		k
-	)
-	for _, phase in { "Spawning", "Active", "FinalPressure", "Finished", "Results", "Resetting" } do
-		eq(
-			MoveRules.lobbyScale(phase, Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
-			1
+local MOVE = Config.Movement
+local SPRINT_MULT = Config.Sprint.speedMultiplier
+
+test("plaza pace: on the plaza the walk is lobbyWalkSpeed, in the arena it is walkSpeed", function()
+	near(MoveRules.walkSpeed(true, MOVE.walkSpeed, MOVE), MOVE.lobbyWalkSpeed)
+	near(MoveRules.walkSpeed(false, MOVE.walkSpeed, MOVE), MOVE.walkSpeed)
+end)
+
+test(
+	"plaza pace: upgrades still stack and still stop at the cap, on the plaza and off it",
+	function()
+		local fast = MOVE.walkSpeed * 3
+		near(
+			MoveRules.walkSpeed(false, fast, MOVE),
+			MOVE.walkSpeed * MOVE.maxSpeedUpgradeMultiplier
 		)
+		near(
+			MoveRules.walkSpeed(true, fast, MOVE),
+			MOVE.lobbyWalkSpeed * MOVE.maxSpeedUpgradeMultiplier
+		)
+		near(MoveRules.walkSpeed(false, 0 / 0, MOVE), MOVE.walkSpeed)
+		near(MoveRules.walkSpeed(false, -4, MOVE), 0)
 	end
+)
+
+test(
+	"plaza pace: the sprint tick keeps the plaza pace and the arena sprint stays inside its cap",
+	function()
+		-- The sprint service runs this every step for everyone, also on the plaza.
+		near(
+			MoveRules.sprintWalkSpeed(true, MOVE.walkSpeed, false, MOVE, SPRINT_MULT),
+			MOVE.lobbyWalkSpeed
+		)
+		near(
+			MoveRules.sprintWalkSpeed(false, MOVE.walkSpeed, false, MOVE, SPRINT_MULT),
+			MOVE.walkSpeed
+		)
+		near(
+			MoveRules.sprintWalkSpeed(false, MOVE.walkSpeed, true, MOVE, SPRINT_MULT),
+			MOVE.walkSpeed * SPRINT_MULT
+		)
+		local hardCap = MOVE.walkSpeed * MOVE.maxSpeedUpgradeMultiplier * SPRINT_MULT
+		local worst = MoveRules.sprintWalkSpeed(false, MOVE.walkSpeed * 9, true, MOVE, SPRINT_MULT)
+		truthy(worst <= hardCap + 1e-9, "sprint never passes its hard cap")
+	end
+)
+
+test("plaza pace: bad numbers change nothing", function()
+	eq(MoveRules.lobbyScale(true, 0, 20), 1)
+	eq(MoveRules.lobbyScale(true, 11, 0), 1)
+	eq(MoveRules.lobbyScale(true, 0 / 0, 20), 1)
+	eq(MoveRules.lobbyScale(true, 11, -3), 1)
+	eq(MoveRules.lobbyScale(false, 11, 20), 1)
 end)
 
-test("lobby scale: bad numbers change nothing", function()
-	eq(MoveRules.lobbyScale("Waiting", 0, 20), 1)
-	eq(MoveRules.lobbyScale("Waiting", 11, 0), 1)
-	eq(MoveRules.lobbyScale("Waiting", 0 / 0, 20), 1)
-	eq(MoveRules.lobbyScale("Waiting", 11, -3), 1)
+test("plaza pace: the plaza is where the lobby says, and the arena is far from it", function()
+	local LobbyLayout = require("../src/shared/LobbyLayout")
+	truthy(LobbyLayout.contains(LobbyLayout.origin.x, LobbyLayout.origin.z, 12))
+	truthy(not LobbyLayout.contains(Config.Arena.centerX, Config.Arena.centerZ, 12))
+	truthy(MOVE.lobbyWalkSpeed >= MOVE.walkSpeed)
 end)
 
-test("lobby scale: the arena run stays slow and the plaza pace is not slower", function()
-	truthy(Config.Movement.lobbyWalkSpeed >= Config.Movement.walkSpeed)
+test("plaza pace: all three speed paths go through the one rule", function()
+	local fs = require("@lune/fs")
+	local source = fs.readFile("src/server/Movement/MovementSetup.luau")
+	for _, needle in { "MoveRules.walkSpeed(", "MoveRules.sprintWalkSpeed(" } do
+		truthy(string.find(source, needle, 1, true) ~= nil, needle)
+	end
+	truthy(string.find(source, "clampSpeed", 1, true) == nil, "no path clamps by itself")
 end)

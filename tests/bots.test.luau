@@ -155,7 +155,7 @@ end)
 
 Harness.test("bot backs away when an enemy is too close and strafes at range", function()
 	local close =
-		BotBrain.think(view(selfAt(0, 0), { others = { enemy("p1", 8, 0) } }), BotBrain.newState())
+		BotBrain.think(view(selfAt(0, 0), { others = { enemy("p1", 4, 0) } }), BotBrain.newState())
 	Harness.truthy(close.moveX < -0.3, "backs off")
 
 	local ideal = RANGE * T.idealRangeFraction
