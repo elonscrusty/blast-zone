@@ -136,6 +136,7 @@ function HudSystem.start()
 	UiKit.circle(gear)
 	local gearStroke = Instance.new("UIStroke")
 	gearStroke.Color = UiKit.color(UiKit.look().outline)
+	gearStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	gearStroke.Parent = gear
 	UiKit.styleStroke(gearStroke, view.root, 0.8)
 	gear.Activated:Connect(function()
