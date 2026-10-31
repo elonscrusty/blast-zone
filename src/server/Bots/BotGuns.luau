@@ -13,8 +13,8 @@ local BotGuns = {}
 
 local PROFILES: { [string]: Profile } = {
 	breaker = { idealFraction = 0.45, closeRange = 3, fireFraction = 0.8 }, -- rush in, never kite
-	hornet = { idealFraction = 0.55, closeRange = 10, fireFraction = 0.95 }, -- mid range spray
-	longline = { idealFraction = 0.8, closeRange = 30, fireFraction = 0.98 }, -- stay far, back off
+	hornet = { idealFraction = 0.55, closeRange = 6, fireFraction = 0.95 }, -- mid range spray
+	longline = { idealFraction = 0.8, closeRange = 15, fireFraction = 0.98 }, -- stay far, back off
 }
 
 -- Higher is better to hold. The pistol is the floor; a bot only swaps UP, so two guns on the

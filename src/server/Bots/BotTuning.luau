@@ -153,15 +153,15 @@ function BotTuning.from(config: ConfigLike): Tuning
 		tapGap = 2,
 
 		spreadSeconds = 15,
-		spreadHumanRange = 14,
+		spreadHumanRange = 7, -- video-feel pass: was 14 (distances halve with the camera and the guns)
 
 		thinkInterval = 0.1,
 		crowdFrom = 10,
 		crowdMaxSlowdown = 1.6, -- 24 bots think every 0.16 s instead of 0.1 s; the walking stays every frame
-		pickupRange = 40,
+		pickupRange = 20, -- was 40
 		memoryTime = 2, -- keeps heading to where a target was last seen
 		idealRangeFraction = 0.6, -- fights at this share of the weapon range
-		closeRange = 14, -- backs away when closer than this
+		closeRange = 7, -- backs away when closer than this (was 14)
 		strafeMin = 0.8,
 		strafeMax = 1.6,
 		reloadBelowFraction = 0.35, -- reloads early when nobody is in sight
@@ -169,7 +169,7 @@ function BotTuning.from(config: ConfigLike): Tuning
 		zoneMargin = 6, -- heads inward before the edge touches it
 		goalReached = 4,
 		goalTime = 8, -- gives up on a roam goal after this long
-		roamDistance = 40, -- roam goal distance when there is no zone to aim for
+		roamDistance = 20, -- roam goal distance when there is no zone to aim for (was 40)
 		stuckCheck = 1,
 		stuckDistance = 3,
 		sidestepTime = 0.6,
@@ -185,8 +185,8 @@ function BotTuning.from(config: ConfigLike): Tuning
 		coverRetry = 2,
 		coverReached = 1.5,
 		zoneLookahead = 8,
-		zoneSlideDistance = 12,
-		gunSeekRange = 45,
+		zoneSlideDistance = 8, -- (was 12; the slide is 9 studs now)
+		gunSeekRange = 22, -- (was 45)
 		gunGrabRange = 5, -- the swap prompt works from 7 studs
 	}
 end

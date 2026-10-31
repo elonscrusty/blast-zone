@@ -399,3 +399,22 @@ Harness.test("the client shows the ring only for the live match", function()
 	Harness.eq(ZoneView.get(11), nil, "a stale ZoneState cannot show in a newer match")
 	ZoneView.clear()
 end)
+
+-- A fighter standing on the old edge must be able to walk to the new circle well inside the warning and the
+-- closing time, at the slowest hero's pace (video-feel pass: the run is 11 studs/s, so this is checked).
+Harness.test(
+	"zone: the slowest hero on the old edge reaches the next circle in a third of the window",
+	function()
+		local pace = Config.Movement.walkSpeed * Config.Heroes.speedMin
+		local previous = Config.Zone.initialRadius
+		for i, stage in Config.Zone.stages do
+			local travelSeconds = (previous - stage.targetRadius) / pace
+			local window = stage.closeAt + stage.closeSeconds - stage.warnAt
+			Harness.truthy(
+				travelSeconds <= window / 3,
+				`stage {i}: {travelSeconds} s of walking in a {window} s window`
+			)
+			previous = stage.targetRadius
+		end
+	end
+)

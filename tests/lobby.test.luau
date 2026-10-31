@@ -318,7 +318,7 @@ Harness.test("lobby: four stations, all inside the plaza and far from the arena"
 end)
 
 Harness.test("lobby: every walk from the start is short on a phone (3 to 7 seconds)", function()
-	local speed = Config.Movement.walkSpeed
+	local speed = Config.Movement.lobbyWalkSpeed
 	for _, s in LobbyLayout.stations do
 		local t = LobbyLayout.walkSeconds(
 			LobbyLayout.spawn.x,

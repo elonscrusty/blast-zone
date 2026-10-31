@@ -91,7 +91,7 @@ end)
 
 Harness.test("bot shoots an enemy in the clear, but only after the reaction delay", function()
 	local state = BotBrain.newState()
-	local v = view(selfAt(0, 0), { others = { enemy("p1", 30, 0) } })
+	local v = view(selfAt(0, 0), { others = { enemy("p1", 15, 0) } })
 	local first = BotBrain.think(v, state)
 	Harness.eq(first.fire, false, "no instant snap shot")
 	Harness.eq(first.mode, "fight")
@@ -104,7 +104,7 @@ end)
 
 Harness.test("bot cannot see or shoot through a wall", function()
 	local v = view(selfAt(0, 0), {
-		others = { enemy("p1", 30, 0) },
+		others = { enemy("p1", 15, 0) },
 		canSee = function()
 			return false
 		end,
@@ -121,7 +121,7 @@ Harness.test(
 		Harness.eq(thinkAfterReaction(far, BotBrain.newState()).fire, false)
 
 		-- Seen (inside sight) but beyond the gun's range: it closes in instead of firing.
-		local shortGun = view(selfAt(0, 0), { range = 20, others = { enemy("p1", 40, 0) } })
+		local shortGun = view(selfAt(0, 0), { range = 10, others = { enemy("p1", 20, 0) } })
 		local intent = thinkAfterReaction(shortGun, BotBrain.newState())
 		Harness.eq(intent.fire, false)
 		Harness.truthy(intent.moveX > 0.3, "moves toward the enemy")
@@ -129,7 +129,7 @@ Harness.test(
 )
 
 Harness.test("bot does not fire while reloading or when the server would refuse", function()
-	local others = { enemy("p1", 30, 0) }
+	local others = { enemy("p1", 15, 0) }
 	local reloading = view(selfAt(0, 0, { reloading = true }), { others = others })
 	Harness.eq(thinkAfterReaction(reloading, BotBrain.newState()).fire, false)
 	local cooling = view(selfAt(0, 0, { canFire = false }), { others = others })
@@ -142,7 +142,7 @@ Harness.test("bot reloads when empty, and early when nobody is around", function
 	local lowQuiet = BotBrain.think(view(selfAt(0, 0, { ammo = 3 })), BotBrain.newState())
 	Harness.eq(lowQuiet.reload, true)
 	local lowButBusy = BotBrain.think(
-		view(selfAt(0, 0, { ammo = 3 }), { others = { enemy("p1", 30, 0) } }),
+		view(selfAt(0, 0, { ammo = 3 }), { others = { enemy("p1", 15, 0) } }),
 		BotBrain.newState()
 	)
 	Harness.eq(lowButBusy.reload, false, "keeps fighting with a partial magazine")
@@ -155,7 +155,7 @@ end)
 
 Harness.test("bot backs away when an enemy is too close and strafes at range", function()
 	local close =
-		BotBrain.think(view(selfAt(0, 0), { others = { enemy("p1", 8, 0) } }), BotBrain.newState())
+		BotBrain.think(view(selfAt(0, 0), { others = { enemy("p1", 4, 0) } }), BotBrain.newState())
 	Harness.truthy(close.moveX < -0.3, "backs off")
 
 	local ideal = RANGE * T.idealRangeFraction
@@ -176,7 +176,7 @@ end)
 
 Harness.test("bot keeps shooting while it runs into the zone", function()
 	local zone: BotBrain.Zone = { center = { x = 0, z = 0 }, radius = 50 }
-	local v = view(selfAt(80, 0), { zone = zone, others = { enemy("p1", 80, 30) } })
+	local v = view(selfAt(80, 0), { zone = zone, others = { enemy("p1", 80, 15) } })
 	local intent = thinkAfterReaction(v, BotBrain.newState())
 	Harness.eq(intent.mode, "zone")
 	Harness.truthy(intent.moveX < -0.9)
@@ -184,7 +184,7 @@ Harness.test("bot keeps shooting while it runs into the zone", function()
 end)
 
 Harness.test("bot at low health runs away and slides only when the slide is ready", function()
-	local others = { enemy("p1", 25, 0) }
+	local others = { enemy("p1", 12, 0) }
 	local hurt = view(selfAt(0, 0, { health = 20 }), { others = others })
 	local intent = BotBrain.think(hurt, BotBrain.newState())
 	Harness.eq(intent.mode, "flee")
@@ -238,11 +238,11 @@ end)
 
 Harness.test("bot remembers where it last saw a target for a moment, then gives up", function()
 	local state = BotBrain.newState()
-	local seen = view(selfAt(0, 0), { others = { enemy("p1", 40, 0) } })
+	local seen = view(selfAt(0, 0), { others = { enemy("p1", 20, 0) } })
 	BotBrain.think(seen, state)
 	local hidden = view(selfAt(0, 0), {
 		now = seen.now + 0.5,
-		others = { enemy("p1", 40, 0) },
+		others = { enemy("p1", 20, 0) },
 		canSee = function()
 			return false
 		end,
@@ -400,7 +400,7 @@ end
 
 Harness.test("runner thinks on its interval and fires through the world", function()
 	local log: Log = {}
-	local world, clock = fakeWorld(log, { extraOthers = { enemy("p1", 30, 0) } })
+	local world, clock = fakeWorld(log, { extraOthers = { enemy("p1", 15, 0) } })
 	local runner = BotRunner.new(world, T, noRand)
 	runner:add("b1")
 	for _ = 1, 100 do
@@ -450,7 +450,7 @@ end)
 
 Harness.test("runner drops an eliminated bot and sends nothing for it again", function()
 	local log: Log = {}
-	local world, clock, states = fakeWorld(log, { extraOthers = { enemy("p1", 30, 0) } })
+	local world, clock, states = fakeWorld(log, { extraOthers = { enemy("p1", 15, 0) } })
 	local runner = BotRunner.new(world, T, noRand)
 	runner:add("b1")
 	for _ = 1, 20 do
@@ -473,7 +473,7 @@ Harness.test("one bot that errors does not stop the others", function()
 	local log: Log = {}
 	local world, clock, states = fakeWorld(log, {
 		states = { b1 = selfAt(0, 0), b2 = selfAt(100, 0) },
-		extraOthers = { enemy("p1", 130, 0) },
+		extraOthers = { enemy("p1", 115, 0) },
 	})
 	local errors = {}
 	local realOthers = world.others
@@ -519,8 +519,8 @@ Harness.test("auto-fill counts only people who pressed Play once anyone has", fu
 end)
 
 Harness.test("spread start: bots leave a lone human alone for the first seconds", function()
-	local human: BotBrain.Body = { id = "u1", pos = { x = 0, z = 30 }, human = true }
-	local rival = enemy("b2", 25, 0)
+	local human: BotBrain.Body = { id = "u1", pos = { x = 0, z = 15 }, human = true }
+	local rival = enemy("b2", 12, 0)
 	-- Early: the human is the nearest one, but the bot picks the other bot.
 	local early = view(selfAt(0, 0), { others = { human, rival }, fightSeconds = 3 })
 	local state = BotBrain.newState()

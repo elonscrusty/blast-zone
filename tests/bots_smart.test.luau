@@ -218,7 +218,7 @@ Harness.test(
 
 Harness.test("a bot keeps shooting while it runs back into the zone", function()
 	local state = BotBrain.newState()
-	local v = view(selfAt(95, 0), nil, { zone = ZONE, others = { enemy(125, 0) } })
+	local v = view(selfAt(95, 0), nil, { zone = ZONE, others = { enemy(110, 0) } })
 	BotBrain.think(v, state)
 	v.now += BASE.reactionTime + 0.01
 	local out = BotBrain.think(v, state)
@@ -236,8 +236,8 @@ end)
 Harness.test("bots do not walk to orbs or guns outside the safe circle", function()
 	local v = view(selfAt(0, 0), nil, {
 		zone = ZONE,
-		pickups = { { id = "o1", pos = { x = 30, z = 0 } } },
-		gunDrops = { { id = "1", gunId = "hornet", pos = { x = -30, z = 0 } } },
+		pickups = { { id = "o1", pos = { x = 15, z = 0 } } },
+		gunDrops = { { id = "1", gunId = "hornet", pos = { x = -15, z = 0 } } },
 	})
 	Harness.eq(BotBrain.think(v, BotBrain.newState()).mode, "gun", "inside the zone: wanted")
 	v.zone = { center = { x = 200, z = 0 }, radius = 100, shrinking = false } -- orbs now outside
@@ -264,7 +264,7 @@ end
 Harness.test("a reloading bot ducks behind the wall, waits there, and comes back out", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight })
 	local first = BotBrain.think(v, state)
 	Harness.eq(first.mode, "cover")
 	Harness.truthy(first.moveZ > 0.5, "goes behind the wall, away from the enemy's line")
@@ -290,7 +290,7 @@ end)
 Harness.test("cover never lasts forever", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight })
 	BotBrain.think(v, state)
 	Harness.truthy(state.cover ~= nil)
 	v.now += BASE.coverHold + 0.1
@@ -302,7 +302,7 @@ Harness.test("easy bots mostly stand and fight; hard bots always duck", function
 	local function ducks(tier: string): boolean
 		local state = BotBrain.newState()
 		local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-		local v = view(me, tier, { others = { enemy(30, -2) }, canSee = wallSight })
+		local v = view(me, tier, { others = { enemy(18, -2) }, canSee = wallSight })
 		return BotBrain.think(v, state).mode == "cover"
 	end
 	Harness.eq(ducks("easy"), false)
@@ -331,7 +331,7 @@ Harness.test("cover spots are never outside the zone", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
 	local small = { center = { x = 0, z = -60 }, radius = 70, shrinking = false } -- z > 0 is outside
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight, zone = small })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight, zone = small })
 	BotBrain.think(v, state)
 	Harness.eq(state.cover, nil)
 end)
@@ -350,18 +350,18 @@ Harness.test(
 		end
 		local breaker = Config.Weapons.Guns.breaker.range
 		local longline = Config.Weapons.Guns.longline.range
-		Harness.truthy(moveXAt("breaker", 20, breaker) > 0.5, "shotgun closes in")
+		Harness.truthy(moveXAt("breaker", 10, breaker) > 0.5, "shotgun closes in")
 		Harness.truthy(
 			moveXAt("breaker", 4, breaker) > moveXAt(nil, 4, RANGE),
 			"shotgun does not back off a pistol's way"
 		)
 		Harness.truthy(
-			moveXAt("longline", 20, longline) < -0.5,
+			moveXAt("longline", 10, longline) < -0.5,
 			"rifle backs away from a close fight"
 		)
 		Harness.eq(
-			moveXAt(nil, 20, RANGE),
-			moveXAt("hornet", 20, RANGE) + 0 * 1,
+			moveXAt(nil, 12, RANGE),
+			moveXAt("hornet", 12, RANGE) + 0 * 1,
 			"same side as before at mid range"
 		) -- both hold their line
 	end
@@ -488,4 +488,34 @@ Harness.test("the runner asks the world for the swap", function()
 	runner:step()
 	Harness.truthy(#claimed >= 1)
 	Harness.eq(claimed[1], "b1:7")
+end)
+
+-- A bot must never back away from the very distance it is trying to hold (it would step in and out forever).
+Harness.test(
+	"every gun's habits: the fighting distance is clearly beyond the back-away distance",
+	function()
+		local ranges: { [string]: number } = { pistol = RANGE }
+		for id, gun in Config.Weapons.Guns do
+			ranges[id] = gun.range
+		end
+		for id, range in ranges do
+			local profile = BotGuns.profile(if id == "pistol" then nil else id)
+			local ideal = range * (profile.idealFraction or BASE.idealRangeFraction)
+			local close = profile.closeRange or BASE.closeRange
+			Harness.truthy(
+				ideal >= close * 1.25,
+				`{id}: ideal {ideal} is not 25% past close {close}`
+			)
+		end
+	end
+)
+
+Harness.test("bot reach numbers sit inside what a bot can see", function()
+	Harness.truthy(BASE.pickupRange <= BASE.sightRange, "walks to orbs it can see")
+	Harness.truthy(BASE.gunSeekRange <= BASE.sightRange, "walks to guns it can see")
+	Harness.truthy(BASE.roamDistance <= BASE.sightRange, "roam goals are a short walk")
+	Harness.truthy(
+		BASE.spreadHumanRange <= BASE.warmupSightRange,
+		"the spread-start circle is inside the calm sight"
+	)
 end)
