@@ -270,10 +270,16 @@ Harness.test("screen map: lobby banners, votes and buttons never overlap on any 
 		local screenW = Layout.HEIGHT * aspect
 		local placed: { [string]: LobbyLayout.Rect } = {}
 		for _, name in ScreenMap.lobbyPieces do
-			local r =
-				Layout.onScreen((ScreenMap :: any)[name], aspect, nil, Layout.LOBBY_MIN_ASPECT)
+			-- the emote button is not part of the lobby shrink: it keeps its size in the corner
+			local r = Layout.onScreen(
+				(ScreenMap :: any)[name],
+				aspect,
+				nil,
+				if name == "emote" then nil else Layout.LOBBY_MIN_ASPECT
+			)
 			placed[name] = r
-			local edge = if aspect == TABLET
+			-- the emote screen applies the device safe area itself (ScreenInsets), so it only needs its gutter
+			local edge = if aspect == TABLET or name == "emote"
 				then 8
 				else NOTCH * math.min(1, aspect / Layout.LOBBY_MIN_ASPECT)
 			Harness.truthy(
@@ -294,7 +300,13 @@ Harness.test("screen map: lobby banners, votes and buttons never overlap on any 
 			for j = i + 1, #names do
 				local b = names[j]
 				-- two lobby groups are checked by the test above; here only the new pieces matter
-				if string.sub(a, 1, 6) ~= "group " or string.sub(b, 1, 6) ~= "group " then
+				-- INVITE lives inside the "more" column; its slots are checked against it below
+				local inMore = (a == "invite" and b == "group more")
+					or (b == "invite" and a == "group more")
+				if
+					not inMore
+					and (string.sub(a, 1, 6) ~= "group " or string.sub(b, 1, 6) ~= "group ")
+				then
 					Harness.eq(
 						Layout.overlaps(grow(placed[a], -1e-6), grow(placed[b], -1e-6)),
 						false,
@@ -348,5 +360,15 @@ Harness.test("lobby buttons sit under the save-message strip and inside the scre
 				`{name} runs off the bottom`
 			)
 		end
+	end
+end)
+
+Harness.test("INVITE does not sit on any lobby button of its own column", function()
+	for name, slot in LobbyLayout.slots :: any do
+		Harness.eq(
+			Layout.overlaps(grow(slot.rect, -1e-6), grow(ScreenMap.invite, -1e-6)),
+			false,
+			`INVITE overlaps {name}`
+		)
 	end
 end)

@@ -11,12 +11,15 @@ export type Rect = { x: number, y: number, w: number, h: number }
 local ScreenMap = {}
 
 -- ===== lobby (waiting, countdown, results) =====
-ScreenMap.botsBanner = { x = 240, y = 44, w = 300, h = 52 } :: Rect
-ScreenMap.mapVote = { x = 160, y = 102, w = 450, h = 48 } :: Rect -- 1 row; buttons share the width
+ScreenMap.botsBanner = { x = 240, y = 44, w = 260, h = 52 } :: Rect
+ScreenMap.mapVote = { x = 160, y = 102, w = 340, h = 48 } :: Rect -- 1 row; buttons share the width
 -- A column left of the PLAY menu, beside the look picker (LobbyLayout.groups.side is x 56-160).
 ScreenMap.modeVote = { x = 168, y = 160, w = 104, h = 152 } :: Rect
 -- Above BENCH and MISSIONS in the "more" column of LobbyLayout.
 ScreenMap.invite = { x = 508, y = 152, w = 104, h = 48 } :: Rect
+
+-- The round EMOTE button, bottom right (16 point gutter, 72 points wide). It never shrinks with the lobby.
+ScreenMap.emote = { x = 692, y = 272, w = 72, h = 72 } :: Rect
 
 -- ===== spectating (out of the fight) =====
 ScreenMap.spectate = { x = 240, y = 288, w = 300, h = 56 } :: Rect
@@ -27,6 +30,6 @@ ScreenMap.airdropHint = { x = 64, y = 124, w = 140, h = 22 } :: Rect
 
 -- Pieces that can be on screen together in the lobby (the test checks these against each other and
 -- against LobbyLayout.groups).
-ScreenMap.lobbyPieces = { "botsBanner", "mapVote", "modeVote", "invite" }
+ScreenMap.lobbyPieces = { "botsBanner", "mapVote", "modeVote", "invite", "emote" }
 
 return ScreenMap
