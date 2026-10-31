@@ -15,9 +15,7 @@ local FriendInvite = require(Shared.FriendInvite)
 local MatchPhase = require(Shared.MatchPhase)
 
 local Net = require(script.Parent.Parent:WaitForChild("Core"):WaitForChild("Net"))
-local Components = require(script.Parent.Parent.Ui.Components)
-local Layout = require(script.Parent.Parent.Hud.Layout)
-local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
+local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 
 local player = Players.LocalPlayer
 local FONT = Look.font("display")
@@ -56,12 +54,8 @@ InviteButtonSystem.order = 220
 function InviteButtonSystem.start()
 	local look = loadLook()
 
-	local gui, root = Components.screen("InviteFriends", "MatchFlow") -- lobby layer, so an open panel (Modal) covers it
-	gui.Enabled = false
-
-	-- Its own spot above BENCH and MISSIONS (Ui/ScreenMap.invite): clear of PLAY, SETTINGS and REWARDS.
-	local slot =
-		Components.piece(root, "InviteSlot", ScreenMap.invite, nil, Layout.LOBBY_MIN_ASPECT)
+	-- Its own lobby slot (Ui/LobbyLayout "invite"): hangs on the lobby screen, so it never shows in a match.
+	local slot = LobbyMenu.slot("invite")
 
 	local shadow = Instance.new("Frame")
 	shadow.Name = "Shadow"
@@ -96,11 +90,15 @@ function InviteButtonSystem.start()
 	stroke.Parent = button
 
 	local function resize()
-		local h = gui.AbsoluteSize.Y
+		local camera = workspace.CurrentCamera
+		local h = if camera then camera.ViewportSize.Y else 360
 		stroke.Thickness = math.max(2, math.floor(h * look.strokeScale + 0.5))
 		shadow.Position = UDim2.fromOffset(0, math.max(2, math.floor(h * look.shadowOffset + 0.5)))
 	end
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
+	end
 	resize()
 
 	-- ===== when to show it =====
@@ -110,7 +108,7 @@ function InviteButtonSystem.start()
 		return character ~= nil and character:GetAttribute(Config.Attributes.ParticipantId) ~= nil
 	end
 	local function refresh()
-		gui.Enabled = FriendInvite.showButton(phase, inMatch())
+		slot.Visible = FriendInvite.showButton(phase, inMatch())
 	end
 	Net.on("MatchState", function(state: any)
 		if type(state) == "table" and type(state.phase) == "string" then

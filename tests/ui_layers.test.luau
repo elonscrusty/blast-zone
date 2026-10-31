@@ -300,13 +300,7 @@ Harness.test("screen map: lobby banners, votes and buttons never overlap on any 
 			for j = i + 1, #names do
 				local b = names[j]
 				-- two lobby groups are checked by the test above; here only the new pieces matter
-				-- INVITE lives inside the "more" column; its slots are checked against it below
-				local inMore = (a == "invite" and b == "group more")
-					or (b == "invite" and a == "group more")
-				if
-					not inMore
-					and (string.sub(a, 1, 6) ~= "group " or string.sub(b, 1, 6) ~= "group ")
-				then
+				if string.sub(a, 1, 6) ~= "group " or string.sub(b, 1, 6) ~= "group " then
 					Harness.eq(
 						Layout.overlaps(grow(placed[a], -1e-6), grow(placed[b], -1e-6)),
 						false,
@@ -363,12 +357,36 @@ Harness.test("lobby buttons sit under the save-message strip and inside the scre
 	end
 end)
 
-Harness.test("INVITE does not sit on any lobby button of its own column", function()
-	for name, slot in LobbyLayout.slots :: any do
-		Harness.eq(
-			Layout.overlaps(grow(slot.rect, -1e-6), grow(ScreenMap.invite, -1e-6)),
-			false,
-			`INVITE overlaps {name}`
-		)
+Harness.test("every lobby button lands clear of every other one on every phone", function()
+	for _, aspect in PHONES do
+		-- a slot lands inside its group, scaled with the group (groups anchor to different edges, so a
+		-- design-space check is not enough once the lobby shrinks)
+		local placed: { [string]: LobbyLayout.Rect } = {}
+		for name, slot in LobbyLayout.slots :: any do
+			local g = LobbyLayout.groups[slot.group]
+			local gr = Layout.onScreen(g, aspect, nil, Layout.LOBBY_MIN_ASPECT)
+			local sx, sy = gr.w / g.w, gr.h / g.h
+			placed[name] = {
+				x = gr.x + (slot.rect.x - g.x) * sx,
+				y = gr.y + (slot.rect.y - g.y) * sy,
+				w = slot.rect.w * sx,
+				h = slot.rect.h * sy,
+			}
+		end
+		placed.emote = Layout.onScreen(ScreenMap.emote, aspect)
+		local names = {}
+		for name in placed do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		for i, a in names do
+			for j = i + 1, #names do
+				Harness.eq(
+					Layout.overlaps(grow(placed[a], -1e-6), grow(placed[names[j]], -1e-6)),
+					false,
+					`{a} overlaps {names[j]} at {aspect}`
+				)
+			end
+		end
 	end
 end)
