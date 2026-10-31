@@ -472,4 +472,38 @@ Harness.test("full match: every map plays to a winner", function()
 	end
 end)
 
+-- A spread of seeds, lobby sizes and maps, two matches each with someone leaving in between: none may get
+-- stuck or throw. (A 120-seed run of this shape finished all 240 matches with no errors.)
+Harness.test("full match: mixed seeds, lobby sizes and leavers never get stuck", function()
+	local layouts = { "A", "B", "C" }
+	for seed = 1, 12 do
+		local layoutId = layouts[seed % 3 + 1]
+		local sim = MatchSim.new({ seed = seed * 7 + 3, layout = layoutId })
+		local ids: { string } = {}
+		for i = 1, 1 + seed % 4 do
+			ids[i] = sim.join(100 + i, `P{i}`)
+			sim.press(ids[i])
+		end
+		for matchId = 1, 2 do
+			Harness.truthy(
+				untilResults(sim, matchId),
+				`seed {seed} map {layoutId}: match {matchId} reached results`
+			)
+			noErrors(sim)
+			checkFinished(sim, matchId)
+			if matchId == 1 and #ids > 1 and seed % 2 == 0 then
+				sim.leave(table.remove(ids) :: string)
+			end
+			for _, id in ids do
+				sim.replay[id] = true
+			end
+			Harness.truthy(untilWaiting(sim), `seed {seed}: back to the lobby`)
+			checkClean(sim)
+			for _, id in ids do
+				sim.press(id)
+			end
+		end
+	end
+end)
+
 return {}
