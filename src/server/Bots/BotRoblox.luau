@@ -83,9 +83,13 @@ local function addTag(head: BasePart, displayName: string)
 	gui.Parent = head
 end
 
--- Builds a Crash Dummy (yields while Roblox builds the rig). The caller tags nothing else: this
--- sets the ParticipantId / IsBot attributes from Config.Attributes, and the match flow places it.
-function BotRoblox.makeRig(participantId: string, displayName: string, parent: Instance): Model
+-- Asking Roblox to build a rig is a slow web-backed call, and a full match needs 24 of them at once. So one
+-- plain Crash Dummy is built the first time (or ahead, see warm) and every bot is a Clone of it.
+local template: Model? = nil
+local building = false
+local BUILD_TRIES = 3
+
+local function buildTemplate(): Model
 	local description = Instance.new("HumanoidDescription")
 	local body = hex(LOOK.body)
 	local legs = hex(LOOK.legs)
@@ -95,8 +99,59 @@ function BotRoblox.makeRig(participantId: string, displayName: string, parent: I
 	description.RightArmColor = body
 	description.LeftLegColor = legs
 	description.RightLegColor = legs
-
 	local rig = Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
+	local humanoid = rig:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	local torso = rig:FindFirstChild("UpperTorso")
+	if torso and torso:IsA("BasePart") then
+		addTarget(torso)
+	end
+	return rig
+end
+
+-- The shared template. Yields on the first call only; callers that arrive meanwhile wait for the same build.
+local function getTemplate(): Model?
+	if template then
+		return template
+	end
+	if building then
+		while building do
+			task.wait(0.1)
+		end
+		return template
+	end
+	building = true
+	for attempt = 1, BUILD_TRIES do
+		local ok, result = pcall(buildTemplate)
+		if ok then
+			template = result
+			break
+		end
+		warn(`[bots] building the Crash Dummy failed ({attempt}/{BUILD_TRIES}): {result}`)
+		if attempt < BUILD_TRIES then
+			task.wait(attempt)
+		end
+	end
+	building = false
+	return template
+end
+
+-- Build the template before the first match asks for 24 bots at once.
+function BotRoblox.warm()
+	getTemplate()
+end
+
+-- Makes a Crash Dummy (yields only while the template is first built). The caller tags nothing else: this
+-- sets the ParticipantId / IsBot attributes from Config.Attributes, and the match flow places it.
+-- Returns nil if Roblox could not build the rig; that bot stays out of the arena and the match carries on.
+function BotRoblox.makeRig(participantId: string, displayName: string, parent: Instance): Model?
+	local base = getTemplate()
+	if base == nil then
+		return nil
+	end
+	local rig = base:Clone()
 	rig.Name = displayName
 	rig:SetAttribute(Config.Attributes.ParticipantId, participantId)
 	rig:SetAttribute(Config.Attributes.IsBot, true)
@@ -104,15 +159,10 @@ function BotRoblox.makeRig(participantId: string, displayName: string, parent: I
 	local humanoid = rig:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayName = displayName
-		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	end
 	local head = rig:FindFirstChild("Head")
 	if head and head:IsA("BasePart") then
 		addTag(head, displayName)
-	end
-	local torso = rig:FindFirstChild("UpperTorso")
-	if torso and torso:IsA("BasePart") then
-		addTarget(torso)
 	end
 	rig.Parent = parent
 	return rig

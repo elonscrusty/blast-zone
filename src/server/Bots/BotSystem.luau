@@ -22,6 +22,7 @@ local MatchPhase = require(Shared.MatchPhase)
 local Server = ServerScriptService:WaitForChild("Server")
 local Core = Server:WaitForChild("Core")
 local CollisionGroups = require(Core.CollisionGroups)
+local Damage = require(Core.Damage)
 local MatchContext = require(Core.MatchContext)
 local Net = require(Core.Net)
 local Participants = require(Core.Participants)
@@ -321,33 +322,78 @@ local function clearRigs()
 	end
 end
 
+-- A bot with no body never meets the zone, so it would hold the match open. Once hits count, take it out.
+local function dropBodiless(id: string, matchId: number)
+	task.spawn(function()
+		while MatchContext:isCurrent(matchId) and Participants:isAlive(id) do
+			if MatchPhase.allowsDamage(MatchContext:getPhase()) then
+				local result = Damage:apply({
+					matchId = matchId,
+					targetId = id,
+					amount = 1e6,
+					cause = "other",
+				})
+				if result.applied then
+					return
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
+end
+
 local function placeBot(participant: any, pos: any, lookAt: any)
 	local id: string = participant.id
 	local matchId: number = participant.matchId
-	local rig = rigs[id]
-	if not rig then
-		rig = BotRoblox.makeRig(id, participant.displayName, Workspace)
-		-- Building the rig yields. If the match moved on in the meantime, throw it away.
-		if not MatchContext:isCurrent(matchId) or not Participants:get(id) then
-			rig:Destroy()
+	local rig: Model? = rigs[id]
+	if rig == nil then
+		local made = BotRoblox.makeRig(id, participant.displayName, Workspace)
+		if made == nil then
+			warnOnce("rig", "could not build a bot body; that bot sits this match out")
+			dropBodiless(id, matchId)
 			return
 		end
-		rigs[id] = rig
-		CollisionGroups.apply(rig)
+		-- The first build yields. If the match moved on in the meantime, throw it away.
+		if not MatchContext:isCurrent(matchId) or not Participants:get(id) then
+			made:Destroy()
+			return
+		end
+		rigs[id] = made
+		CollisionGroups.apply(made)
 		local combat = BotPorts.combat()
 		if combat then
-			combat.registerBotBody(id, rig)
+			combat.registerBotBody(id, made)
 		end
 		local movement = BotPorts.movement()
 		if movement then
-			movement.registerBotBody(id, rig)
+			movement.registerBotBody(id, made)
 		end
+		rig = made
+	end
+	if rig == nil then
+		return
 	end
 	rig:PivotTo(
 		CFrame.lookAt(Vector3.new(pos.x, pos.y, pos.z), Vector3.new(lookAt.x, pos.y, lookAt.z))
 	)
 	if runner then
 		runner:add(id)
+	end
+end
+
+-- A body that fell out of the world (or was lost any other way) can never meet the zone either: take its bot out.
+local function reapLostBodies()
+	if not MatchPhase.allowsDamage(MatchContext:getPhase()) then
+		return
+	end
+	local matchId = MatchContext:getMatchId()
+	for id, rig in rigs do
+		if Participants:isAlive(id) then
+			local root = BotRoblox.rootOf(rig)
+			if rig.Parent == nil or root == nil or root.Parent == nil then
+				Damage:apply({ matchId = matchId, targetId = id, amount = 1e6, cause = "other" })
+			end
+		end
 	end
 end
 
@@ -445,6 +491,7 @@ function BotSystem.start()
 	if not Config.Features.bots then
 		return
 	end
+	task.spawn(BotRoblox.warm)
 	local rng = Random.new()
 	runner = BotRunner.new(makeWorld(), tuning, function()
 		return rng:NextNumber()
@@ -454,6 +501,7 @@ function BotSystem.start()
 	local activeRunner = runner :: BotRunner.Runner
 	local sinceCollect = 0
 	local sinceStep = 0
+	local sinceReap = 0
 	RunService.Heartbeat:Connect(function(dt)
 		sinceStep += dt
 		if sinceStep >= STEP_SECONDS then
@@ -464,6 +512,11 @@ function BotSystem.start()
 		if sinceCollect >= 0.25 then
 			sinceCollect = 0
 			collectNearby()
+		end
+		sinceReap += dt
+		if sinceReap >= 1 then
+			sinceReap = 0
+			reapLostBodies()
 		end
 	end)
 
