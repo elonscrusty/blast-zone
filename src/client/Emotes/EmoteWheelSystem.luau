@@ -18,6 +18,7 @@ local MatchPhase = require(Shared.MatchPhase)
 local RemoteDefs = require(Shared.RemoteDefs)
 local Net = require(script.Parent.Parent.Core.Net)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local Layout = require(script.Parent.Parent.Hud.Layout)
 
 local EmoteWheelSystem = {}
 EmoteWheelSystem.order = 220
@@ -32,7 +33,8 @@ local WHITE = Look.color("panel")
 local LOCKED = Look.color("dim")
 local LOCKED_INK = Look.color("inkSoft")
 
-local BUTTON = 72 -- points; touch minimum is 48
+local BUTTON = 72 -- design points; touch minimum is 48
+local GUTTER = 16 -- design points from the screen corner
 local BUBBLE = 58
 -- Bubble centres, in points from the button's centre (an arc up and to the left, clear of the screen edge).
 local ARC = {
@@ -83,6 +85,7 @@ function EmoteWheelSystem.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "EmoteWheel"
 	gui.ResetOnSpawn = false
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets -- the notch is handled here, so the gutter stays 16
 	gui.DisplayOrder = UiLayers.Calm -- with the look picker, under panels and results
 	gui.Enabled = false
 
@@ -91,9 +94,19 @@ function EmoteWheelSystem.start()
 	holder.Name = "Holder"
 	holder.BackgroundTransparency = 1
 	holder.AnchorPoint = Vector2.new(1, 1)
-	holder.Position = UDim2.new(1, -16, 1, -16)
 	holder.Size = UDim2.fromOffset(BUTTON, BUTTON)
 	holder.Parent = gui
+	-- Points are design points (360 tall): the button and its bubbles grow with the screen height, so it
+	-- always fills Ui/ScreenMap.emote and the lobby buttons above it never touch it.
+	local fit = Instance.new("UIScale")
+	fit.Parent = holder
+	local function resize()
+		local s = math.max(0.5, gui.AbsoluteSize.Y / Layout.HEIGHT)
+		fit.Scale = s
+		holder.Position = UDim2.new(1, -GUTTER * s, 1, -GUTTER * s)
+	end
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
+	resize()
 
 	local main = round(holder, "Emote", BUTTON, Vector2.zero)
 	main.BackgroundColor3 = NAVY
