@@ -116,6 +116,17 @@ function Controls.setEnabled(enabled: boolean)
 	end
 end
 
+-- The lobby: walking works (stick, keys, pad), aiming and firing stay off.
+function Controls.setWalking(walking: boolean)
+	if InputState.setWalking(state, walking) then
+		Controls.Cleared:fire()
+	end
+end
+
+function Controls.isWalking(): boolean
+	return state.walking
+end
+
 function Controls.reset()
 	InputState.reset(state)
 	Controls.Cleared:fire()

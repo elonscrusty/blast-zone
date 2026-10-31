@@ -13,6 +13,7 @@ UiLayers.Calm = 15 -- widgets shown between fights that are not lobby buttons
 UiLayers.Moments = 17 -- big banners (double kill, circle closing); over the HUD, under upgrade cards
 UiLayers.Popups = 20 -- upgrade cards, bots banner
 UiLayers.Spectate = 30 -- spectate arrows
+UiLayers.MatchFlowBackdrop = 49 -- the full-bleed colour behind the results screen (reaches under the notch)
 UiLayers.MatchFlow = 50 -- lobby (PLAY, SETTINGS, every LobbyMenu slot), countdown, banners, results
 UiLayers.MatchFlowBanner = 52 -- winner banner, over the results screen
 UiLayers.MatchFlowExtra = 55 -- add-ons drawn over the results screen (coins strip)
@@ -30,6 +31,7 @@ UiLayers.order = {
 	"Moments",
 	"Popups",
 	"Spectate",
+	"MatchFlowBackdrop",
 	"MatchFlow",
 	"MatchFlowBanner",
 	"MatchFlowExtra",

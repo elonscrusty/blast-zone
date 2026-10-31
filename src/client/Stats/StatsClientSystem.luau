@@ -15,6 +15,9 @@ local StatsRules = require(Shared.Stats.StatsRules)
 local BoardRules = require(Shared.Stats.BoardRules)
 local Net = require(script.Parent.Parent.Core.Net)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
+local UiKit = require(script.Parent.Parent.Hud.UiKit)
+local Layout = require(script.Parent.Parent.Hud.Layout)
 
 local StatsClientSystem = {}
 StatsClientSystem.order = 220
@@ -57,20 +60,16 @@ local function buildCard()
 	gui.Name = "LobbyStats"
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = UiLayers.Calm -- under MatchFlow so the PLAY and SETTINGS buttons stay on top
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets -- the same frame as every other lobby piece
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	card = Instance.new("Frame")
 	card.Name = "Card"
-	card.AnchorPoint = Vector2.new(0, 0)
-	card.Position = UDim2.new(0, 12, 0, 12)
-	card.Size = UDim2.fromScale(0.3, 0.12)
 	card.BackgroundTransparency = 1
 	card.Visible = false
 	card.Parent = gui
-	local limit = Instance.new("UISizeConstraint")
-	limit.MinSize = Vector2.new(210, 64)
-	limit.MaxSize = Vector2.new(360, 110)
-	limit.Parent = card
+	-- Placed from Ui/ScreenMap (under Roblox's menu and chat buttons, clear of the map vote), so it moves with them.
+	UiKit.place(card, ScreenMap.statsCard, nil, Layout.LOBBY_MIN_ASPECT)
 	local list = Instance.new("UIListLayout")
 	list.FillDirection = Enum.FillDirection.Horizontal
 	list.Padding = UDim.new(0.03, 0)

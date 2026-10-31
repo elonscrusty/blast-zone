@@ -34,6 +34,7 @@ local healCount: TextLabel
 local sprintVeil: Frame
 local slideCount: TextLabel
 local visible = false
+local walkOnly = false -- the lobby: only the move stick shows
 local wasSlideReady = true
 
 local homeOf: { [string]: () -> () } = {} -- puts a floating stick back at its resting place
@@ -42,6 +43,9 @@ local function applyLayout()
 	local left = Settings.flag("leftHanded")
 	local scale = Settings.number("touchScale")
 	for name, obj in pieces do
+		if name == "walkZone" then
+			continue -- the lobby catcher is the whole screen
+		end
 		local zone = Layout.zones[name]
 		if zone then
 			UiKit.place(obj, zone, left) -- a catch area: no scaling, it must not shrink
@@ -85,7 +89,8 @@ local function makeStick(
 	zone: Frame,
 	label: string?,
 	fillHex: string,
-	onChange: (number, number, boolean) -> ()
+	onChange: (number, number, boolean) -> (),
+	lobbyZone: Frame? -- also catches the thumb in the lobby (the whole screen between the buttons)
 )
 	local look = UiKit.look()
 	local base, shadow = UiKit.sticker(root, root, name, fillHex, 0.5)
@@ -132,18 +137,24 @@ local function makeStick(
 	end
 	homeOf[name] = goHome
 
+	-- In the lobby the ring only shows under a thumb: its resting place is over the buttons.
+	local function restVisible()
+		base.Visible = not walkOnly
+	end
+
 	local function release()
 		tracked = nil
 		knob.Position = UDim2.fromScale(0.5, 0.5)
 		goHome()
 		dim()
+		restVisible()
 		onChange(0, 0, false)
 	end
 
 	-- Floating: put the stick under the finger, kept inside its zone so it is never half off screen.
-	local function floatUnder(input: InputObject)
+	local function floatUnder(input: InputObject, area: Frame)
 		local radius = base.AbsoluteSize.X / 2
-		local zp, zs, rp = zone.AbsolutePosition, zone.AbsoluteSize, root.AbsolutePosition
+		local zp, zs, rp = area.AbsolutePosition, area.AbsoluteSize, root.AbsolutePosition
 		local cx = if zs.X > 2 * radius
 			then math.clamp(input.Position.X, zp.X + radius, zp.X + zs.X - radius)
 			else zp.X + zs.X / 2
@@ -166,17 +177,34 @@ local function makeStick(
 		onChange(x, y, true)
 	end
 
-	zone.InputBegan:Connect(function(input: InputObject)
+	local function begin(input: InputObject, from: Frame)
 		if input.UserInputType == Enum.UserInputType.Touch and tracked == nil then
 			Controls.noteDevice("touch") -- first: a device change clears sticks, so it comes before we hold this one
 			tracked = input
 			startX, startY = input.Position.X, input.Position.Y
-			if Settings.flag("floatingSticks") then
-				floatUnder(input)
+			if walkOnly then
+				base.Visible = true
+			end
+			if walkOnly or Settings.flag("floatingSticks") then
+				floatUnder(input, from)
 			end
 			move(input)
 		end
+	end
+	zone.InputBegan:Connect(function(input: InputObject)
+		begin(input, zone)
 	end)
+	if lobbyZone then
+		local catcher = lobbyZone
+		catcher.InputBegan:Connect(function(input: InputObject)
+			begin(input, catcher)
+		end)
+		catcher:GetPropertyChangedSignal("Visible"):Connect(function()
+			if not catcher.Visible and tracked ~= nil then
+				release()
+			end
+		end)
+	end
 	UserInputService.InputChanged:Connect(function(input: InputObject)
 		if tracked ~= nil and input == tracked then
 			move(input)
@@ -296,9 +324,20 @@ local function build()
 	makeLook(makeZone("lookZone")) -- first, so the sticks and buttons sit on top of it
 	local moveZone = makeZone("moveZone")
 	local fireZone = makeZone("fireZone")
+	-- The lobby: any touch that is not on a button walks (the buttons fill the lower corners, so a corner
+	-- zone would sit under them). Full screen, under every button, shown only while walking in the lobby.
+	local walkZone = Instance.new("Frame")
+	walkZone.Name = "walkZone"
+	walkZone.BackgroundTransparency = 1
+	walkZone.BorderSizePixel = 0
+	walkZone.Active = true
+	walkZone.Size = UDim2.fromScale(1, 1)
+	walkZone.Visible = false
+	walkZone.Parent = root
+	pieces.walkZone = walkZone
 	makeStick("moveStick", moveZone, nil, look.panel, function(x, y, _active)
 		Controls.setTouchMove(x, y)
-	end)
+	end, walkZone)
 	makeStick("fireStick", fireZone, "FIRE", look.danger, function(x, y, active)
 		Controls.setTouchAim(x, y, active)
 	end)
@@ -455,12 +494,22 @@ local function build()
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
+-- Lobby: only the whole-screen walk catcher (the ring shows under a thumb). Combat: everything (the pick chips show themselves).
+local function applyMode(onlyWalk: boolean)
+	walkOnly = onlyWalk
+	for name, obj in pieces do
+		if string.match(name, "^chip%d$") == nil then
+			obj.Visible = if name == "walkZone" then onlyWalk else not onlyWalk
+		end
+	end
+end
+
 function TouchControls.start()
 	build()
 	Controls.DeviceChanged:connect(function()
-		gui.Enabled = visible and Controls.device() == "touch"
+		gui.Enabled = (visible or walkOnly) and Controls.device() == "touch"
 	end)
-	gui.Enabled = visible and Controls.device() == "touch"
+	gui.Enabled = (visible or walkOnly) and Controls.device() == "touch"
 end
 
 -- Called every frame by HudSystem. `show` = the HUD wants controls on screen.
@@ -468,14 +517,19 @@ function TouchControls.update(
 	show: boolean,
 	slideReady: boolean,
 	slideFraction: number,
-	slideSeconds: number
+	slideSeconds: number,
+	lobbyWalk: boolean?
 )
 	visible = show
-	local want = show and Controls.device() == "touch"
+	local walk = (lobbyWalk == true) and not show
+	if walk ~= walkOnly then
+		applyMode(walk)
+	end
+	local want = (show or walk) and Controls.device() == "touch"
 	if gui.Enabled ~= want then
 		gui.Enabled = want
 	end
-	if not want then
+	if not want or walk then
 		return
 	end
 	local packs = LootClient.get().healPacks

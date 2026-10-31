@@ -87,7 +87,11 @@ function HudSystem.start()
 	view:mount()
 	view:setScale(Settings.number("hudScale"))
 	ControlsSystem.setWeapons(1, #config.weapons)
-	Controls.setEnabled(HudModel.controlsOn(model)) -- off until the server says a match is live
+	local function syncControls()
+		Controls.setEnabled(HudModel.controlsOn(model)) -- off until the server says a match is live
+		Controls.setWalking(HudModel.walkOn(model)) -- the lobby: walking only
+	end
+	syncControls()
 
 	-- ===== big map: tap the minimap (touch), M (keyboard) or Y (pad); any tap on it closes it =====
 	local bigMap = BigMapModel.new()
@@ -166,7 +170,7 @@ function HudSystem.start()
 	end)
 	Net.on("MatchState", function(p: any)
 		HudModel.applyMatch(model, p, config)
-		Controls.setEnabled(HudModel.controlsOn(model))
+		syncControls()
 	end)
 	Net.on("ZoneState", function(p: any)
 		HudModel.applyZone(model, p)
@@ -189,7 +193,7 @@ function HudSystem.start()
 	end)
 	Net.on("Eliminated", function(p: any)
 		HudModel.applyEliminated(model, p.victimId)
-		Controls.setEnabled(HudModel.controlsOn(model))
+		syncControls()
 	end)
 
 	-- ===== every frame =====
@@ -243,7 +247,8 @@ function HudSystem.start()
 			derived.visible and HudModel.controlsOn(model),
 			derived.slideReady,
 			derived.slideFraction,
-			derived.slideSeconds
+			derived.slideSeconds,
+			HudModel.walkOn(model)
 		)
 	end)
 end
