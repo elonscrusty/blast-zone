@@ -35,6 +35,7 @@ local Squads = require(Core.Squads)
 local MoveGuard = require(script.Parent.Parent.AntiCheat.MoveGuard)
 local MatchController = require(script.Parent.MatchController)
 local MatchRules = require(script.Parent.MatchRules)
+local TallySystem = require(script.Parent.Parent.Results.TallySystem)
 
 local LOBBY_TAG = "LobbySpawn" -- optional: parts the arena piece tags where waiting players stand
 local TICK_SECONDS = 0.1
@@ -156,6 +157,9 @@ local world: MatchController.World = {
 	sendResults = function(id, payload)
 		local player = playerById[id]
 		if player then
+			if payload.you ~= nil then
+				payload.you.tally = TallySystem.get(id) -- this player's own counts only
+			end
 			Net.fire("Results", player, payload)
 		end
 	end,

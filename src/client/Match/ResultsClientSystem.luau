@@ -15,6 +15,8 @@ local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
 local ResultsText = require(script.Parent.ResultsText)
+local MatchTally = require(Shared.Results.MatchTally)
+local ResultsLayout = require(script.Parent.ResultsLayout)
 local Look = require(script.Parent.Parent.Ui.Look)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
@@ -315,23 +317,23 @@ function ResultsClientSystem.start()
 	column.Name = "Column"
 	column.AnchorPoint = Vector2.new(0.5, 0)
 	-- starts under the save-message strip (top 16%) and ends above the rewards bar, also on a short wide window
-	column.Position = UDim2.fromScale(0.5, 0.17)
-	column.Size = UDim2.fromScale(0.86, 0.55) -- ends at 0.72: the "progress not loaded" note starts at 0.735
+	column.Position = UDim2.fromScale(ResultsLayout.column.x, ResultsLayout.column.y)
+	column.Size = UDim2.fromScale(ResultsLayout.column.width, ResultsLayout.column.height) -- ends at 0.72: the note starts at 0.735
 	column.BackgroundTransparency = 1
 	column.Parent = results
 	local columnLimit = Instance.new("UISizeConstraint")
-	columnLimit.MaxSize = Vector2.new(760, 420)
+	columnLimit.MaxSize = Vector2.new(ResultsLayout.column.maxWidth, ResultsLayout.column.maxHeight)
 	columnLimit.Parent = column
 
 	local title = text(column, "Title", "", 120)
-	title.Size = UDim2.fromScale(1, 0.34)
+	title.Size = UDim2.fromScale(1, ResultsLayout.rows.title.height)
 	outline(title, 1.8)
 
 	local subSlot = Instance.new("Frame")
 	subSlot.Name = "SubPill"
 	subSlot.AnchorPoint = Vector2.new(0.5, 0)
-	subSlot.Position = UDim2.fromScale(0.5, 0.37)
-	subSlot.Size = UDim2.fromScale(0.8, 0.11)
+	subSlot.Position = UDim2.fromScale(0.5, ResultsLayout.rows.sub.top)
+	subSlot.Size = UDim2.fromScale(0.8, ResultsLayout.rows.sub.height)
 	subSlot.BackgroundColor3 = hex(look.panel)
 	subSlot.Parent = column
 	round(subSlot, 0.5)
@@ -344,8 +346,8 @@ function ResultsClientSystem.start()
 	local pills = Instance.new("Frame")
 	pills.Name = "Pills"
 	pills.AnchorPoint = Vector2.new(0.5, 0)
-	pills.Position = UDim2.fromScale(0.5, 0.52)
-	pills.Size = UDim2.fromScale(0.9, 0.2)
+	pills.Position = UDim2.fromScale(0.5, ResultsLayout.rows.pills.top)
+	pills.Size = UDim2.fromScale(0.9, ResultsLayout.rows.pills.height)
 	pills.BackgroundTransparency = 1
 	pills.Parent = column
 	local pillLayout = Instance.new("UIListLayout")
@@ -357,11 +359,20 @@ function ResultsClientSystem.start()
 	local timeValue = pill(pills, 2, "Time")
 	local rewardValue = pill(pills, 3, Config.Rewards.currencyName)
 
+	-- One quiet line: things broken, crates opened, powers picked. Hidden when there is nothing to say.
+	local extras = text(column, "Extras", "", 22)
+	extras.AnchorPoint = Vector2.new(0.5, 0)
+	extras.Position = UDim2.fromScale(0.5, ResultsLayout.rows.extras.top)
+	extras.Size = UDim2.fromScale(0.9, ResultsLayout.rows.extras.height)
+	extras.TextColor3 = hex(look.ink)
+	extras.TextTransparency = 0.15
+	extras.Visible = false
+
 	local buttons = Instance.new("Frame")
 	buttons.Name = "Buttons"
-	buttons.AnchorPoint = Vector2.new(0.5, 1)
-	buttons.Position = UDim2.fromScale(0.5, 0.97)
-	buttons.Size = UDim2.fromScale(1, 0.22)
+	buttons.AnchorPoint = Vector2.new(0.5, 0)
+	buttons.Position = UDim2.fromScale(0.5, ResultsLayout.rows.buttons.top)
+	buttons.Size = UDim2.fromScale(1, ResultsLayout.rows.buttons.height)
 	buttons.BackgroundTransparency = 1
 	buttons.Parent = column
 	local replaySlot, replay = sticker(buttons, "PlayAgain", "PLAY AGAIN", true)
@@ -396,6 +407,9 @@ function ResultsClientSystem.start()
 		killsValue.Text = tostring(words.kills)
 		timeValue.Text = words.time
 		rewardValue.Text = `+{words.reward}`
+		local extrasText = MatchTally.extrasLine(if payload.you then payload.you.tally else nil)
+		extras.Text = extrasText or ""
+		extras.Visible = extrasText ~= nil
 		replay.Text = "PLAY AGAIN"
 		queued = false
 	end

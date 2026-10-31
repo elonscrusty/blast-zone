@@ -73,7 +73,7 @@ Status key: **in progress** = a thread is on it, **missing** = nothing exists ye
 
 | # | Gap | What the video shows | Ours today | Size |
 | --- | --- | --- | --- | --- |
-| 29 | **Richer results card** | "YOU RANKED #1", hero posing in 3D, list: kills, crates opened, powers picked, things broken, time. | Place, kills, time, reward, winner pose. | S |
+| 29 | **Richer results card** (**done, piece V29**) | "YOU RANKED #1", hero posing in 3D, list: kills, crates opened, powers picked, things broken, time. | Place, kills, time, reward, winner pose. | S |
 | 30 | **Hero outline + ground ring** | Thin dark outline, glowing trim. | Planned in the look plan, waits for carter's pick. | S |
 | 31 | **Lobby cyan grid + stars** | Glowing grid floor, starry sky behind the hero. | Planned in the look plan. | S |
 
