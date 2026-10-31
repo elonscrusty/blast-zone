@@ -24,6 +24,7 @@ local RunXp = require(Core.RunXp)
 local EffectiveStats = require(Core.EffectiveStats)
 
 local RunUpgrades = require(script.Parent.RunUpgrades)
+local TallySystem = require(script.Parent.Parent.Results.TallySystem)
 
 local UpgradeSystem = {}
 UpgradeSystem.order = 120 -- after the core services
@@ -52,6 +53,7 @@ local function tryChoose(id: string, matchId: number, offerId: string, optionInd
 	end
 	local result = runUpgrades:choose(id, matchId, offerId, optionIndex)
 	if result.ok then
+		TallySystem.add(id, "powers")
 		RunXp:takeOffer(id)
 		EffectiveStats:invalidate(id)
 		if participant.player ~= nil then

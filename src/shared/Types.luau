@@ -160,7 +160,13 @@ export type ResultsPayload = {
 	outcome: string?, -- "win" | "draw" | "abandoned" (abandoned: the best finisher left, so nobody is crowned)
 	winnerId: ParticipantId?,
 	endsAt: number?, -- server time the results screen closes
-	you: { placement: number, eliminations: number, survivedSeconds: number, reward: number }?,
+	you: {
+		placement: number,
+		eliminations: number,
+		survivedSeconds: number,
+		reward: number,
+		tally: { broken: number, crates: number, powers: number }?, -- things broken, crates opened, powers picked (video 3 gap 29)
+	}?,
 }
 
 -- Piece 18: what the server tells one player about their coins and unlocks (never the other way round).

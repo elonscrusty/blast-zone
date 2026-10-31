@@ -24,6 +24,7 @@ local RunXp = require(script.Parent.Parent.Core.RunXp)
 
 local ContainerRules = require(script.Parent.ContainerRules)
 local PickupSystem = require(script.Parent.PickupSystem)
+local TallySystem = require(script.Parent.Parent.Results.TallySystem)
 
 local ContainerSystem = {}
 ContainerSystem.order = 110
@@ -167,6 +168,7 @@ local function breakContainer(record: Record, breakerId: string)
 	local floorPoint = center - Vector3.new(0, Config.Containers.size / 2, 0)
 	Net.fireAll("ContainerBroken", { containerId = record.id, pos = center })
 	RunXp:award(breakerId, "containerBreak")
+	TallySystem.add(breakerId, "crates")
 	PickupSystem.spawnOrbs(floorPoint, Config.Containers.tiers[record.tier].orbs, breakerId)
 	record.model:Destroy()
 end

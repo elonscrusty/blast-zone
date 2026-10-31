@@ -15,6 +15,7 @@ local Ids = require(Shared.Ids)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
 local ResultsText = require(script.Parent.ResultsText)
+local MatchTally = require(Shared.Results.MatchTally)
 local Look = require(script.Parent.Parent.Ui.Look)
 local LobbyMenu = require(script.Parent.Parent.Ui.LobbyMenu)
 local UiLayers = require(script.Parent.Parent.Ui.UiLayers)
@@ -345,7 +346,7 @@ function ResultsClientSystem.start()
 	pills.Name = "Pills"
 	pills.AnchorPoint = Vector2.new(0.5, 0)
 	pills.Position = UDim2.fromScale(0.5, 0.52)
-	pills.Size = UDim2.fromScale(0.9, 0.2)
+	pills.Size = UDim2.fromScale(0.9, 0.17)
 	pills.BackgroundTransparency = 1
 	pills.Parent = column
 	local pillLayout = Instance.new("UIListLayout")
@@ -356,6 +357,15 @@ function ResultsClientSystem.start()
 	local killsValue = pill(pills, 1, "Kills")
 	local timeValue = pill(pills, 2, "Time")
 	local rewardValue = pill(pills, 3, Config.Rewards.currencyName)
+
+	-- One quiet line: things broken, crates opened, powers picked. Hidden when there is nothing to say.
+	local extras = text(column, "Extras", "", 22)
+	extras.AnchorPoint = Vector2.new(0.5, 0)
+	extras.Position = UDim2.fromScale(0.5, 0.7)
+	extras.Size = UDim2.fromScale(0.9, 0.045)
+	extras.TextColor3 = hex(look.ink)
+	extras.TextTransparency = 0.15
+	extras.Visible = false
 
 	local buttons = Instance.new("Frame")
 	buttons.Name = "Buttons"
@@ -396,6 +406,9 @@ function ResultsClientSystem.start()
 		killsValue.Text = tostring(words.kills)
 		timeValue.Text = words.time
 		rewardValue.Text = `+{words.reward}`
+		local extrasText = MatchTally.extrasLine(if payload.you then payload.you.tally else nil)
+		extras.Text = extrasText or ""
+		extras.Visible = extrasText ~= nil
 		replay.Text = "PLAY AGAIN"
 		queued = false
 	end

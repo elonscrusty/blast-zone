@@ -24,6 +24,7 @@ local Net = require(script.Parent.Parent.Core.Net)
 local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 local Participants = require(script.Parent.Parent.Core.Participants)
 local StreetArt = require(script.Parent.Parent.Arena.StreetArt)
+local TallySystem = require(script.Parent.Parent.Results.TallySystem)
 
 local BreakSystem = {}
 BreakSystem.order = 125
@@ -247,7 +248,7 @@ local function leaveRubble(rec: Record, color: Color3)
 	end
 end
 
-local function breakProp(rec: Record)
+local function breakProp(rec: Record, breakerId: string)
 	local body = rec.body
 	local color = dominantColor(rec)
 	local pos, size = body.Position, body.Size
@@ -262,6 +263,7 @@ local function breakProp(rec: Record)
 		h.part.Parent = nil
 	end
 	leaveRubble(rec, color)
+	TallySystem.add(breakerId, "broken")
 	Net.fireAll("PropBroken", {
 		id = rec.id,
 		kind = rec.kind,
@@ -296,7 +298,7 @@ function BreakSystem.damage(
 		return true
 	end
 	if BreakRules.damage(book, rec.id, amount) then
-		breakProp(rec)
+		breakProp(rec, sourceId)
 	end
 	return true
 end
