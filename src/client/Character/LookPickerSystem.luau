@@ -11,13 +11,15 @@ local Looks = require(Shared.Character.Looks)
 local MatchPhase = require(Shared.MatchPhase)
 local Net = require(script.Parent.Parent.Core.Net)
 local Components = require(script.Parent.Parent.Ui.Components)
+local ScreenMap = require(script.Parent.Parent.Ui.ScreenMap)
+local Layout = require(script.Parent.Parent.Hud.Layout)
 
 local LookPickerSystem = {}
 
 local localPlayer = Players.LocalPlayer
 
--- Left column of the lobby (the "looks" group in Ui/LobbyLayout): three rows of 52 points.
-local RECT = { x = 56, y = 160, w = 104, h = 152 }
+-- Left column of the lobby (Ui/ScreenMap.lookPicker): three rows of 52 points.
+local RECT = ScreenMap.lookPicker
 local ROW_H = 48
 local ROW_GAP = 4
 
@@ -32,7 +34,7 @@ local CALM = {
 function LookPickerSystem.start()
 	local gui, root = Components.screen("LookPicker", "Calm")
 
-	local column = Components.piece(root, "Column", RECT)
+	local column = Components.piece(root, "Column", RECT, nil, Layout.LOBBY_MIN_ASPECT)
 
 	local buttons: { [string]: TextButton } = {}
 	local function paint()

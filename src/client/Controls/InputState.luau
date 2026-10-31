@@ -12,6 +12,7 @@ export type Device = "keyboard" | "touch" | "gamepad"
 
 export type InputState = {
 	enabled: boolean,
+	walking: boolean, -- lobby: only walking is allowed (no aim, fire or actions)
 	modal: boolean, -- a menu has the player's attention: input is ignored and held input is cleared
 	device: Device,
 	keys: { [string]: boolean },
@@ -36,9 +37,15 @@ local function live(s: InputState): boolean
 	return s.enabled and not s.modal
 end
 
+-- Walking also works in the lobby (carter wants to walk around it); aiming, firing and actions do not.
+local function walkLive(s: InputState): boolean
+	return (s.enabled or s.walking) and not s.modal
+end
+
 function InputStateModule.new(): InputState
 	return {
 		enabled = true,
+		walking = false,
 		modal = false,
 		device = "keyboard",
 		keys = {},
@@ -81,6 +88,16 @@ function InputStateModule.setEnabled(s: InputState, enabled: boolean)
 	InputStateModule.reset(s)
 end
 
+-- Lobby walking on or off. Clears what is held when it changes. Returns true if it changed.
+function InputStateModule.setWalking(s: InputState, walking: boolean): boolean
+	if s.walking == walking then
+		return false
+	end
+	s.walking = walking
+	InputStateModule.reset(s)
+	return true
+end
+
 -- Switching device (say a gamepad plugged in while a key is held) drops what the old one held.
 -- Returns true if the device changed.
 function InputStateModule.noteDevice(s: InputState, device: Device): boolean
@@ -115,13 +132,13 @@ end
 
 -- Key or button went down. Returns the one-shot action it triggers, if any.
 function InputStateModule.keyDown(s: InputState, code: string): string?
-	if not live(s) then
+	if not walkLive(s) then
 		return nil
 	end
 	local already = s.keys[code] == true
 	s.keys[code] = true
-	if already then
-		return nil -- key repeat does not trigger twice
+	if already or not live(s) then
+		return nil -- key repeat does not trigger twice; the lobby only walks, it never slides or reloads
 	end
 	return Bindings.actionFor(code)
 end
@@ -140,7 +157,7 @@ local function anyDown(s: InputState, codes: { string }): boolean
 end
 
 function InputStateModule.setTouchMove(s: InputState, x: number, y: number)
-	if live(s) then
+	if walkLive(s) then
 		s.touchMove = { x = x, y = y }
 	end
 end
@@ -154,7 +171,7 @@ function InputStateModule.setTouchAim(s: InputState, x: number, y: number, activ
 end
 
 function InputStateModule.setPadMove(s: InputState, x: number, y: number)
-	if live(s) then
+	if walkLive(s) then
 		local dx, dy = InputMath.deadzone(x, y)
 		s.padMove = { x = dx, y = dy }
 	end
@@ -227,7 +244,7 @@ end
 -- Movement as x right, y forward (screen up), length at most 1. The touch stick wins while it is
 -- touched, then a pushed gamepad stick, then the keyboard.
 function InputStateModule.move(s: InputState): (number, number)
-	if not live(s) then
+	if not walkLive(s) then
 		return 0, 0
 	end
 	if s.touchMove.x ~= 0 or s.touchMove.y ~= 0 then

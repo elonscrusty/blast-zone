@@ -245,3 +245,16 @@ Harness.test("the zone circle goes away when the match leaves combat", function(
 	)
 	Harness.eq(m.zone, nil)
 end)
+
+Harness.test("you can walk in the lobby phases only, never in a fight or while spawning", function()
+	local m = HudModel.new(config, "p1")
+	for _, phase in { "Waiting", "Countdown" } do
+		HudModel.applyMatch(m, { phase = phase, aliveCount = 0, totalCount = 0 }, config)
+		Harness.eq(HudModel.walkOn(m), true, phase .. " should walk")
+		Harness.eq(HudModel.controlsOn(m), false, phase .. " must not fight")
+	end
+	for _, phase in { "Spawning", "Active", "FinalPressure", "Finished", "Results", "Resetting" } do
+		HudModel.applyMatch(m, { phase = phase, aliveCount = 6, totalCount = 6 }, config)
+		Harness.eq(HudModel.walkOn(m), false, phase .. " must not walk the lobby")
+	end
+end)

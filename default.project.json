@@ -41,7 +41,10 @@
       "$ignoreUnknownInstances": true
     },
     "StarterGui": {
-      "$ignoreUnknownInstances": true
+      "$ignoreUnknownInstances": true,
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
+      }
     }
   }
 }

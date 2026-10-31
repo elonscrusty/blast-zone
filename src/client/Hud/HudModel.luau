@@ -65,6 +65,7 @@ export type Config = {
 local HudModel = {}
 
 HudModel.COMBAT_PHASES = { Active = true, FinalPressure = true }
+HudModel.LOBBY_PHASES = { Waiting = true, Countdown = true } -- where the lobby menu shows (MatchFlow)
 HudModel.VISIBLE_PHASES = { Spawning = true, Active = true, FinalPressure = true }
 
 function HudModel.new(config: Config, localId: string?): Model
@@ -272,6 +273,11 @@ end
 -- Controls only work while fighting is allowed and the player is alive.
 function HudModel.controlsOn(m: Model): boolean
 	return HudModel.COMBAT_PHASES[m.phase] == true and m.alive
+end
+
+-- In the lobby you can walk around (no fighting). Not while a menu or the intro holds the controls: that is Controls.setModal.
+function HudModel.walkOn(m: Model): boolean
+	return HudModel.LOBBY_PHASES[m.phase] == true
 end
 
 -- 72 seconds -> "1:12". Rounds up so "0:00" only shows when it really is over.

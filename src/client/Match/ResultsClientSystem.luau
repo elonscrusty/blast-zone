@@ -208,8 +208,19 @@ function ResultsClientSystem.start()
 	gui.Name = "MatchFlow"
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = UiLayers.MatchFlow
-	gui.IgnoreGuiInset = true
+	-- Everything on this screen (lobby buttons, banners, results) is laid out inside the device's safe area, like
+	-- every other piece of the lobby and the HUD, so they all share one frame and none slides under a notch.
+	-- Only the colour behind the results reaches the screen edge (MatchFlowBackdrop below).
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
+
+	local backdropGui = Instance.new("ScreenGui")
+	backdropGui.Name = "MatchFlowBackdrop"
+	backdropGui.ResetOnSpawn = false
+	backdropGui.DisplayOrder = UiLayers.MatchFlowBackdrop
+	backdropGui.IgnoreGuiInset = true
+	backdropGui.ScreenInsets = Enum.ScreenInsets.None
+	backdropGui.Parent = player:WaitForChild("PlayerGui")
 
 	-- ===== lobby: PLAY, settings, status =====
 	local lobby = Instance.new("Frame")
@@ -305,12 +316,23 @@ function ResultsClientSystem.start()
 	results.Name = "Results"
 	results.Size = UDim2.fromScale(1, 1)
 	results.BorderSizePixel = 0
-	results.BackgroundColor3 = Color3.fromHSV(0, 0, 1) -- white base so the gradient shows its true colours
+	results.BackgroundTransparency = 1
 	results.Visible = false
 	results.Parent = gui
+	local backdrop = Instance.new("Frame")
+	backdrop.Name = "Backdrop"
+	backdrop.Size = UDim2.fromScale(1, 1)
+	backdrop.BorderSizePixel = 0
+	backdrop.BackgroundColor3 = Color3.fromHSV(0, 0, 1) -- white base so the gradient shows its true colours
+	backdrop.Visible = false
+	backdrop.Active = false
+	backdrop.Parent = backdropGui
 	local gradient = Instance.new("UIGradient")
 	gradient.Rotation = 70
-	gradient.Parent = results
+	gradient.Parent = backdrop
+	results:GetPropertyChangedSignal("Visible"):Connect(function()
+		backdrop.Visible = results.Visible
+	end)
 
 	-- The column ends above y 74%, so it never touches the upgrade card band.
 	local column = Instance.new("Frame")

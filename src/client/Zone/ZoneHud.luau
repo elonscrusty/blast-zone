@@ -66,7 +66,9 @@ function Hud.new(): Hud
 	local arrow = Instance.new("TextLabel")
 	arrow.Name = "Arrow"
 	arrow.AnchorPoint = Vector2.new(0.5, 0)
-	arrow.Position = UDim2.new(0.5, 0, 0, 80)
+	-- Top, right of the players-left chip (Hud/Layout.status ends at the centre + 80) and above the warning line, so
+	-- no banner covers it. tests/phone_audit checks it on every phone.
+	arrow.Position = UDim2.new(0.67, 0, 0, 14)
 	arrow.Size = UDim2.fromOffset(40, 40)
 	arrow.BackgroundTransparency = 1
 	arrow.Text = "▲"
