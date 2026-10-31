@@ -41,6 +41,7 @@ LobbyLayout.slots = {
 	loadout = { group = "right", rect = { x = 620, y = 224, w = 104, h = 48 }, touch = true } :: Slot, -- piece 19
 	daily = { group = "more", rect = { x = 508, y = 96, w = 104, h = 48 }, touch = true } :: Slot, -- piece 25
 	season = { group = "right", rect = { x = 620, y = 116, w = 104, h = 48 }, touch = true } :: Slot, -- video 3 gap 20
+	invite = { group = "more", rect = { x = 508, y = 152, w = 104, h = 48 }, touch = true } :: Slot, -- friend invite, lobby only
 	missions = { group = "more", rect = { x = 508, y = 264, w = 104, h = 48 }, touch = true } :: Slot, -- piece 48
 }
 
