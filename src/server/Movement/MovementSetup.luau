@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local MoveRules = require(Shared.Movement.MoveRules)
 local SprintRules = require(Shared.Movement.SprintRules)
+local MatchContext = require(script.Parent.Parent.Core.MatchContext)
 
 local MovementSetup = {}
 
@@ -18,10 +19,17 @@ local OFF_STATES = {
 	Enum.HumanoidStateType.Ragdoll,
 }
 
+-- Plaza walks are brisker than arena runs (see MoveRules.lobbyScale).
+local function lobbyScale(): number
+	local cfg = Config.Movement
+	return MoveRules.lobbyScale(MatchContext:getPhase(), cfg.walkSpeed, cfg.lobbyWalkSpeed)
+end
+
 function MovementSetup.apply(humanoid: Humanoid, moveSpeed: number)
 	local cfg = Config.Movement
+	local k = lobbyScale()
 	humanoid.WalkSpeed =
-		MoveRules.clampSpeed(moveSpeed, cfg.walkSpeed, cfg.maxSpeedUpgradeMultiplier)
+		MoveRules.clampSpeed(moveSpeed * k, cfg.walkSpeed * k, cfg.maxSpeedUpgradeMultiplier)
 	humanoid.UseJumpPower = true
 	humanoid.JumpPower = 0
 	humanoid.JumpHeight = 0
@@ -38,8 +46,9 @@ end
 -- Only the speed: used when an upgrade changes it mid-match.
 function MovementSetup.setSpeed(humanoid: Humanoid, moveSpeed: number)
 	local cfg = Config.Movement
+	local k = lobbyScale()
 	humanoid.WalkSpeed =
-		MoveRules.clampSpeed(moveSpeed, cfg.walkSpeed, cfg.maxSpeedUpgradeMultiplier)
+		MoveRules.clampSpeed(moveSpeed * k, cfg.walkSpeed * k, cfg.maxSpeedUpgradeMultiplier)
 end
 
 -- Speed for this moment: the upgraded run speed, times the sprint boost while sprinting (piece 45).

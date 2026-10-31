@@ -218,7 +218,7 @@ Harness.test(
 
 Harness.test("a bot keeps shooting while it runs back into the zone", function()
 	local state = BotBrain.newState()
-	local v = view(selfAt(95, 0), nil, { zone = ZONE, others = { enemy(125, 0) } })
+	local v = view(selfAt(95, 0), nil, { zone = ZONE, others = { enemy(110, 0) } })
 	BotBrain.think(v, state)
 	v.now += BASE.reactionTime + 0.01
 	local out = BotBrain.think(v, state)
@@ -264,7 +264,7 @@ end
 Harness.test("a reloading bot ducks behind the wall, waits there, and comes back out", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight })
 	local first = BotBrain.think(v, state)
 	Harness.eq(first.mode, "cover")
 	Harness.truthy(first.moveZ > 0.5, "goes behind the wall, away from the enemy's line")
@@ -290,7 +290,7 @@ end)
 Harness.test("cover never lasts forever", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight })
 	BotBrain.think(v, state)
 	Harness.truthy(state.cover ~= nil)
 	v.now += BASE.coverHold + 0.1
@@ -302,7 +302,7 @@ Harness.test("easy bots mostly stand and fight; hard bots always duck", function
 	local function ducks(tier: string): boolean
 		local state = BotBrain.newState()
 		local me = selfAt(0, -2, { reloading = true, ammo = 0 })
-		local v = view(me, tier, { others = { enemy(30, -2) }, canSee = wallSight })
+		local v = view(me, tier, { others = { enemy(18, -2) }, canSee = wallSight })
 		return BotBrain.think(v, state).mode == "cover"
 	end
 	Harness.eq(ducks("easy"), false)
@@ -331,7 +331,7 @@ Harness.test("cover spots are never outside the zone", function()
 	local state = BotBrain.newState()
 	local me = selfAt(0, -2, { reloading = true, ammo = 0 })
 	local small = { center = { x = 0, z = -60 }, radius = 70, shrinking = false } -- z > 0 is outside
-	local v = view(me, "normal", { others = { enemy(30, -2) }, canSee = wallSight, zone = small })
+	local v = view(me, "normal", { others = { enemy(18, -2) }, canSee = wallSight, zone = small })
 	BotBrain.think(v, state)
 	Harness.eq(state.cover, nil)
 end)

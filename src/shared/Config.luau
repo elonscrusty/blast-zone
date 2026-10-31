@@ -249,7 +249,8 @@ Config.Health = {
 
 -- Piece 02. Camera-relative, ground-plane, no jumping.
 Config.Movement = {
-	walkSpeed = 20, -- studs per second
+	walkSpeed = 11, -- studs per second (video-feel pass: the camera is about twice as close, so the run is about half as fast in studs; it crosses the screen at the same pace as before)
+	lobbyWalkSpeed = 20, -- studs per second on the plaza between matches (the arena run is slower on purpose)
 	jumpEnabled = false,
 	maxSpeedUpgradeMultiplier = 1.4, -- hard cap so stacks cannot break the camera
 	maxSlopeAngle = 55, -- steeper than this is a wall, not a ramp: no accidental climbing
@@ -257,7 +258,7 @@ Config.Movement = {
 
 Config.Camera = {
 	pitchDegrees = 55,
-	distance = 46,
+	distance = 22, -- video-feel pass: was 46. The hero is about 13% of the screen height (was 6%), like video 3
 	fieldOfView = 55,
 	yawDegrees = 0, -- starting heading (0 = looking toward -Z); the player can turn it (see below)
 	-- Turning the view. The heading is only a client look; the server never uses it.
@@ -277,9 +278,9 @@ Config.Camera = {
 Config.Spectate = {
 	style = "same",
 	styles = {
-		same = { pitchDegrees = 55, distance = 46 },
-		wide = { pitchDegrees = 62, distance = 64 },
-		close = { pitchDegrees = 38, distance = 30 },
+		same = { pitchDegrees = 55, distance = 22 },
+		wide = { pitchDegrees = 62, distance = 31 },
+		close = { pitchDegrees = 38, distance = 14 },
 	},
 }
 
@@ -293,7 +294,7 @@ Config.Weapons = {
 		fireInterval = 1 / FIRE_RATE,
 		magazine = 12,
 		reloadSeconds = 1.2,
-		range = 70, -- hitscan stops here; no unseen long shots
+		range = 34, -- hitscan stops here; no unseen long shots (video-feel pass: was 70, scaled with the camera)
 		pellets = 1,
 		spreadDegrees = 0,
 		pierce = 0, -- extra bodies a bullet flies through; only upgrades raise it (Config.Powers)
@@ -306,13 +307,13 @@ Config.Weapons = {
 		id = "arc_mortar",
 		displayName = "Arc Mortar",
 		damage = 45, -- at the center
-		radius = 9,
+		radius = 5, -- video-feel pass: was 9
 		falloffMin = 0.4, -- share of damage at the edge of the radius
 		fireInterval = EXPLOSIVE_INTERVAL,
 		magazine = 3,
 		reloadSeconds = 2.4,
-		projectileSpeed = 55,
-		range = 60,
+		projectileSpeed = 28, -- video-feel pass: was 55
+		range = 30, -- video-feel pass: was 60
 		warnSeconds = 0.5, -- landing marker shows before the blast
 		selfDamageScale = 0.5,
 		aftershock = 0, -- 1 = the blast goes off a second time; only an upgrade sets it (Config.Powers)
@@ -330,7 +331,7 @@ Config.Weapons = {
 			fireInterval = 0.9,
 			magazine = 6,
 			reloadSeconds = 2.2,
-			range = 26,
+			range = 13,
 			muzzleOffset = 4.4,
 		},
 		hornet = { -- SMG: small hits, very fast, a little spray
@@ -342,7 +343,7 @@ Config.Weapons = {
 			fireInterval = 1 / 11,
 			magazine = 30,
 			reloadSeconds = 1.8,
-			range = 45,
+			range = 22,
 			muzzleOffset = 3.6,
 		},
 		longline = { -- marksman rifle: slow, big hits, longest reach (still on screen)
@@ -354,7 +355,7 @@ Config.Weapons = {
 			fireInterval = 1.25,
 			magazine = 5,
 			reloadSeconds = 2.2,
-			range = 80,
+			range = 38,
 			muzzleOffset = 6.9,
 		},
 	} :: {
@@ -459,7 +460,7 @@ Config.ShotRules = {
 }
 
 Config.Slide = {
-	distance = 14,
+	distance = 9, -- video-feel pass: was 14 (about the same share of the screen at the closer camera)
 	duration = 0.25,
 	cooldown = 5, -- seconds for ONE charge to come back
 	charges = 2, -- piece 45: slides you can chain before waiting (1 = the old single slide)
@@ -666,7 +667,7 @@ Config.Bots = {
 	},
 	devDefaultCount = 3,
 	fillToMinimum = true,
-	sightRange = 60,
+	sightRange = 29, -- video-feel pass: was 60
 	reactionSeconds = 0.35,
 	aimErrorDegrees = 6,
 	maxPathfindsPerSecond = 4,
@@ -675,7 +676,7 @@ Config.Bots = {
 	-- slide to the full numbers above over `seconds`.
 	warmup = {
 		seconds = 30,
-		sightRange = 30,
+		sightRange = 14, -- video-feel pass: was 30
 		reactionSeconds = 0.9,
 		aimErrorDegrees = 14,
 	},
@@ -1165,7 +1166,7 @@ Config.Effects = {
 	},
 	-- Camera shake is a "trauma" meter from 0 to 1 that decays; the shake you see is trauma squared.
 	-- Everything is multiplied by the player's Camera shake setting, so 0 turns it all off.
-	shake = { maxOffsetStuds = 0.55, maxRollDegrees = 1.1, frequency = 24, decayPerSecond = 2.2 },
+	shake = { maxOffsetStuds = 0.3, maxRollDegrees = 1.1, frequency = 24, decayPerSecond = 2.2 },
 	trauma = {
 		shot = 0.03, -- your own shot (tiny kick)
 		slide = 0.06,

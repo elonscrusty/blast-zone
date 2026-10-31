@@ -7,6 +7,7 @@ local Config = require("../src/shared/Config")
 local Visibility = require("../src/client/Arena/Visibility")
 
 local ENGAGE_RANGE = Config.Weapons.Firearm.range
+local LONG_SIGHT = 70 -- how far a camper could look across the map; kept at the old gun reach so the camping check means the same after the video-feel pass shortened guns
 local CLEAR = Analysis.RADIUS -- space a container needs around it
 local MAX_EXPOSURE = 0.8 -- a spot with cover nearby may not see more than this share of the area around it
 -- A small nook beside a fence is fine; a big cut-off part of a zone ring is not. Stretching a map
@@ -212,7 +213,7 @@ for key, spec in specs do
 		for x = -reach, reach, 5 do
 			for z = -reach, reach, 5 do
 				if Analysis.walkable(walk, x, z) and Analysis.nearBlocker(layout, x, z, 3.5) then
-					local e = Analysis.exposure(layout, x, z, ENGAGE_RANGE)
+					local e = Analysis.exposure(layout, x, z, LONG_SIGHT)
 					if e > worst then
 						worst, wx, wz = e, x, z
 					end

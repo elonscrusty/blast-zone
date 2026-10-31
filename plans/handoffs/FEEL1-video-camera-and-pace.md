@@ -1,0 +1,10 @@
+# FEEL1 Video feel pass 1: closer camera, slower run, shorter reach (carter: "like the video")
+- Why: measured from video 3 (game window, match t=28-172 s): the hero is about 16% of the screen height (ours was about 7%), and runs at about 250-330 px/s of a 1175 px wide view. Ours showed the hero tiny and crossed the screen as fast, so it felt far away and twitchy.
+- Rule used: zoom the camera about 2x and scale every "how far on screen" number the same way, so what you see on screen keeps its shape. Hero, walls, doors, crates and the arena are NOT scaled (they are physical).
+- Camera: `Config.Camera.distance` 46 -> 22 (spectate same 22, wide 31, close 14). Shake offset 0.55 -> 0.3 so it reads the same on the closer camera.
+- Run: `walkSpeed` 20 -> 11. Plaza walk between matches keeps 20 through new `Config.Movement.lobbyWalkSpeed` (only Waiting/Countdown, `MoveRules.lobbyScale`); the lobby walk test still says 3 to 7 seconds.
+- Reach: Volt Pistol 70 -> 34; Arc Mortar range 60 -> 30, blast radius 9 -> 5, shell speed 55 -> 28; Breaker 26 -> 13, Hornet 45 -> 22, Longline 80 -> 38. Bots see 60 -> 29 (calm start 30 -> 14). Slide 14 -> 9 studs, same 0.25 s (carter said slide: long).
+- Not changed on purpose: arena size (`ARENA_SCALE` 1.3), zone times, hero body size, pickup radii, damage, fire rate, health. If crossing the map feels too slow when carter plays, the one knob is `ARENA_SCALE` in Config.
+- Tests: old fixed distances in bots, bots_smart, spawn_fair, upgrades, movement, lobby and arena tests now follow Config or the new scale. The camper check keeps the old 70 stud look (`LONG_SIGHT`). New lobby-scale tests. Lune 1386 pass, StyLua clean, rojo build ok. Selene runs in CI. Not run in Roblox.
+- Look at first when playing: walls or roofs between the lower camera and the hero (camera height is now about 18 studs), how busy the screen feels with big effects, and whether bots at 29 studs feel too blind.
+- Rollback: set the numbers above back (old values are in this list).

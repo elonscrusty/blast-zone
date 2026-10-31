@@ -6,7 +6,7 @@ local MoveRules = require("../src/shared/Movement/MoveRules")
 local SlideBook = require("../src/shared/Movement/SlideBook")
 local SlideRules = require("../src/shared/Movement/SlideRules")
 
-local test, eq, near = Harness.test, Harness.eq, Harness.near
+local test, eq, near, truthy = Harness.test, Harness.eq, Harness.near, Harness.truthy
 
 -- ===== direction =====
 
@@ -305,9 +305,9 @@ end)
 -- ===== the numbers the brief asks for =====
 
 test("starting numbers match the brief", function()
-	eq(Config.Movement.walkSpeed, 20)
+	eq(Config.Movement.walkSpeed, 11) -- video-feel pass (was 20)
 	eq(Config.Movement.jumpEnabled, false)
-	eq(Config.Slide.distance, 14)
+	eq(Config.Slide.distance, 9) -- video-feel pass (was 14)
 	eq(Config.Slide.duration, 0.25)
 	eq(Config.Slide.cooldown, 5)
 	eq(Config.Slide.invulnerable, false)
@@ -412,4 +412,35 @@ test("the turn speeds in Config are sane", function()
 	Harness.truthy(c.lookDegreesPerPixel > 0 and c.lookDegreesPerPixel < 2)
 	Harness.truthy(c.padTurnDegreesPerSecond > 30 and c.padTurnDegreesPerSecond < 720)
 	Harness.truthy(c.maxTurnPerFrame >= 10 and c.maxTurnPerFrame <= 90)
+end)
+
+-- ===== plaza walk is brisker than the arena run (video-feel pass) =====
+
+test("lobby scale: only Waiting and Countdown walk at the plaza pace", function()
+	local k = Config.Movement.lobbyWalkSpeed / Config.Movement.walkSpeed
+	near(
+		MoveRules.lobbyScale("Waiting", Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
+		k
+	)
+	near(
+		MoveRules.lobbyScale("Countdown", Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
+		k
+	)
+	for _, phase in { "Spawning", "Active", "FinalPressure", "Finished", "Results", "Resetting" } do
+		eq(
+			MoveRules.lobbyScale(phase, Config.Movement.walkSpeed, Config.Movement.lobbyWalkSpeed),
+			1
+		)
+	end
+end)
+
+test("lobby scale: bad numbers change nothing", function()
+	eq(MoveRules.lobbyScale("Waiting", 0, 20), 1)
+	eq(MoveRules.lobbyScale("Waiting", 11, 0), 1)
+	eq(MoveRules.lobbyScale("Waiting", 0 / 0, 20), 1)
+	eq(MoveRules.lobbyScale("Waiting", 11, -3), 1)
+end)
+
+test("lobby scale: the arena run stays slow and the plaza pace is not slower", function()
+	truthy(Config.Movement.lobbyWalkSpeed >= Config.Movement.walkSpeed)
 end)

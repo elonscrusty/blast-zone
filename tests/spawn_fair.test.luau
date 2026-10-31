@@ -208,8 +208,16 @@ local function runFor(fightSeconds: number?): number
 			return view({}).me
 		end,
 		others = function()
-			-- An enemy at the closest spawn distance, standing still.
-			return { { id = "p1", pos = { x = Config.Arena.spawnMinSeparation, z = 0 } } }
+			-- An enemy standing still, between what a calm bot sees and what a warmed-up bot sees.
+			return {
+				{
+					id = "p1",
+					pos = {
+						x = (Config.Bots.warmup.sightRange + Config.Bots.sightRange) / 2,
+						z = 0,
+					},
+				},
+			}
 		end,
 		pickups = function()
 			return {}
@@ -241,7 +249,11 @@ local function runFor(fightSeconds: number?): number
 	return fires
 end
 
-Harness.test("calm bots do not shoot a fresh spawn 40 studs away", function()
+Harness.test("calm bots do not shoot an enemy that a warmed-up bot would", function()
+	Harness.truthy(
+		Config.Arena.spawnMinSeparation > Config.Bots.warmup.sightRange,
+		"nobody spawns inside a calm bot's sight"
+	)
 	Harness.eq(runFor(0), 0, "first seconds of the fight")
 	Harness.truthy(runFor(60) > 0, "late in the fight they do")
 	Harness.truthy(runFor(nil) > 0, "a world without fightSeconds keeps full strength")
