@@ -11,16 +11,29 @@ local EXPLOSIVE_INTERVAL = 1.6 -- seconds between mortar shots
 -- match clock, because a longer street takes longer to cross. Change these two numbers, nothing else.
 local CROWD = 25
 local ARENA_SCALE = 1.3
+-- Feel pass 2: carter wants a 5 minute match (quiz 12b). Only the clock stretches by this much, never
+-- a distance: the first street, the 3 minute match, is 1. Change this one number to make matches longer or shorter.
+local MATCH_PACE = 1.3
+
+-- A clock number that follows only the match pace (not the map size), for things that happen "this long into the fight".
+local function paced(n: number): number
+	return math.floor(n * MATCH_PACE + 0.5)
+end
 
 local function scaled(n: number): number
-	return math.floor(n * ARENA_SCALE + 0.5)
+	return math.floor(n * ARENA_SCALE * MATCH_PACE + 0.5)
 end
 
 -- The safe circle for a map stretched by `scale`: radii follow the map, times follow the walk.
--- At scale 1 these are the numbers the first 8-fighter matches used.
-local function zoneFor(scale: number)
+-- At scale 1 these are the numbers the first 8-fighter matches used. `pace` (default 1) stretches only
+-- the times, so a longer match does not make the street bigger.
+local function zoneFor(scale: number, pace: number?)
 	local function r(n: number): number
 		return math.floor(n * scale + 0.5)
+	end
+	local timePace = pace or 1
+	local function t(n: number): number
+		return math.floor(n * scale * timePace + 0.5)
 	end
 	return {
 		centerX = 0,
@@ -31,38 +44,38 @@ local function zoneFor(scale: number)
 		edgeTolerance = 0.5, -- exactly on the edge counts as inside
 		stages = {
 			{
-				warnAt = r(35),
-				closeAt = r(45),
-				closeSeconds = r(20),
+				warnAt = t(35),
+				closeAt = t(45),
+				closeSeconds = t(20),
 				targetRadius = r(105),
 				damagePerSecond = 2,
 			},
 			{
-				warnAt = r(75),
-				closeAt = r(85),
-				closeSeconds = r(20),
+				warnAt = t(75),
+				closeAt = t(85),
+				closeSeconds = t(20),
 				targetRadius = r(68),
 				damagePerSecond = 4,
 			},
 			{
-				warnAt = r(115),
-				closeAt = r(125),
-				closeSeconds = r(15),
+				warnAt = t(115),
+				closeAt = t(125),
+				closeSeconds = t(15),
 				targetRadius = r(38),
 				damagePerSecond = 7,
 			},
 			{
-				warnAt = r(150),
-				closeAt = r(158),
-				closeSeconds = r(12),
+				warnAt = t(150),
+				closeAt = t(158),
+				closeSeconds = t(12),
 				targetRadius = r(14),
 				damagePerSecond = 12,
 			},
 		},
 		-- Sudden death is a rule, not a banner: the circle keeps closing and hurts much more.
 		suddenDeath = {
-			startsAt = r(170),
-			closeSeconds = r(15),
+			startsAt = t(170),
+			closeSeconds = t(15),
 			targetRadius = r(4),
 			damagePerSecond = 25,
 		},
@@ -244,7 +257,27 @@ Config.Policies = {
 
 Config.Health = {
 	max = 100,
-	regenPerSecond = 0,
+}
+
+-- Feel pass 2: health comes back by itself in the fight (the video's fights are won by retreating,
+-- hiding and coming back). Anyone not hurt for delaySeconds gets perSecond back. Any hurt (a shot, a
+-- blast or the zone) starts the wait again. Players and bots alike. Placeholders until carter plays.
+Config.Regen = {
+	enabled = true,
+	delaySeconds = 5,
+	perSecond = 4,
+	tickSeconds = 0.5,
+	maxStepSeconds = 1, -- a server hitch never heals more than this many seconds' worth in one go
+}
+
+-- Feel pass 2: help for the phone thumb (carter, quiz 6a). Only on touch. The aim leans toward a rival who is
+-- already near where the stick points, up to the gun's reach. The server still decides every hit.
+Config.AimAssist = {
+	enabled = true,
+	coneDegrees = 12, -- a rival this far (each side) from the aim pulls it
+	strength = 0.6, -- how much of that gap is closed (1 = snap onto the rival)
+	maxStuds = 16, -- only rivals this close can pull: about what the screen shows ahead of the hero at Config.Camera.distance (22), so it never points at someone you cannot see
+	needsClearLine = true, -- and only rivals with no wall between (the client checks with one ray)
 }
 
 -- Piece 02. Camera-relative, ground-plane, no jumping.
@@ -482,7 +515,7 @@ Config.Slide = {
 -- Piece 45: sprint. Press the sprint button to start, press again to stop. The server decides: speed,
 -- breath and when it may run. Shooting breaks the run for a moment. All placeholders until carter plays.
 Config.Sprint = {
-	enabled = true,
+	enabled = false, -- feel pass 2: the video has no run button, you always run at the one speed (carter, quiz 18a)
 	speedMultiplier = 1.4, -- on top of normal run speed (and its upgrades)
 	staminaSeconds = 3, -- running flat out empties the breath bar in this long
 	regenSeconds = 4, -- and filling it from empty takes this long
@@ -633,8 +666,9 @@ Config.Upgrades = {
 -- Safe area (piece 06). All times are seconds after Active begins.
 -- Each stage: warn, then close to targetRadius over closeSeconds, then hold.
 -- Built by zoneFor() above so it follows ARENA_SCALE. Config.zoneAt(1) is the first 220-stud version.
-Config.Zone = zoneFor(ARENA_SCALE)
+Config.Zone = zoneFor(ARENA_SCALE, MATCH_PACE)
 Config.zoneAt = zoneFor
+Config.MatchPace = MATCH_PACE
 
 Config.Bots = {
 	labelPrefix = "[BOT] ",
@@ -849,10 +883,10 @@ Config.Airdrop = {
 	enabled = true,
 	look = "B", -- carter picked B Cyan Searchlight. Skins: "A" Gold Pillar, "C" Coral Flare (see looks below)
 	count = 2, -- drops per match
-	firstAtSeconds = 45, -- seconds after the fight starts; the drops spread evenly from first to last
-	lastAtSeconds = 115,
-	jitterSeconds = 8, -- each drop moves earlier or later by up to this much
-	minGapSeconds = 25, -- two drops are never closer in time than this
+	firstAtSeconds = paced(45), -- seconds after the fight starts; the drops spread evenly from first to last (follows the 5 minute pace)
+	lastAtSeconds = paced(115),
+	jitterSeconds = paced(8), -- each drop moves earlier or later by up to this much
+	minGapSeconds = paced(25), -- two drops are never closer in time than this
 	fallSeconds = 7, -- from "incoming" until the crate touches down
 	shutSeconds = 4, -- the crate stays shut this long after touching down
 	beamFadeSeconds = 1.5, -- the beam fades after the crate opens

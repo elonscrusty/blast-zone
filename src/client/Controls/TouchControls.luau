@@ -1,6 +1,6 @@
 --!strict
 -- On-screen controls for phones, in look B: move stick (left), aim-and-fire stick (right),
--- Slide, Run, Reload, Heal, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
+-- Slide, Run (hidden while Config.Sprint.enabled is off), Reload, Heal, a tap target over the weapon panel to swap weapons, and three upgrade pick chips.
 -- Sticks measure how far the finger moved from where it first touched, so they work the same on
 -- every phone and notch. With "Floating sticks" on (carter's pick) the stick appears under the
 -- thumb anywhere in its zone and goes back to a faint ring at rest; off, it stays in its corner.
@@ -15,7 +15,9 @@ local UserInputService = game:GetService("UserInputService")
 local Layout = require(script.Parent.Parent.Hud.Layout)
 local UiKit = require(script.Parent.Parent.Hud.UiKit)
 local Settings = require(script.Parent.Parent.Settings.Settings)
-local Ids = require(ReplicatedStorage:WaitForChild("Shared").Ids)
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Ids = require(Shared.Ids)
 local Net = require(script.Parent.Parent.Core.Net)
 local Controls = require(script.Parent.Controls)
 local LootClient = require(script.Parent.Parent.Loot.LootClient)
@@ -380,6 +382,10 @@ local function build()
 		sprintVeil.BorderSizePixel = 0
 		sprintVeil.Active = false
 		sprintVeil.Parent = breathClip
+		-- Always run: with the run switched off the button is never on screen, even before the first mode flip.
+		if not Config.Sprint.enabled then
+			sprint.Visible = false
+		end
 	end
 
 	-- Slide cooldown: a navy veil that drains upward, and the seconds left.
@@ -500,6 +506,10 @@ local function applyMode(onlyWalk: boolean)
 	for name, obj in pieces do
 		if string.match(name, "^chip%d$") == nil then
 			obj.Visible = if name == "walkZone" then onlyWalk else not onlyWalk
+			-- Always run (feel pass 2): with the run switched off there is no RUN button to show.
+			if name == "sprint" and not Config.Sprint.enabled then
+				obj.Visible = false
+			end
 		end
 	end
 end

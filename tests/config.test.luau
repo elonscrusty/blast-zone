@@ -23,9 +23,9 @@ Harness.test("zone stages only get smaller, later and meaner", function()
 	Harness.truthy(sd.damagePerSecond > dps, "sudden death hurts most")
 	Harness.near(
 		z.stages[1].warnAt,
-		math.floor(35 * Config.Arena.scale + 0.5),
+		math.floor(35 * Config.Arena.scale * Config.MatchPace + 0.5),
 		0,
-		"first warning at 35 s, stretched with the map"
+		"first warning at 35 s, stretched with the map and the 5 minute pace"
 	)
 end)
 

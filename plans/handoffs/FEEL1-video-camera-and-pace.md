@@ -7,5 +7,4 @@
 - Zone check: at 11 studs/s (slowest hero x0.85) walking to the next circle takes 2.8-6 s per stage against 26-39 s of warning plus closing; a test keeps it under a third of the window.
 - Not changed on purpose: arena size (`ARENA_SCALE` 1.3), zone times, hero body size, pickup radii, damage, fire rate, health. If crossing the map feels too slow when carter plays, the one knob is `ARENA_SCALE` in Config.
 - Tests: old fixed distances in bots, bots_smart, spawn_fair, upgrades, movement, lobby and arena tests now follow Config or the new scale. The camper check keeps the old 70 stud look (`LONG_SIGHT`). New lobby-scale tests. Lune 1386 pass, StyLua clean, rojo build ok. Selene runs in CI. Not run in Roblox.
-- Look at first when playing: walls or roofs between the lower camera and the hero (camera height is now about 18 studs), how busy the screen feels with big effects, and whether bots at 29 studs feel too blind.
-- Rollback: set the numbers above back (old values are in this list).
+- Look at first when playing: walls or roofs between the lower camera and the hero (camera height is now about 18 studs), busy screen with big effects, bots at 29 studs too blind. Rollback: set the old numbers (listed above) back.

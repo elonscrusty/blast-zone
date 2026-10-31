@@ -74,6 +74,7 @@ require("./wallet.test")
 require("./big_map.test")
 require("./season.test")
 require("./shop.test")
+require("./regen.test")
 require("./wiring.test")
 require("./phone_audit.test")
 

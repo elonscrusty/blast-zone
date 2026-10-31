@@ -8,9 +8,12 @@ local RunService = game:GetService("RunService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local AimAssist = require(Shared.AimAssist)
+local AimSight = require("./AimSight")
 local Net = require(script.Parent.Parent.Core.Net)
 local CombatFx = require("./CombatFx")
 local CosmeticLook = require(script.Parent.Parent.Progression.CosmeticLook)
+local SquadModel = require(script.Parent.Parent.Squads.SquadModel)
 local Fx = require(script.Parent.Parent.Effects.Fx)
 local GunModels = require("./GunModels")
 local HealthBars = require("./HealthBars")
@@ -26,6 +29,7 @@ local localPlayer = Players.LocalPlayer
 type Controls = {
 	isFiring: () -> boolean,
 	getAimWorld: () -> Vector3?, -- unit direction on the ground, nil when there is no aim input
+	device: () -> string, -- "keyboard" | "touch" | "gamepad"
 }
 
 -- What the server last told us about our weapons.
@@ -56,6 +60,48 @@ local function isMine(shooterId: string?): boolean
 	return shooterId ~= nil and shooterId == ("p" .. tostring(localPlayer.UserId))
 end
 
+-- Phone only: lean the aim toward a living rival who is already near where the stick points.
+local function assisted(flat: Vector3): Vector3
+	local c = controls
+	local r = root()
+	if c == nil or r == nil or not Config.AimAssist.enabled or c.device() ~= "touch" then
+		return flat
+	end
+	local me = localPlayer.Character
+	local targets: { AimAssist.Target } = {}
+	local bodies: { Instance } = {}
+	if me ~= nil then
+		table.insert(bodies, me)
+	end
+	HealthBars.forEachModel(function(id: string, model: Model)
+		table.insert(bodies, model)
+		if model == me or model:GetAttribute("Alive") == false or SquadModel.isMate(id) then
+			return
+		end
+		local part = model:FindFirstChild("HumanoidRootPart")
+		if part ~= nil and part:IsA("BasePart") then
+			table.insert(targets, { x = part.Position.X, z = part.Position.Z })
+		end
+	end)
+	local eye = r.Position + Vector3.new(0, Config.Combat.shotHeight, 0)
+	-- A rival behind a wall never pulls the aim: the help must not show where hidden rivals are.
+	local function visible(t: AimAssist.Target): boolean
+		return not Config.AimAssist.needsClearLine
+			or AimSight.clear(eye, Vector3.new(t.x, eye.Y, t.z), bodies)
+	end
+	local nx, nz = AimAssist.adjust(
+		Config.AimAssist,
+		r.Position.X,
+		r.Position.Z,
+		flat.X,
+		flat.Z,
+		targets,
+		firearm.range,
+		visible
+	)
+	return Vector3.new(nx, 0, nz)
+end
+
 -- Where we are aiming right now, or the last aim we had (so a tap still shoots somewhere sensible).
 local function currentDir(): Vector3?
 	local c = controls
@@ -64,7 +110,7 @@ local function currentDir(): Vector3?
 		if aim ~= nil then
 			local flat = Vector3.new(aim.X, 0, aim.Z)
 			if flat.Magnitude > 0.1 then
-				lastDir = flat.Unit
+				lastDir = assisted(flat.Unit)
 				lastAimAt = os.clock()
 				return lastDir
 			end

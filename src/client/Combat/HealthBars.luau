@@ -32,6 +32,15 @@ function HealthBars.onFighter(fn: (Model) -> ())
 	end
 end
 
+-- Every fighter model that is still in the world, with its participant id (for aim help).
+function HealthBars.forEachModel(fn: (string, Model) -> ())
+	for id, model in models do
+		if model.Parent ~= nil then
+			fn(id, model)
+		end
+	end
+end
+
 function HealthBars.modelOf(id: string): Model?
 	local model = models[id]
 	if model ~= nil and model.Parent ~= nil then
