@@ -316,7 +316,7 @@ function ResultsClientSystem.start()
 	column.AnchorPoint = Vector2.new(0.5, 0)
 	-- starts under the save-message strip (top 16%) and ends above the rewards bar, also on a short wide window
 	column.Position = UDim2.fromScale(0.5, 0.17)
-	column.Size = UDim2.fromScale(0.86, 0.58)
+	column.Size = UDim2.fromScale(0.86, 0.55) -- ends at 0.72: the "progress not loaded" note starts at 0.735
 	column.BackgroundTransparency = 1
 	column.Parent = results
 	local columnLimit = Instance.new("UISizeConstraint")
