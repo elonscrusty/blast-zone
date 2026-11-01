@@ -528,9 +528,9 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): (() -> ())?
 			button.Activated:Connect(function()
 				Bridge.play("click")
 				Components.punch(button, 0.05)
-				local entry = entriesById[entryId]
-				if entry then
-					showDetail(entry)
+				local picked = entriesById[entryId]
+				if picked then
+					showDetail(picked)
 				end
 			end)
 		end

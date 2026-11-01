@@ -291,13 +291,13 @@ function BookModel.badge(source: Source): boolean
 end
 
 -- Tiles per row: as many as fit (each at least minCell wide with `gap` between), never more than
--- `count` and never fewer than 1. Bad numbers give 1.
-function BookModel.columns(width: number, count: number, minCell: number, gap: number): number
-	if width ~= width or width <= 0 or count < 1 or minCell <= 0 then
+-- `tiles` and never fewer than 1. Bad numbers give 1.
+function BookModel.columns(width: number, tiles: number, minCell: number, gap: number): number
+	if width ~= width or width <= 0 or tiles < 1 or minCell <= 0 then
 		return 1
 	end
 	local fit = math.floor((width + gap) / (minCell + gap))
-	return math.clamp(fit, 1, math.max(1, math.floor(count)))
+	return math.clamp(fit, 1, math.max(1, math.floor(tiles)))
 end
 
 return BookModel

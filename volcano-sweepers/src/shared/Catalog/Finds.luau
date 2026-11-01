@@ -59,9 +59,10 @@ end
 -- that zone, so a find is a happy bonus and the sets are the real prize, never the main income
 -- (tests/pacing.test.luau checks the share stays between 3% and 20%). Early zones are kept low so
 -- one lucky find never skips a whole step of the opening.
-local zoneBase: { [number]: number } = { [0] = 500, 12, 40, 240, 660, 1800 }
+local zoneBase: { [number]: number } =
+	{ [0] = 500, [1] = 12, [2] = 40, [3] = 240, [4] = 660, [5] = 1800 }
 local setOfZone: { [number]: string } =
-	{ [0] = "rainbow", "beach", "forest", "springs", "rim", "heart" }
+	{ [0] = "rainbow", [1] = "beach", [2] = "forest", [3] = "springs", [4] = "rim", [5] = "heart" }
 
 local raw: { { string | number } } = {
 	-- id, name, rarity, zone

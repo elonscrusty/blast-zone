@@ -237,7 +237,7 @@ local function onSweep(player: Player)
 			SweepRules.hasLockedAsh(cells, grid.levels, grid.layout.zone, rec.allowed)
 			and SweepRules.allowEvery(lockedToastAt, player, now, LOCKED_TOAST_GAP)
 		then
-			toast(player, "That gate is locked \u{2014} open it at the gate!", "warn")
+			toast(player, "That gate is locked. Open it at the gate!", "warn")
 		end
 	end
 
