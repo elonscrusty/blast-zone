@@ -17,7 +17,7 @@ Status values: todo / building / done (tests green) / audited.
 | C3 | UI panels: upgrades, tools, helpers, gates | client/Panels/{Upgrades,Tools,Helpers,Gates}, client/Panels/Shared/*, shared/Ui/*Model | done (audited) |
 | C4 | UI panels: finds book, goals, daily, cool down, settings | client/Panels/{Book,Goals,Daily,CoolDown,Settings}, shared/Ui/{Book,Goals,Daily,CoolDown,Settings}Model | done (audited) |
 | J | Judges + Opus audit + fixes | anything | done (5 judges, 3 Opus fixers, 2 Opus final auditors) |
-| M1 | Island models: Trade Hut, gate, camp, palm, rocks, mushroom, spire, sign (3 looks each) | server/World/Models/*, tools/dump_models.luau, tests/models.test.luau | done (tests green); carter picked A Toy Pop (B Tiki Wood and C Basalt Glow stay as skins). Not wired into the world yet (main thread does that) |
+| M1 | Island models: Trade Hut, gate, camp, palm, rocks, mushroom, spire, sign (3 looks each) | server/World/Models/*, tools/dump_models.luau, tests/island_models.test.luau | done (tests green); carter picked A Toy Pop (B Tiki Wood and C Basalt Glow stay as skins). Not wired into the world yet (main thread does that) |
 
 J-fix server + shared (src/server, src/shared except Ui/Client): done (tests green). Handoff: plans/handoffs/J-fix-server-shared.md
 FINAL audit, server + shared (src/server, src/shared except Ui/Client): done (tests green). Report: plans/audit/FINAL-server.md, handoff: plans/handoffs/FINAL-server.md

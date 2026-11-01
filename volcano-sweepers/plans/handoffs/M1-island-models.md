@@ -1,6 +1,6 @@
 # M1 handoff: island buildings and props
 
-1. Files: `src/server/World/Models/{Kit,Styles,Registry,Build,TradeHut,Gate,Camp,Palm,Rocks,Mushroom,Spire,Sign}.luau`, `tests/models.test.luau`, `tools/dump_models.luau`. Nothing else was touched (no Config, World/*, Ash/*).
+1. Files: `src/server/World/Models/{Kit,Styles,Registry,Build,TradeHut,Gate,Camp,Palm,Rocks,Mushroom,Spire,Sign}.luau`, `tests/island_models.test.luau`, `tools/dump_models.luau`. Nothing else was touched (no Config, World/*, Ash/*).
 2. Every model is PURE DATA first: `Registry.spec("Palm", { style = "toy", v = 12 })` returns part specs (numbers + strings, no Roblox types). Lune tests run on those.
 3. `Build.into(parent, spec, CFrame, scale?)` is the only Roblox code: makes a Model of anchored Parts via `WorldUtil.part`. `Build.anchorPoint(spec, name, origin)` gives a Vector3 for prompts and signs.
 4. Looks (param `style`): `toy` Toy Pop (A), `tiki` Tiki Wood (B), `basalt` Basalt Glow (C). carter picked A (`toy`, the default); B and C stay as skins. Unknown style falls back to `toy`.
