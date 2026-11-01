@@ -34,6 +34,30 @@ Config.World = {
 	sellRange = 16, -- studs from a sell pad centre where SELL works
 }
 
+-- Player base numbers. Tools, upgrades and perks are applied on top (see Rules/StatsCalc).
+Config.Player = {
+	baseWalkSpeed = 16, -- studs per second (Roblox default)
+	baseCapacity = 30, -- backpack units before tool bonus and upgrades
+	minInterval = 0.1, -- fastest allowed swing, seconds (server clamps)
+	maxArmor = 0.8, -- armor never goes above this share of carried ash saved
+	tripSeconds = 12, -- idealised walk to the Trade Hut and back (balance sim only)
+}
+
+-- Economy rules shared by server, client and the balance sim (Rules/*, Catalog/*).
+Config.Economy = {
+	partyMult = 2.0, -- Island Party buff
+	perfectMult = 1.10, -- Perfect Dodge buff
+	sparkBonusEach = 0.05, -- each Spark adds +5% coins (additive) ...
+	sparkBonusCap = 9, -- ... but the Spark part can never pass +900% (x10 total with the base 1)
+	maxHelpers = 6,
+	maxHelperLevel = 15,
+	-- Cool Down (prestige) is offered once this run has earned this many coins.
+	coolDownMinRunCoins = 9000000,
+	-- sparks = floor(sparkScale * sqrt(runCoins / coolDownMinRunCoins)): sublinear on purpose.
+	sparkScale = 10,
+	maxLevelCap = 50, -- a saved upgrade level above this is treated as a bug
+}
+
 -- Sounds are OFF until real ids are pasted in. Never invent ids (see plans/AUDIO-IDS.md).
 -- Key = sound name used by Sfx.play(name). Value = "rbxassetid://<number>" or nil.
 Config.Audio = {

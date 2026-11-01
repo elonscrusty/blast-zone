@@ -7,17 +7,20 @@
 --     stops a load ("locked"). A lock older than lockStaleSeconds (a crashed server) can be taken.
 --     Every save checks that the lock is still ours (sid); if not, the profile is "lost" and
 --     NOTHING more is written for it.
---   * A profile that did not load is never saved. There is no "default profile" fallback: a failed
---     load gives no profile at all, so defaults can never overwrite real progress.
+--   * A profile that did not load is never saved. After a failed load the caller may play with
+--     ProfileStore.offline(): a fresh profile with `locked = true`. A locked profile can never be
+--     written (and its sid matches no lock anyway), so defaults can never overwrite real progress.
 --   * Never loads data from a newer game version ("future") or an unreadable record ("corrupt").
 --   * Every write goes through UpdateAsync (merge-safe) and SaveRetry (waits longer each time).
---   * Data is checked (Serializable) before each save; a bad value blocks the save and is reported.
---   * Writes are rationed: autosave, plus saveSoon merged to one write per minSecondsBetweenWrites.
+--   * Data is repaired (ProfileSchema.sanitize) and checked (Serializable) before each save.
+--   * Writes are rationed: one autosave a minute per player (staggered), plus saveSoon merged to one
+--     write per minSecondsBetweenWrites.
 --   * One profile per player key at a time in this server (a rejoin waits for the old one to release).
 
 local ProfileSchema = require("./ProfileSchema")
 local Receipts = require("./Receipts")
 local Serializable = require("./Serializable")
+local Types = require("../Types")
 
 local ProfileStore = {}
 ProfileStore.__index = ProfileStore
@@ -28,13 +31,18 @@ export type Profile = {
 	key: string,
 	userId: number,
 	sid: string,
-	data: { [string]: any },
+	data: Types.Profile, -- the LIVE table other code reads and changes; call markDirty after
+	receipts: Receipts.Book,
 	isNew: boolean,
 	status: Status,
+	-- locked = this profile may NEVER be written (the load failed, so it is a stand-in).
+	locked: boolean,
+	lockReason: string?, -- why the load failed ("locked", "error", "future", "corrupt", ...)
 	dirty: boolean,
 	wantSave: boolean,
 	saving: boolean,
 	lastWriteAt: number,
+	autosaveAt: number, -- next autosave time (staggered per player)
 	saves: number,
 	lastError: string?,
 }
@@ -46,8 +54,19 @@ export type Cfg = {
 	loadLockTries: number,
 	lockRetrySeconds: number,
 	receiptsKept: number,
-	flags: { string },
+	failRetrySeconds: number, -- after a failed save, try the autosave again this soon
 }
+
+-- The numbers the game runs with. Not in Config on purpose (the saving piece owns them).
+ProfileStore.DEFAULT_CFG = {
+	autosaveSeconds = 60, -- also refreshes the session lock
+	minSecondsBetweenWrites = 6, -- DataStore allows one write per key about every 6 s
+	lockStaleSeconds = 180, -- a lock older than this belongs to a crashed server
+	loadLockTries = 6, -- how many times a load waits for another server to let go
+	lockRetrySeconds = 3,
+	receiptsKept = 100, -- newest once-only grant keys remembered per player
+	failRetrySeconds = 15,
+} :: Cfg
 
 export type Deps = {
 	-- UpdateAsync: update(key, transform). transform(old) returns the new value (and optional user
@@ -80,6 +99,12 @@ function ProfileStore.keyFor(userId: number): string
 	return "profile_" .. tostring(math.floor(userId))
 end
 
+-- How many seconds EARLIER than a full interval this player's first autosave falls. Spreads the
+-- players of a server over the minute instead of writing them all at once.
+function ProfileStore.stagger(userId: number, autosaveSeconds: number): number
+	return (math.floor(math.abs(userId)) % 16) / 16 * autosaveSeconds * 0.5
+end
+
 local function log(self: Store, text: string)
 	if self.deps.log then
 		self.deps.log(text)
@@ -105,6 +130,36 @@ local function unlock(self: Store, key: string, sid: string, userId: number)
 	if not ok then
 		log(self, "could not clear lock for " .. key .. " (it goes stale by itself)")
 	end
+end
+
+local function newProfile(
+	self: Store,
+	userId: number,
+	sid: string,
+	data: Types.Profile,
+	receipts: Receipts.Book,
+	isNew: boolean
+): Profile
+	local now = self.deps.clock()
+	local cfg = self.deps.cfg
+	return {
+		key = ProfileStore.keyFor(userId),
+		userId = userId,
+		sid = sid,
+		data = data,
+		receipts = receipts,
+		isNew = isNew,
+		status = "ready",
+		locked = false,
+		lockReason = nil,
+		dirty = false,
+		wantSave = false,
+		saving = false,
+		lastWriteAt = now,
+		autosaveAt = now + cfg.autosaveSeconds - ProfileStore.stagger(userId, cfg.autosaveSeconds),
+		saves = 0,
+		lastError = nil,
+	}
 end
 
 -- Returns a Profile, or nil and a reason: "locked", "future", "corrupt", "migration", "error", "busy".
@@ -145,7 +200,8 @@ function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 						local rec = {
 							v = 1,
 							lock = lockFor(self, sid),
-							data = ProfileSchema.defaults(),
+							data = ProfileSchema.default(),
+							receipts = Receipts.newBook(),
 							savedAt = now,
 							saves = 0,
 						}
@@ -164,7 +220,7 @@ function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 							return nil, nil
 						end
 					end
-					local version = old.data.schemaVersion
+					local version = old.data.version
 					if type(version) == "number" and version > ProfileSchema.CURRENT then
 						outcome = { kind = "future" }
 						return nil, nil
@@ -191,29 +247,14 @@ function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 			end
 		elseif outcome.kind == "ok" then
 			local record = outcome.record :: any
-			local data = Serializable.copy(record.data) :: { [string]: any }
-			local prepared, info, changed = ProfileSchema.prepare(data)
-			if not prepared then
+			local data, why, changed = ProfileSchema.prepare(record.data)
+			if data == nil then
 				unlock(self, key, sid, userId)
-				return fail("migration", tostring(info))
+				return fail("migration", tostring(why))
 			end
-			if #(info :: { string }) > 0 then
-				log(self, "repaired fields for " .. key .. ": " .. table.concat(info :: any, ", "))
-			end
-			local profile: Profile = {
-				key = key,
-				userId = userId,
-				sid = sid,
-				data = data,
-				isNew = outcome.isNew == true,
-				status = "ready",
-				dirty = changed,
-				wantSave = false,
-				saving = false,
-				lastWriteAt = deps.clock(),
-				saves = 0,
-				lastError = nil,
-			}
+			local receipts = Receipts.clean(record.receipts, deps.cfg.receiptsKept)
+			local profile = newProfile(self, userId, sid, data, receipts, outcome.isNew == true)
+			profile.dirty = changed
 			return profile, nil
 		else
 			return fail(outcome.kind, nil)
@@ -222,8 +263,35 @@ function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 	return fail("locked", "still locked by another server")
 end
 
+-- A stand-in for a player whose load failed: a fresh profile to play with, locked so that it is
+-- NEVER written. Holds no session lock and no `active` slot. `reason` is the load failure.
+function ProfileStore.offline(self: Store, userId: number, reason: string): Profile
+	self.counter += 1
+	local profile = newProfile(
+		self,
+		userId,
+		self.deps.jobId .. "#offline" .. tostring(self.counter),
+		ProfileSchema.default(),
+		Receipts.newBook(),
+		true
+	)
+	profile.locked = true
+	profile.lockReason = reason
+	return profile
+end
+
+-- Marks the profile as changed since the last write. Call after changing profile.data.
+function ProfileStore.markDirty(_: Store, profile: Profile)
+	profile.dirty = true
+end
+
+local function finishRelease(self: Store, profile: Profile)
+	profile.status = "released"
+	self.active[profile.key] = nil
+end
+
 -- Writes the profile. With release = true the lock is cleared and the profile is finished.
--- Returns ok, reason ("lost", "invalid", "error", "busy", "released").
+-- Returns ok, reason ("locked", "lost", "invalid", "error", "busy", "released").
 function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (boolean, string?)
 	local deps = self.deps
 	if profile.status == "released" then
@@ -231,6 +299,13 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 	end
 	if profile.status == "lost" then
 		return false, "lost"
+	end
+	if profile.locked then
+		-- Never writes. A release of a stand-in only finishes it.
+		if release then
+			finishRelease(self, profile)
+		end
+		return false, "locked"
 	end
 	if profile.saving then
 		if not release then
@@ -250,7 +325,16 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 	end
 	profile.saving = true
 
+	-- Other code edits profile.data directly, so repair it first: a NaN or an out-of-range number
+	-- becomes a legal one instead of blocking every future save.
+	local okShape, shapeWhy = ProfileSchema.isValid(profile.data)
+	if not okShape then
+		log(self, "repairing " .. profile.key .. " before saving: " .. tostring(shapeWhy))
+		ProfileSchema.assign(profile.data :: any, ProfileSchema.sanitize(profile.data) :: any)
+	end
+
 	local snapshot = Serializable.copy(profile.data)
+	local receiptsSnapshot = Serializable.copy(profile.receipts)
 	local valid, why = Serializable.check(snapshot)
 	if not valid then
 		profile.saving = false
@@ -258,8 +342,7 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 		log(self, "NOT saving " .. profile.key .. ": " .. tostring(why))
 		if release then
 			unlock(self, profile.key, profile.sid, profile.userId)
-			profile.status = "released"
-			self.active[profile.key] = nil
+			finishRelease(self, profile)
 		end
 		return false, "invalid"
 	end
@@ -285,6 +368,7 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 					v = 1,
 					lock = if release then nil else lockFor(self, profile.sid),
 					data = Serializable.copy(snapshot),
+					receipts = Serializable.copy(receiptsSnapshot),
 					savedAt = now,
 					saves = (if type(old.saves) == "number" then old.saves else 0) + 1,
 				}
@@ -302,10 +386,10 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 	if not ok then
 		profile.dirty = true
 		profile.lastError = err
+		profile.autosaveAt = deps.clock() + deps.cfg.failRetrySeconds
 		if release then
 			-- Nothing more can be done here; the lock goes stale by itself.
-			profile.status = "released"
-			self.active[profile.key] = nil
+			finishRelease(self, profile)
 			log(self, "RELEASE FAILED for " .. profile.key .. ": " .. tostring(err))
 		end
 		return false, "error"
@@ -317,12 +401,13 @@ function ProfileStore.save(self: Store, profile: Profile, release: boolean?): (b
 		log(self, "lock lost for " .. profile.key .. ": no more writes")
 		return false, "lost"
 	end
-	profile.lastWriteAt = deps.clock()
+	local now = deps.clock()
+	profile.lastWriteAt = now
+	profile.autosaveAt = now + deps.cfg.autosaveSeconds
 	profile.saves += 1
 	profile.lastError = nil
 	if release then
-		profile.status = "released"
-		self.active[profile.key] = nil
+		finishRelease(self, profile)
 	end
 	return true, nil
 end
@@ -341,40 +426,42 @@ end
 
 -- Ask for a save soon (merged and rationed by `due`).
 function ProfileStore.saveSoon(_: Store, profile: Profile)
+	profile.dirty = true
 	profile.wantSave = true
 end
 
 -- Does the autosave loop need to write this profile now?
 function ProfileStore.due(self: Store, profile: Profile, now: number): boolean
-	if profile.status ~= "ready" or profile.saving then
+	if profile.status ~= "ready" or profile.saving or profile.locked then
 		return false
 	end
-	local cfg = self.deps.cfg
-	local since = now - profile.lastWriteAt
-	if profile.wantSave and since >= cfg.minSecondsBetweenWrites then
+	-- Even a clean profile is written once a minute: it refreshes the lock so it never looks stale.
+	if now >= profile.autosaveAt then
 		return true
 	end
-	-- Even a clean profile is written now and then: it refreshes the lock so it never looks stale.
-	return since >= cfg.autosaveSeconds
+	return profile.wantSave and now - profile.lastWriteAt >= self.deps.cfg.minSecondsBetweenWrites
 end
 
-local function commit(self: Store, profile: Profile, copy: { [string]: any }): (boolean, string?)
-	local valid, why = Serializable.check(copy)
+local function commit(self: Store, profile: Profile, copy: Types.Profile): (boolean, string?)
+	local valid, why = ProfileSchema.isValid(copy)
+	if valid then
+		valid, why = Serializable.check(copy)
+	end
 	if not valid then
 		log(self, "rejected change for " .. profile.key .. ": " .. tostring(why))
 		return false, "invalid"
 	end
-	profile.data = copy
+	ProfileSchema.assign(profile.data :: any, copy :: any) -- same table: others hold it
 	profile.dirty = true
 	return true, nil
 end
 
 -- Runs fn on a copy of the data. Applied only if fn does not error, does not return false, and the
--- result can be saved. Returns ok, reason ("notLoaded", "rejected", "error", "invalid").
+-- result is a valid saveable profile. Returns ok, reason ("notLoaded", "rejected", "error", "invalid").
 function ProfileStore.update(
 	self: Store,
 	profile: Profile?,
-	fn: ({ [string]: any }) -> boolean?
+	fn: (Types.Profile) -> boolean?
 ): (boolean, string?)
 	if profile == nil or profile.status ~= "ready" then
 		return false, "notLoaded"
@@ -391,12 +478,13 @@ function ProfileStore.update(
 	return commit(self, profile, copy)
 end
 
--- Like update, but pays only once per receipt key. "duplicate" means it was already paid.
+-- Like update, but pays only once per receipt key. "duplicate" means it was already paid. The
+-- receipt is written in the same save as the change.
 function ProfileStore.grantOnce(
 	self: Store,
 	profile: Profile?,
 	key: string,
-	fn: ({ [string]: any }) -> boolean?
+	fn: (Types.Profile) -> boolean?
 ): (boolean, string?)
 	if profile == nil or profile.status ~= "ready" then
 		return false, "notLoaded"
@@ -404,7 +492,7 @@ function ProfileStore.grantOnce(
 	if not Receipts.isValidKey(key) then
 		return false, "badKey"
 	end
-	if Receipts.has(profile.data, key) then
+	if Receipts.has(profile.receipts, key) then
 		return false, "duplicate"
 	end
 	local copy = Serializable.copy(profile.data)
@@ -416,8 +504,12 @@ function ProfileStore.grantOnce(
 	if res == false then
 		return false, "rejected"
 	end
-	Receipts.add(copy, key, self.deps.clock(), self.deps.cfg.receiptsKept)
-	return commit(self, profile, copy)
+	local committed, why = commit(self, profile, copy)
+	if not committed then
+		return false, why
+	end
+	Receipts.add(profile.receipts, key, self.deps.clock(), self.deps.cfg.receiptsKept)
+	return true, nil
 end
 
 return ProfileStore

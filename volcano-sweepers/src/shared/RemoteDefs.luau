@@ -68,6 +68,10 @@ local Defs: { Def } = {
 	tell("FindFound", "FindInfo"),
 	tell("CoolDownDone", "CoolDownInfo"),
 	tell(
+		"Golden",
+		"{ cells: {number}, endsAt: number }: cell indices flagged golden (5x ash). cells = {} means all gold is gone. A cell stops being gold when its level reaches 0."
+	),
+	tell(
 		"GeyserGems",
 		"{ {x:number,z:number,id:number} }: gem pickups appeared; touch to grab (server checks)"
 	),

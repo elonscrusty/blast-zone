@@ -21,7 +21,7 @@ local function isArray(t: { [any]: any }): boolean
 	return true
 end
 
--- Returns true, or false and a path/reason such as "progression.coins: not a finite number".
+-- Returns true, or false and a path/reason such as "data.coins: not a finite number".
 function Serializable.check(value: any): (boolean, string?)
 	local nodes = 0
 	local seen: { [any]: boolean } = {}
