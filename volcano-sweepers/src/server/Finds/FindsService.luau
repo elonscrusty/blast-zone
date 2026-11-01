@@ -6,7 +6,8 @@
 --   FindsService.init()                                  once (Main calls it after SweepService)
 --   FindsService.onCleared(player, zoneId, clearedCount) SweepService calls this after each swing that
 --                                                        took cells to bare ground. Rolls once per
---                                                        cleared cell (at most 40 per call).
+--                                                        cleared cell, rationed per player by
+--                                                        FindRoller.takeRolls (~1.5 a second).
 --   FindsService.grantGeyserGem(player, coins) -> paid   GeyserService calls this for a picked-up gem.
 --                                                        `coins` is BEFORE the sell multiplier.
 --
@@ -34,6 +35,7 @@ local FindsService = {}
 local started = false
 local rng = Rng.new(os.time() + math.floor(os.clock() * 1000))
 local gemPending: { [Player]: number } = {}
+local budgets: { [Player]: FindRoller.Budget } = {}
 
 local function toast(player: Player, text: string, kind: "info" | "good" | "warn" | "gold")
 	local info: Types.ToastInfo = { text = text, kind = kind }
@@ -49,7 +51,14 @@ function FindsService.onCleared(player: Player, zoneId: number, clearedCount: nu
 	if type(zoneId) ~= "number" or Zones.byId[zoneId] == nil then
 		return
 	end
-	local rolls = BurpGlue.rollCount(clearedCount)
+	local now = os.clock()
+	local budget = budgets[player]
+	if budget == nil then
+		budget = FindRoller.newBudget(now)
+		budgets[player] = budget
+	end
+	local rolls =
+		FindRoller.takeRolls(budget :: FindRoller.Budget, now, BurpGlue.rollCount(clearedCount))
 	if rolls == 0 then
 		return
 	end
@@ -165,6 +174,11 @@ function FindsService.init()
 	end)
 	PlayerState.onLeaving:connect(function(player: Player)
 		gemPending[player] = nil
+		budgets[player] = nil
+	end)
+	game:GetService("Players").PlayerRemoving:Connect(function(player: Player)
+		gemPending[player] = nil
+		budgets[player] = nil
 	end)
 end
 

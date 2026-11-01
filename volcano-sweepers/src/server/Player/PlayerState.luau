@@ -4,16 +4,24 @@
 -- here so the client store and the save stay in step.
 --
 --   PlayerState.init()                       once, after Net.init() and Profiles.init()
---   PlayerState.get(player) -> State?        nil until the profile loaded AND the client said ClientReady
---   PlayerState.all() -> { State }           ready players only
+--   PlayerState.get(player) -> State?        nil until the profile loaded AND the client said ClientReady,
+--                                            and nil again once the player is leaving
+--   PlayerState.all() -> { State }           ready players only (never one that is leaving)
 --   PlayerState.onReady:connect(function(player, state) end)
 --   PlayerState.onLeaving:connect(function(player) end)       fires before the state is dropped
 --   PlayerState.touch(player, "coins", "carried")              mark View keys changed (sent at ~10 Hz)
 --   PlayerState.addCoins / spendCoins / addCarried / dropCarried / takeCarried / addStat
 --   PlayerState.recompute(player)            call after tool / upgrade / spark / set / zone changes
---   PlayerState.setBuff(id, endsAt)          island-wide buff ("party", "perfect"); recomputes everyone
+--   PlayerState.setBuff(id, endsAt)          island-wide buff ("party", "perfect"); recomputes every
+--                                            READY player (a loading player gets it when ready)
 --   PlayerState.setClean(total)              island clean fraction for the HUD
 --   PlayerState.fullSync(player)             send the whole View (done automatically on ready)
+--
+-- Character attributes (replicated, so every client can draw other players):
+--   VSTool      string   the equipped tool id; set on spawn and on every recompute (tool change)
+--   VSSweeping  boolean  set by SweepService for ~0.4 s after each accepted swing
+-- Extra State keys besides the View: `offline` (progress is not being saved) and
+-- `offlineRetrying` (still trying to load the real save in the background).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -38,7 +46,8 @@ export type State = {
 	dirty: { [string]: boolean },
 	lastSweepAt: number, -- os.clock of last accepted swing
 	lastHitAt: number,
-	playSince: number,
+	playSince: number, -- os.clock; play time before this is already in stats.playSeconds
+	leaving: boolean, -- PlayerRemoving fired; the state is dropped 2 s later
 }
 
 local PlayerState = {}
@@ -50,6 +59,7 @@ local states: { [Player]: State } = {}
 local buffs: { [string]: number } = {}
 local cleanTotal = 0
 local started = false
+local PLAY_COMMIT_SECONDS = 60 -- play time is written into stats.playSeconds this often
 
 local SAVED_KEYS = {
 	coins = true,
@@ -96,6 +106,10 @@ local function valueOf(state: State, key: string): any
 		return buffs
 	elseif key == "cleanTotal" then
 		return cleanTotal
+	elseif key == "offline" then
+		return Profiles.isOffline(state.player)
+	elseif key == "offlineRetrying" then
+		return Profiles.isRetrying(state.player)
 	end
 	return (state.profile :: any)[key]
 end
@@ -119,9 +133,13 @@ local function flush(state: State)
 	end
 end
 
+local function live(s: State): boolean
+	return s.ready and not s.leaving
+end
+
 function PlayerState.get(player: Player): State?
 	local s = states[player]
-	if s ~= nil and s.ready then
+	if s ~= nil and live(s) then
 		return s
 	end
 	return nil
@@ -130,11 +148,18 @@ end
 function PlayerState.all(): { State }
 	local list = {}
 	for _, s in states do
-		if s.ready then
+		if live(s) then
 			table.insert(list, s)
 		end
 	end
 	return list
+end
+
+local function setCharAttr(player: Player, name: string, value: any)
+	local char = player.Character
+	if char ~= nil and char:GetAttribute(name) ~= value then
+		char:SetAttribute(name, value)
+	end
 end
 
 function PlayerState.touch(player: Player, ...: string)
@@ -147,9 +172,11 @@ function PlayerState.touch(player: Player, ...: string)
 	end
 end
 
+-- Safe for any player: a state that is still loading (blank profile) is skipped. tryReady computes
+-- it once the profile is there, with the buffs that are live at that moment.
 function PlayerState.recompute(player: Player)
 	local s = states[player]
-	if s == nil then
+	if s == nil or not s.ready then
 		return
 	end
 	s.derived = StatsCalc.compute(s.profile, buffs, now())
@@ -168,20 +195,41 @@ function PlayerState.recompute(player: Player)
 	if hum then
 		hum.WalkSpeed = s.derived.walkSpeed
 	end
+	setCharAttr(player, "VSTool", s.profile.tool)
+end
+
+-- Recomputes every ready player; one bad state can never stop the others.
+local function recomputeAll()
+	for _, s in states do
+		if s.ready then
+			local ok, err = pcall(PlayerState.recompute, s.player)
+			if not ok then
+				warn(`[PlayerState] recompute failed: {err}`)
+			end
+		end
+	end
 end
 
 function PlayerState.setBuff(id: string, endsAt: number)
+	if endsAt ~= endsAt or endsAt == math.huge then
+		return
+	end
 	buffs[id] = endsAt
+	-- the expiry is scheduled FIRST, so nothing below can stop the multiplier from turning off
+	task.delay(math.max(0.1, endsAt - now()) + 0.2, recomputeAll)
 	for _, s in states do
 		s.dirty.buffs = true
-		PlayerState.recompute(s.player)
 	end
-	-- expire later so the multiplier turns off by itself
-	task.delay(math.max(0.1, endsAt - now()) + 0.2, function()
-		for _, s in states do
-			PlayerState.recompute(s.player)
-		end
-	end)
+	recomputeAll()
+end
+
+-- Seconds left on an island-wide buff (0 when off).
+function PlayerState.buffLeft(id: string): number
+	local endsAt = buffs[id]
+	if endsAt == nil then
+		return 0
+	end
+	return math.max(0, endsAt - now())
 end
 
 function PlayerState.setClean(total: number)
@@ -301,6 +349,7 @@ function PlayerState.fullSync(player: Player)
 	end
 	payload.version = s.profile.version
 	payload.offline = Profiles.isOffline(player)
+	payload.offlineRetrying = Profiles.isRetrying(player)
 	s.dirty = {}
 	Net.fire("State", player, payload)
 end
@@ -326,9 +375,35 @@ local function tryReady(player: Player)
 	s.profile = profile
 	s.derived = StatsCalc.compute(profile, buffs, now())
 	s.ready = true
+	s.playSince = os.clock()
 	PlayerState.recompute(player)
 	PlayerState.fullSync(player)
 	PlayerState.onReady:fire(player, s)
+	if Profiles.isOffline(player) then
+		if Profiles.isRetrying(player) then
+			PlayerState.toast(player, "Still loading your save... keep playing!", "info")
+		else
+			PlayerState.toast(
+				player,
+				"Your save can't load right now. Rejoin later to keep progress!",
+				"warn"
+			)
+		end
+	end
+end
+
+-- Adds the play time since playSince into stats.playSeconds (whole seconds) and moves playSince on.
+local function commitPlayTime(s: State)
+	local whole = math.floor(os.clock() - s.playSince)
+	if whole <= 0 then
+		return
+	end
+	s.playSince += whole
+	local stats = s.profile.stats :: any
+	if type(stats) == "table" and type(stats.playSeconds) == "number" then
+		stats.playSeconds += whole
+		s.dirty.stats = true
+	end
 end
 
 local function newState(player: Player): State
@@ -345,6 +420,7 @@ local function newState(player: Player): State
 		lastSweepAt = 0,
 		lastHitAt = 0,
 		playSince = os.clock(),
+		leaving = false,
 	}
 end
 
@@ -368,14 +444,41 @@ function PlayerState.init()
 	Profiles.onLeaving:Connect(function(player: Player, profile)
 		local s = states[player]
 		if s ~= nil and s.ready then
-			profile.stats.playSeconds += math.floor(os.clock() - s.playSince)
+			-- only the time not committed yet (the minute loop below adds the rest)
+			if s.profile == profile then
+				commitPlayTime(s)
+			end
 			PlayerState.onLeaving:fire(player)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		local s = states[player]
+		if s ~= nil then
+			s.leaving = true
+		end
 		task.delay(2, function()
 			states[player] = nil
 		end)
+	end)
+
+	-- An offline player's real save loaded after all: same live table, real data inside.
+	Profiles.onRecovered:Connect(function(player: Player)
+		local s = states[player]
+		if s == nil or not s.ready then
+			return -- tryReady will pick it up
+		end
+		s.playSince = os.clock()
+		PlayerState.recompute(player)
+		PlayerState.fullSync(player)
+		PlayerState.toast(player, "Your saved progress is back!", "gold")
+	end)
+	Profiles.onGaveUp:Connect(function(player: Player)
+		local s = states[player]
+		if s == nil or not s.ready then
+			return
+		end
+		PlayerState.fullSync(player) -- offlineRetrying is false now
+		PlayerState.toast(player, "Your save is busy. Rejoin in a minute to get it back!", "warn")
 	end)
 
 	Profiles.onLoaded:Connect(function(player: Player)
@@ -392,10 +495,15 @@ function PlayerState.init()
 	-- walk speed follows respawns
 	local function hookChar(player: Player)
 		player.CharacterAdded:Connect(function(char)
+			local s0 = states[player]
+			if s0 ~= nil and s0.ready then
+				char:SetAttribute("VSTool", s0.profile.tool)
+			end
 			local hum = char:WaitForChild("Humanoid", 10) :: Humanoid?
 			local s = states[player]
 			if hum ~= nil and s ~= nil and s.ready then
 				hum.WalkSpeed = s.derived.walkSpeed
+				char:SetAttribute("VSTool", s.profile.tool)
 			end
 		end)
 	end
@@ -404,14 +512,24 @@ function PlayerState.init()
 	end
 	Players.PlayerAdded:Connect(hookChar)
 
-	-- one batched State push per player at ~10 Hz
-	local acc = 0
+	-- one batched State push per player at ~10 Hz; play time written every minute (so the
+	-- "Island Regular" goal can finish during a visit and a crash loses at most a minute)
+	local acc, playAcc = 0, 0
 	RunService.Heartbeat:Connect(function(dt)
 		acc += dt
 		if acc < 0.1 then
 			return
 		end
+		playAcc += acc
 		acc = 0
+		if playAcc >= PLAY_COMMIT_SECONDS then
+			playAcc = 0
+			for _, s in states do
+				if live(s) then
+					commitPlayTime(s)
+				end
+			end
+		end
 		for _, s in states do
 			flush(s)
 		end

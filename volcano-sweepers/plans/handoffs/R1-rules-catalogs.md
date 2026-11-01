@@ -6,6 +6,6 @@
 5. Bots: coins/s = `Helpers.coinsPerSecond(count, level, zoneValue, derived.sellMult, derived.helperMult)`.
 6. Cool Down: check `Economy.canCoolDown`, then `Economy.coolDownReset(profile)` -> (newProfile, sparksGained). Buying a Spark perk: apply `Economy.perkGrant(id, newLevel)` (coins / free tool) at once.
 7. Sparks bonus counts unspent + spent Sparks (`StatsCalc.totalSparks`), so buying perks never lowers it.
-8. Ash supply: the sim assumes endless ash. Hand sweeping reaches ~2 ash/s (Twig) to ~58 ash/s (Volcano Vac + upgrades); regrow / storms must keep up.
-9. Pacing sim (`tests/pacing.test.luau`): push 2:21, zone 2 6:27, leaf 9:16, zone 3 15:15, zone 4 33:53, zone 5 1h08m, Cool Down 1h28m, Volcano Vac 3h36m. Retune the catalogs, not the test.
+8. Ash supply is real now: `tests/island_sim.luau` runs the real AshGrid, regrow (ProgressRules: pace-fed, capped per player), storms, parties, finds and bots. 2/4/16-kid islands are checked too.
+9. Pacing sim (`tests/pacing.test.luau`, median of 3 islands): push 2:26, zone 2 5:50, leaf 8:56, zone 3 15:42, zone 4 33:58, zone 5 1h02m, Cool Down 1h13m, Volcano Vac 3h15m; finds ~12% of income. Retune the catalogs, not the test.
 10. Not done by R1: marking NEXT-PIECES.md (caller does it), Robux/ids (none).

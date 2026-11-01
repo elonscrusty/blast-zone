@@ -12,7 +12,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PurchaseRules = require(Shared.Player.PurchaseRules)
 
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
+local Profiles = require(script.Parent.Parent.Profile.Profiles)
 local PlayerState = require(script.Parent.PlayerState)
 
 local GATE_TAG = "VSGate"
@@ -39,6 +41,10 @@ local function doBuy(player: Player, kind: string, id: string | number): boolean
 	PlayerState.touch(player, table.unpack(result.keys))
 	PlayerState.recompute(player) -- tool, upgrades, zones and Sparks all change the derived numbers
 	PlayerState.toast(player, result.message, result.toastKind)
+	if kind == "zone" or kind == "tool" or kind == "sparkPerk" then
+		-- big, rare purchases: write them soon instead of waiting for the minute autosave
+		Profiles.saveSoon(player)
+	end
 	return true
 end
 
@@ -47,19 +53,15 @@ local function onGateTriggered(player: Player, gate: BasePart)
 	if state == nil then
 		return
 	end
-	local char = player.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if hrp == nil or not hrp:IsA("BasePart") then
+	local pos = MoveWatch.position(player) -- trusted spot: a teleport next to a gate does not count
+	if pos == nil then
 		return
 	end
 	local prompt = gate:FindFirstChild("GatePrompt")
 	local reach = if prompt ~= nil and prompt:IsA("ProximityPrompt")
 		then prompt.MaxActivationDistance
 		else 12
-	if
-		(hrp.Position - gate.Position).Magnitude
-		> reach + gate.Size.Magnitude + GATE_REACH_EXTRA
-	then
+	if (pos - gate.Position).Magnitude > reach + gate.Size.Magnitude + GATE_REACH_EXTRA then
 		return
 	end
 

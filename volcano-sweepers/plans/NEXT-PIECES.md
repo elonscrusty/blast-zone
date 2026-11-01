@@ -17,3 +17,5 @@ Status values: todo / building / done (tests green) / audited.
 | C3 | UI panels: upgrades, tools, helpers, gates | client/Panels/{Upgrades,Tools,Helpers,Gates}, client/Panels/Shared/*, shared/Ui/*Model | done (tests green, C3) |
 | C4 | UI panels: finds book, goals, daily, cool down, settings | client/Panels/{Book,Goals,Daily,CoolDown,Settings}, shared/Ui/{Book,Goals,Daily,CoolDown,Settings}Model | done (tests green, C4) |
 | J | Judges + Opus audit + fixes | anything | todo |
+
+J-fix server + shared (src/server, src/shared except Ui/Client): done (tests green). Handoff: plans/handoffs/J-fix-server-shared.md

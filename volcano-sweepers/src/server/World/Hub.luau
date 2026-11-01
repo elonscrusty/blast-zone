@@ -234,14 +234,30 @@ function Hub.build(root: Instance, plan: WorldPlan.Plan)
 	local folder = Instance.new("Folder")
 	folder.Name = "Hub"
 	local u = V(hub.ux, 0, hub.uz)
-
-	buildSpawns(folder, hub)
-	buildPads(folder, hub)
-	buildHut(folder, hub, u)
-	buildSignpost(folder, u, hub.signpost, "Gates this way!", "#FFE14D")
-	buildSignpost(folder, u, hub.tutorial, "Sweep the ash!", "#7CFF8A")
-
+	-- parented first and each piece on its own: one broken piece never hides the spawns or the hut
 	folder.Parent = root
+
+	local function step(name: string, fn: () -> ())
+		local ok, err = pcall(fn)
+		if not ok then
+			warn(`[Hub] {name} failed: {err}`)
+		end
+	end
+	step("spawns", function()
+		buildSpawns(folder, hub)
+	end)
+	step("sell pads", function()
+		buildPads(folder, hub)
+	end)
+	step("hut", function()
+		buildHut(folder, hub, u)
+	end)
+	step("gate signpost", function()
+		buildSignpost(folder, u, hub.signpost, "Gates this way!", "#FFE14D")
+	end)
+	step("tutorial sign", function()
+		buildSignpost(folder, u, hub.tutorial, "Sweep the ash!", "#7CFF8A")
+	end)
 end
 
 return Hub

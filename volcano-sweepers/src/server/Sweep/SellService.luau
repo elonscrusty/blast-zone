@@ -1,8 +1,9 @@
 --!strict
 -- Selling the backpack at the Trade Hut. Two doors, one function:
 --   the `Sell` remote (the SELL button / F key), and every ProximityPrompt tagged `VSSellPrompt`.
--- The server checks that the player is alive, ready, close to a sell pad, and has something to sell,
--- then pays Economy.sellValue (Lucky Coins may double it) and tells the client with `Sold`.
+-- The server checks that the player is alive, ready, close to a sell pad (judged from MoveWatch's
+-- trusted position, so teleporting to the hut does not count), and has something to sell, then
+-- pays Economy.sellValue (Lucky Coins may double it) and tells the client with `Sold`.
 --
 --   SellService.init()     once, after SweepService.init (Main calls it)
 
@@ -17,6 +18,7 @@ local Rng = require(Shared.Rng)
 local SweepRules = require(Shared.Sweep.SweepRules)
 local Types = require(Shared.Types)
 
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
 local PlayerState = require(script.Parent.Parent.Player.PlayerState)
 
@@ -104,8 +106,8 @@ local function sell(player: Player)
 		end
 		return
 	end
-	local pos = (root :: BasePart).Position
-	if not (SweepRules.isFinite(pos.X) and SweepRules.isFinite(pos.Z)) then
+	local pos = MoveWatch.position(player)
+	if pos == nil or not (SweepRules.isFinite(pos.X) and SweepRules.isFinite(pos.Z)) then
 		return
 	end
 	if not nearSellSpot(pos.X, pos.Z) then

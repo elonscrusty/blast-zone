@@ -46,13 +46,13 @@ Config.Player = {
 -- Economy rules shared by server, client and the balance sim (Rules/*, Catalog/*).
 Config.Economy = {
 	partyMult = 2.0, -- Island Party buff
-	perfectMult = 1.10, -- Perfect Dodge buff
+	perfectMult = 1.25, -- Perfect Dodge buff (+25% for 2 minutes: worth the dodging)
 	sparkBonusEach = 0.05, -- each Spark adds +5% coins (additive) ...
 	sparkBonusCap = 9, -- ... but the Spark part can never pass +900% (x10 total with the base 1)
 	maxHelpers = 6,
 	maxHelperLevel = 15,
 	-- Cool Down (prestige) is offered once this run has earned this many coins.
-	coolDownMinRunCoins = 9000000,
+	coolDownMinRunCoins = 3000000,
 	-- sparks = floor(sparkScale * sqrt(runCoins / coolDownMinRunCoins)): sublinear on purpose.
 	sparkScale = 10,
 	maxLevelCap = 50, -- a saved upgrade level above this is treated as a bug

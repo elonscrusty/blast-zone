@@ -11,8 +11,8 @@
 -- a missing World never breaks us). With no vents the director's own spots are used, and with no
 -- spots at all random cells of zones 3..5 are used.
 --
--- Pickup is decided ONLY here: 5 times a second every ready player's HumanoidRootPart is compared to
--- every landed gem (BurpGlue.inPickupRange, 6 studs). The client never claims anything.
+-- Pickup is decided ONLY here: 5 times a second every ready player's trusted position (MoveWatch)
+-- is compared to every landed gem (BurpGlue.inPickupRange, 6 studs). The client never claims anything.
 --
 -- GeyserGems remote payloads (server -> all clients; one remote, two shapes):
 --   appeared:  { { x = number, z = number, id = number, rarity = string } , ... }   a plain list
@@ -31,6 +31,7 @@ local Finds = require(Shared.Catalog.Finds)
 local Layout = require(Shared.Ash.Layout)
 local Rng = require(Shared.Rng)
 
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
 local PlayerState = require(script.Parent.Parent.Player.PlayerState)
 local FindsService = require(script.Parent.Parent.Finds.FindsService)
@@ -293,17 +294,14 @@ function GeyserService.clear()
 	end
 end
 
+-- Where the server believes the player is (MoveWatch). A player who just moved faster than
+-- possible cannot grab gems until the trusted spot caught up.
 local function rootPosition(player: Player): Vector3?
-	local char = player.Character
-	if char == nil then
+	local pos, trusted = MoveWatch.position(player)
+	if pos == nil or not trusted then
 		return nil
 	end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if hrp == nil or not hrp:IsA("BasePart") or hum == nil or hum.Health <= 0 then
-		return nil
-	end
-	return hrp.Position
+	return pos
 end
 
 local function poll()

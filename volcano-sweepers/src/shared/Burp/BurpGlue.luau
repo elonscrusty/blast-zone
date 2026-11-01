@@ -347,6 +347,50 @@ function BurpGlue.roundFinish(r: Round): { number }
 	return out
 end
 
+-- ===== sharing events between players =====
+
+BurpGlue.stormPerPlayer = 0.02 -- each extra player adds this to the storm's share of cells ...
+BurpGlue.stormMaxFraction = 0.6 -- ... up to this
+
+-- Share of cells an Ash Storm pulse covers with `players` in the server: more friends sweep more,
+-- so the storm brings more (the ash per player does not collapse as the server fills up).
+function BurpGlue.stormFraction(base: number, players: number): number
+	local b = if finite(base) then math.clamp(base, 0, 1) else 0
+	local n = if finite(players)
+		then math.clamp(math.floor(players), 1, Config.Game.MaxPlayers)
+		else 1
+	return math.min(math.max(b, BurpGlue.stormMaxFraction), b + BurpGlue.stormPerPlayer * (n - 1))
+end
+
+-- Highest zone id a profile has unlocked (zone 1 is always open).
+function BurpGlue.bestZone(zones: { [string]: boolean }): number
+	local best = 1
+	if type(zones) ~= "table" then
+		return best
+	end
+	for _, zone in Config.World.zones do
+		if zones[tostring(zone.id)] == true and zone.id > best then
+			best = zone.id
+		end
+	end
+	return best
+end
+
+-- Splits `count` golden cells as evenly as possible over `players` (first players get the extra
+-- ones). Always sums to the clamped count; never more than maxGoldenCells.
+function BurpGlue.goldenShare(count: number, players: number): { number }
+	local total = if finite(count)
+		then math.clamp(math.floor(count), 0, BurpGlue.maxGoldenCells)
+		else 0
+	local n = if finite(players) then math.clamp(math.floor(players), 1, 64) else 1
+	local out: { number } = {}
+	local each, extra = total // n, total % n
+	for i = 1, n do
+		out[i] = each + (if i <= extra then 1 else 0)
+	end
+	return out
+end
+
 -- ===== geyser gems =====
 
 -- Which rarity a gem is, from a 0..1 roll: mostly common, sometimes uncommon, rarely rare.

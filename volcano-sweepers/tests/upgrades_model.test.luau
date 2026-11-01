@@ -177,7 +177,42 @@ end)
 
 Harness.test("UpgradesModel: hint is always a sentence", function()
 	local p = Economy.blankProfile()
-	Harness.truthy(string.find(UpgradesModel.build(p).hint, "Next goal", 1, true) ~= nil)
+	p.upgrades.power = 1 -- not a first-time player
+	Harness.truthy(string.find(UpgradesModel.build(p).hint, "Cheapest next", 1, true) ~= nil)
 	p.coins = 50
-	Harness.truthy(string.find(UpgradesModel.build(p).hint, "green", 1, true) ~= nil)
+	Harness.truthy(string.find(UpgradesModel.build(p).hint, "Green", 1, true) ~= nil)
+	Harness.truthy(string.find(UpgradesModel.build(p).hint, "cheapest", 1, true) ~= nil)
 end)
+
+Harness.test("UpgradesModel: a brand new player is told how cheap the first upgrade is", function()
+	local p = Economy.blankProfile()
+	local model = UpgradesModel.build(p)
+	Harness.eq(model.firstBuy, true)
+	local cheapest = rowOf(model, model.bestId :: string).price :: number
+	Harness.truthy(cheapest <= 20, "the first step is cheap (CONTRACTS: <= 20 coins)")
+	Harness.truthy(
+		string.find(model.hint, `only {cheapest} coins`, 1, true) ~= nil,
+		`hint was: {model.hint}`
+	)
+	p.coins = cheapest
+	Harness.truthy(string.find(UpgradesModel.build(p).hint, "green", 1, true) ~= nil)
+	p.upgrades.power = 1
+	Harness.eq(UpgradesModel.build(p).firstBuy, false)
+end)
+
+Harness.test(
+	"UpgradesModel: the star says what it is (the cheapest step, not a promise)",
+	function()
+		local model = UpgradesModel.build(Economy.blankProfile())
+		Harness.eq(model.bestTag, "⭐ Cheapest")
+		local best = rowOf(model, model.bestId :: string)
+		for _, row in model.rows do
+			if not row.maxed then
+				Harness.truthy(
+					(best.price :: number) <= (row.price :: number),
+					"star on the cheapest"
+				)
+			end
+		end
+	end
+)

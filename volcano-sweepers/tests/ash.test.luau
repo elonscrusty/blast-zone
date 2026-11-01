@@ -153,8 +153,8 @@ Harness.test("cone: nearest first, within reach and arc, small", function()
 			local d = math.sqrt(dx * dx + dz * dz)
 			Harness.truthy(d >= prev - 1e-9, "sorted nearest first")
 			prev = d
-			if d > W.cellSize then
-				Harness.truthy(d <= 12 + 1e-9, "within reach")
+			if j ~= AshGrid.ownCell(Layout, PX, PZ) then
+				Harness.truthy(d <= AshGrid.coneReach(12, W.cellSize) + 1e-9, "within reach")
 				if arc < 360 then
 					local ang = math.deg(math.acos(math.clamp(dx / d, -1, 1)))
 					Harness.truthy(ang <= arc / 2 + 1e-6, `angle {ang} within {arc / 2}`)
@@ -183,6 +183,118 @@ Harness.test("cone: nearest first, within reach and arc, small", function()
 	end
 	Harness.truthy(overlap <= 9, "east and west cones only share the cells near the player")
 	Harness.eq(#g:queryCone(PX, PZ, 0, 0, 12, 90) > 3, true, "no facing falls back to all round")
+end)
+
+Harness.test("cone: only the cell you stand in is free; what is behind you is never hit", function()
+	local g = AshGrid.new("full")
+	local own = AshGrid.ownCell(Layout, PX, PZ)
+	Harness.truthy(own > 0)
+	local cx, cz = Layout.cx[own], Layout.cz[own]
+	-- stand in the middle of the cell, face east: the west neighbour (8 studs away) is behind
+	local west = assert(Layout.cellOf(cx - W.cellSize, cz))
+	local east = assert(Layout.cellOf(cx + W.cellSize, cz))
+	local cells = g:queryCone(cx, cz, 1, 0, 7, 90)
+	local set: { [number]: boolean } = {}
+	for _, j in cells do
+		set[j] = true
+	end
+	Harness.truthy(set[own], "own cell")
+	Harness.truthy(
+		set[east],
+		"the cell in front (8 studs) is within a 7-stud reach to its near part"
+	)
+	Harness.eq(set[west], nil, "the cell behind is not hit any more")
+	Harness.eq(AshGrid.ownCell(Layout, 0 / 0, 0), 0)
+	Harness.eq(AshGrid.ownCell(Layout, 99999, 0), 0)
+end)
+
+-- Average cells per swing over many beach spots and facings (what a player really gets).
+local function meanCells(reach: number, arc: number): number
+	local g = AshGrid.new("full")
+	local rng = Rng.new(11)
+	local total = 0
+	local n = 1200
+	for _ = 1, n do
+		local r = rng:range(196, 244)
+		local a = rng:range(0, math.pi * 2)
+		local f = rng:range(0, math.pi * 2)
+		total += #g:queryCone(
+			r * math.cos(a),
+			r * math.sin(a),
+			math.cos(f),
+			math.sin(f),
+			reach,
+			arc
+		)
+	end
+	return total / n
+end
+
+Harness.test("cone: every bit of Reach and arc adds cells on average", function()
+	local base = meanCells(7, 90)
+	local reach4 = meanCells(7 * 1.04, 90) -- Reach level 1 on a Twig Broom
+	local reach12 = meanCells(7 * 1.48, 90) -- Reach maxed
+	local wide = meanCells(7, 120)
+	print(
+		string.format(
+			"       twig %.2f cells, reach +4%% %.2f, reach +48%% %.2f, arc 120 %.2f",
+			base,
+			reach4,
+			reach12,
+			wide
+		)
+	)
+	Harness.truthy(reach4 > base, "Reach level 1 helps")
+	Harness.truthy(reach12 > base * 1.35, "maxed Reach is a big, visible change")
+	Harness.truthy(wide > base, "a wider fan helps")
+end)
+
+Harness.test("sweep: melt clears the leftovers of a cell (Lava Mop trait)", function()
+	local g = AshGrid.new(0)
+	local own = AshGrid.ownCell(Layout, PX, PZ)
+	g:set(own, 5)
+	local plain = g:sweep(
+		PX,
+		PZ,
+		1,
+		0,
+		{ reach = 0.1, arcDeg = 10, power = 2 },
+		ALL_ZONES,
+		100,
+		Rng.new(1),
+		0
+	)
+	Harness.eq(plain.removedUnits, 2)
+	Harness.eq(g.levels[own], 3)
+	local melted = g:sweep(
+		PX,
+		PZ,
+		1,
+		0,
+		{ reach = 0.1, arcDeg = 10, power = 2, melt = 3 },
+		ALL_ZONES,
+		100,
+		Rng.new(1),
+		0
+	)
+	Harness.eq(melted.removedUnits, 3, "2 swept + 1 melted")
+	Harness.eq(g.levels[own], 0)
+	Harness.eq(#melted.clearedCells, 1)
+	-- melt never overfills the backpack
+	g:set(own, 4)
+	local tight = g:sweep(
+		PX,
+		PZ,
+		1,
+		0,
+		{ reach = 0.1, arcDeg = 10, power = 2, melt = 3 },
+		ALL_ZONES,
+		3,
+		Rng.new(1),
+		0
+	)
+	Harness.eq(tight.removedUnits, 3)
+	Harness.eq(g.levels[own], 1)
 end)
 
 -- ===== Sweep =====

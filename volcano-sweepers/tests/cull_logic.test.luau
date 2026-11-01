@@ -316,3 +316,37 @@ Harness.test("ashAhead: matches the server cone for a full island", function()
 	local empty = AshGrid.new("empty")
 	Harness.eq(CullLogic.ashAhead(L, empty.levels, px, pz, 0, -1, 13, 110, ALL), false)
 end)
+
+Harness.test("ashAhead: never misses ash the server cone would sweep (sparse island)", function()
+	local AshGrid = require("../src/shared/Ash/AshGrid")
+	local grid = AshGrid.new("empty")
+	local levels = fullLevels(0)
+	-- every 7th cell has a little ash: lots of near misses at the fan edges
+	for i = 1, L.N, 7 do
+		levels[i] = 2
+	end
+	local misses, checks = 0, 0
+	for k = 0, 400 do
+		local a = k * 0.37
+		local r = 70 + (k % 9) * 18
+		local px, pz = math.cos(a) * r, math.sin(a) * r
+		local fx, fz = math.cos(a * 3.1), math.sin(a * 3.1)
+		for _, tool in { { 7, 80 }, { 9, 110 }, { 13, 70 }, { 22, 270 } } do
+			local cone = grid:queryCone(px, pz, fx, fz, tool[1], tool[2])
+			local serverHasAsh = false
+			for _, j in cone do
+				if levels[j] > 0 then
+					serverHasAsh = true
+				end
+			end
+			if serverHasAsh then
+				checks += 1
+				if not CullLogic.ashAhead(L, levels, px, pz, fx, fz, tool[1], tool[2], ALL) then
+					misses += 1
+				end
+			end
+		end
+	end
+	Harness.truthy(checks > 50, "enough real cases")
+	Harness.eq(misses, 0, "client said 'no ash' where the server would sweep some")
+end)

@@ -33,7 +33,7 @@ local COIN_W = 124
 local GLOW_SECONDS = 0.8
 local WOBBLE_SECONDS = 1.3
 -- used until the panel has a real size: a phone in landscape / in portrait
-local FALLBACK_LANDSCAPE = Vector2.new(656, 226)
+local FALLBACK_LANDSCAPE = Vector2.new(656, 244) -- 800x360 with the slim (short screen) title bar
 local FALLBACK_PORTRAIT = Vector2.new(312, 606)
 local FLOAT_SECONDS = 0.9
 

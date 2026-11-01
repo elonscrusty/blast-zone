@@ -1,7 +1,10 @@
 --!strict
 -- The Sweep remote. The client only says "I swing"; the server uses its OWN facts: where the
--- character's HumanoidRootPart is, which way it faces (flattened), that the Humanoid is alive,
--- that PlayerState says ready, which zones the profile opened, and how much room the backpack has.
+-- character is (MoveWatch: the HumanoidRootPart position only when it is reachable from the last
+-- trusted spot, so a teleport cannot sweep), which way it faces (flattened), that the Humanoid is
+-- alive, that PlayerState says ready, which zones the profile opened, and how much room the
+-- backpack has. An accepted swing sets the character attribute VSSweeping = true for ~0.4 s so
+-- every client can animate other players' tools.
 -- All the rules live in Shared/Sweep/SweepRules (tested in Lune); this file only connects them.
 --
 --   SweepService.init()     once, after AshService.init (Main calls it)
@@ -16,6 +19,7 @@ local Types = require(Shared.Types)
 local Zones = require(Shared.Catalog.Zones)
 
 local AshService = require(script.Parent.Parent.Ash.AshService)
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
 local PlayerState = require(script.Parent.Parent.Player.PlayerState)
 
@@ -23,6 +27,7 @@ local FX_RANGE = 160 -- studs: other players this close see your puffs
 local FULL_TOAST_GAP = 3 -- seconds between "backpack full" messages
 local LOCKED_TOAST_GAP = 4 -- seconds between "gate is locked" messages
 local LOCKED_CHECK_GAP = 1 -- seconds between looking for locked ash after an empty swing
+local SWEEPING_SECONDS = 0.4 -- VSSweeping stays true this long after an accepted swing
 
 type Rec = {
 	bucket: SweepRules.Bucket,
@@ -39,8 +44,9 @@ local fullToastAt: { [any]: number } = {}
 local lockedToastAt: { [any]: number } = {}
 local lockedCheckAt: { [any]: number } = {}
 local readyPlayers: { Player } = {} -- ready players, kept up to date by signals (no per-swing list)
+local sweepingUntil: { [Player]: number } = {} -- characters showing VSSweeping = true
 
-local toolScratch = { reach = 0, arcDeg = 0, power = 0 } -- filled per swing; the grid only reads it
+local toolScratch = { reach = 0, arcDeg = 0, power = 0, melt = 0 } -- filled per swing; the grid only reads it
 local zoneValues: { [number]: number } = {}
 for _, z in Zones.list do
 	zoneValues[z.id] = z.value
@@ -144,7 +150,10 @@ local function onSweep(player: Player)
 		return
 	end
 	local hrp = root :: BasePart
-	local pos = hrp.Position
+	local pos, trusted = MoveWatch.position(player)
+	if pos == nil or not trusted then
+		return -- moved faster than possible: no sweeping until the trusted spot caught up
+	end
 	local px, pz = pos.X, pos.Z
 	if not (SweepRules.isFinite(px) and SweepRules.isFinite(pz)) then
 		return
@@ -173,11 +182,16 @@ local function onSweep(player: Player)
 		return
 	end
 	state.lastSweepAt = now
+	if sweepingUntil[player] == nil then
+		char:SetAttribute("VSSweeping", true)
+	end
+	sweepingUntil[player] = now + SWEEPING_SECONDS
 
 	SweepRules.buildAllowed(state.profile.zones, rec.allowed)
 	toolScratch.reach = derived.reach
 	toolScratch.arcDeg = derived.arcDeg
 	toolScratch.power = derived.power
+	toolScratch.melt = derived.melt
 	local grid = AshService.grid
 	local result = grid:sweep(
 		px,
@@ -248,12 +262,30 @@ function SweepService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		removeReady(player)
 		recs[player] = nil
+		sweepingUntil[player] = nil
 		fullToastAt[player] = nil
 		lockedToastAt[player] = nil
 		lockedCheckAt[player] = nil
 	end)
 
 	Net.onRequest("Sweep", onSweep)
+
+	-- VSSweeping goes back to false once the swings stop (one cheap loop, no thread per swing)
+	task.spawn(function()
+		while true do
+			task.wait(0.1)
+			local now = os.clock()
+			for player, untilAt in sweepingUntil do
+				if now >= untilAt then
+					sweepingUntil[player] = nil
+					local char = player.Character
+					if char ~= nil then
+						pcall(char.SetAttribute, char, "VSSweeping", false)
+					end
+				end
+			end
+		end
+	end)
 end
 
 return SweepService

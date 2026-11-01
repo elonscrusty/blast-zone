@@ -48,18 +48,54 @@ Harness.test("milestones: wobbling around a line does not repeat the party", fun
 	for _ = 1, 20 do
 		Harness.eq(ProgressRules.update(t, 2, 0.24), nil)
 		Harness.eq(ProgressRules.update(t, 2, 0.26), nil)
-		Harness.eq(ProgressRules.update(t, 2, 0.17), nil) -- still within the 10% dip
+		Harness.eq(ProgressRules.update(t, 2, 0.17), nil) -- 25% re-arms only under 15%
 	end
 end)
 
-Harness.test("milestones: re-arms only after a dip of 10% below the milestone", function()
+Harness.test("milestones: re-arms only after a deep dip (50% re-arms under 30%)", function()
 	local t = ProgressRules.newTracker()
 	Harness.eq(ProgressRules.update(t, 2, 0.51), 0.5)
-	Harness.eq(ProgressRules.update(t, 2, 0.41), nil) -- 0.41 >= 0.40: not dipped enough
+	Harness.eq(ProgressRules.update(t, 2, 0.31), nil) -- an Ash Storm sized dip: not enough
 	Harness.eq(ProgressRules.update(t, 2, 0.5), nil)
-	Harness.eq(ProgressRules.update(t, 2, 0.39), nil) -- dipped: 50% is armed again
+	Harness.eq(ProgressRules.update(t, 2, 0.24), nil) -- dipped: 50% is armed again
 	Harness.eq(ProgressRules.update(t, 2, 0.5), 0.5)
 	Harness.eq(ProgressRules.update(t, 2, 0.5), nil)
+end)
+
+Harness.test("milestones: parties keep 5 minutes apart, and a waiting one is not lost", function()
+	local t = ProgressRules.newTracker()
+	Harness.eq(ProgressRules.update(t, 1, 0.3, 100), 0.25)
+	Harness.eq(ProgressRules.update(t, 2, 0.3, 120), nil, "another zone waits")
+	Harness.eq(ProgressRules.update(t, ISLAND, 0.3, 200), nil, "the island waits too")
+	Harness.eq(ProgressRules.update(t, 2, 0.3, 100 + ProgressRules.PARTY_COOLDOWN), 0.25)
+	Harness.eq(ProgressRules.update(t, ISLAND, 0.3, 100 + ProgressRules.PARTY_COOLDOWN + 5), nil)
+	Harness.eq(
+		ProgressRules.update(t, ISLAND, 0.3, 100 + 2 * ProgressRules.PARTY_COOLDOWN),
+		0.25,
+		"still owed after the cooldown"
+	)
+	-- without `now` (the start-up seeding) there is no cooldown
+	local s = ProgressRules.newTracker()
+	Harness.eq(ProgressRules.update(s, 1, 0.3), 0.25)
+	Harness.eq(ProgressRules.update(s, 2, 0.3), 0.25)
+end)
+
+Harness.test("gifts: only recent sweepers, never more than their own best zone", function()
+	Harness.eq(ProgressRules.giftFor(5, 1), ProgressRules.gift(1), "a newcomer gets a beach gift")
+	Harness.eq(ProgressRules.giftFor(2, 5), ProgressRules.gift(2), "a veteran gets the zone's gift")
+	Harness.eq(
+		ProgressRules.giftFor(ISLAND, 3),
+		math.min(ProgressRules.gift(ISLAND), ProgressRules.gift(3))
+	)
+	Harness.eq(
+		ProgressRules.giftFor(4, 0 / 0),
+		ProgressRules.gift(1),
+		"bad zone counts as the beach"
+	)
+	Harness.truthy(ProgressRules.earnsGift(100, 150))
+	Harness.eq(ProgressRules.earnsGift(100, 100 + ProgressRules.GIFT_RECENT_SECONDS + 1), false)
+	Harness.eq(ProgressRules.earnsGift(0, 10), false, "never swept")
+	Harness.eq(ProgressRules.earnsGift(0 / 0, 10), false)
 end)
 
 Harness.test("milestones: a deep dip re-arms the lower ones too", function()
@@ -320,12 +356,18 @@ Harness.test("adaptive: no boost while the island is dirty, base rate for 1..16 
 	Harness.near(ProgressRules.adaptiveRate(4, 0.7, 0.2, 0), ProgressRules.regrowRate(4), 1e-9)
 end)
 
-Harness.test("adaptive: clean island or a nearly bare zone boosts up to x4", function()
+Harness.test("adaptive: clean island or a nearly bare zone boosts up to BOOST_MULT", function()
 	local base = ProgressRules.regrowRate(2)
-	Harness.near(ProgressRules.adaptiveRate(2, 0.95, 0.5, 0), base * 4, 1e-9, "island 95% clean")
-	Harness.near(ProgressRules.adaptiveRate(2, 0.2, 0.95, 0), base * 4, 1e-9, "one zone 95% clean")
+	local top = ProgressRules.BOOST_MULT
+	Harness.near(ProgressRules.adaptiveRate(2, 0.95, 0.5, 0), base * top, 1e-9, "island 95% clean")
+	Harness.near(
+		ProgressRules.adaptiveRate(2, 0.2, 0.95, 0),
+		base * top,
+		1e-9,
+		"one zone 95% clean"
+	)
 	local mid = ProgressRules.adaptiveRate(2, 0.825, 0.2, 0)
-	Harness.near(mid, base * 2.5, 1e-9, "halfway up the ramp")
+	Harness.near(mid, base * (1 + top) / 2, 1e-9, "halfway up the ramp")
 	-- the cleanest zone at 60% clean = ~40% of its ash left: still no boost, 70%+ is where it starts
 	Harness.near(ProgressRules.adaptiveRate(2, 0.2, 0.6, 0), base, 1e-9)
 	Harness.truthy(ProgressRules.adaptiveRate(2, 0.2, 0.7, 0) > base)
@@ -344,29 +386,38 @@ Harness.test(
 		for s = 0, 500, 5 do
 			local r = ProgressRules.adaptiveRate(3, 0.9, 0.9, s)
 			Harness.truthy(r >= prev - 1e-9, "faster sweeping never less regrow")
-			Harness.truthy(r <= ProgressRules.TOTAL_CAP + 1e-9, "cap")
+			Harness.truthy(r <= ProgressRules.totalCap(3) + 1e-9, "cap")
 			prev = r
 		end
 		prev = 0
 		for n = 1, 16 do
-			local r = ProgressRules.adaptiveRate(n, 0.9, 0.9, 30)
+			local r = ProgressRules.adaptiveRate(n, 0.9, 0.9, 30, 20 * n)
 			Harness.truthy(r >= prev - 1e-9, "more players never less regrow")
-			Harness.truthy(r <= ProgressRules.TOTAL_CAP + 1e-9, "cap")
+			Harness.truthy(r <= ProgressRules.totalCap(n) + 1e-9, "cap")
 			prev = r
 		end
 		Harness.eq(ProgressRules.adaptiveRate(16, 1, 1, 1e9), ProgressRules.TOTAL_CAP)
+		Harness.eq(ProgressRules.adaptiveRate(16, 1, 1, 0, 1e9), ProgressRules.TOTAL_CAP)
 	end
 )
 
 Harness.test(
 	"adaptive: the island feeds a fast sweeper but always puts back less than they take",
 	function()
-		-- a Volcano Vac player (~58 u/s) on a half-clean island: 35% of their pace comes back
+		-- two fast sweepers (~58 u/s together) on a half-clean island: 35% comes back
 		Harness.near(ProgressRules.demandShare(0.5), 0.35, 1e-9)
-		Harness.near(ProgressRules.adaptiveRate(1, 0.5, 0.5, 58), 0.35 * 58, 1e-9)
+		Harness.near(ProgressRules.adaptiveRate(2, 0.5, 0.5, 58), 0.35 * 58, 1e-9)
 		-- nearly clean: up to 85%
 		Harness.near(ProgressRules.demandShare(0.95), 0.85, 1e-9)
-		Harness.near(ProgressRules.adaptiveRate(1, 0.95, 0.95, 58), 0.85 * 58, 1e-9)
+		Harness.near(ProgressRules.adaptiveRate(2, 0.95, 0.95, 58), 0.85 * 58, 1e-9)
+		-- the zone being emptied counts even when the cheap zones are full
+		Harness.near(ProgressRules.adaptiveRate(2, 0.2, 0.95, 58), 0.85 * 58, 1e-9)
+		-- one kid alone is capped at TOTAL_CAP_PER_PLAYER
+		Harness.near(
+			ProgressRules.adaptiveRate(1, 0.95, 0.95, 58),
+			ProgressRules.TOTAL_CAP_PER_PLAYER,
+			1e-9
+		)
 		for c = 0, 100 do
 			Harness.truthy(ProgressRules.demandShare(c / 100) < 1, "share stays below 1")
 		end
@@ -404,9 +455,11 @@ end)
 
 Harness.test("adaptive: budget uses the extra inputs", function()
 	local plain = ProgressRules.regrowBudget(1, 2, 0)
-	local boosted = ProgressRules.regrowBudget(1, 2, 0, 0.95, 0.95, 58)
+	local boosted = ProgressRules.regrowBudget(2, 2, 0, 0.95, 0.95, 58)
 	Harness.eq(plain, 1)
 	Harness.eq(boosted, math.floor(0.85 * 58 * 2))
+	local fed = ProgressRules.regrowBudget(2, 2, 0, 0.95, 0.95, 0, 40)
+	Harness.eq(fed, math.floor(ProgressRules.paceShare(2) * 40 * 2))
 end)
 
 -- Island sim on the real grid: `players` sweepers each removing `perPlayer` units per second from
@@ -572,6 +625,78 @@ Harness.test("drop: bad input places nothing", function()
 	-- the start offset only rotates which cell gets the first unit
 	Harness.eq(ProgressRules.spreadDrop(g, { 1, 2, 3 }, 1, 7), 1)
 	Harness.eq(g.levels[2], 1) -- 7 % 3 = 1 -> cells[2]
+end)
+
+Harness.test("adaptive: pace feeds big tools, more with friends, never past the cap", function()
+	local twig =
+		ProgressRules.pace({ reach = 7, arcDeg = 90, power = 1, interval = 0.34, capacity = 30 })
+	local volcano = ProgressRules.pace({
+		reach = 22,
+		arcDeg = 270,
+		power = 4,
+		interval = 0.22,
+		capacity = 2000,
+	})
+	Harness.truthy(twig > 0.5 and twig < 3, `twig pace {twig}`)
+	Harness.truthy(volcano > twig * 10, `volcano pace {volcano}`)
+	local function junk(d: {
+		reach: number,
+		arcDeg: number,
+		power: number,
+		interval: number,
+		capacity: number,
+	})
+		Harness.eq(ProgressRules.pace(d), 0)
+	end
+	junk({ reach = 0 / 0, arcDeg = 90, power = 1, interval = 0.3, capacity = 30 })
+	junk({ reach = 7, arcDeg = 90, power = 1, interval = 0, capacity = 30 })
+	junk({ reach = 7, arcDeg = 90, power = 1, interval = 0.3, capacity = -5 })
+	-- share: half solo, grows with friends, always below 1
+	Harness.near(ProgressRules.paceShare(1), 0.5, 1e-9)
+	local prev = 0
+	for n = 1, 16 do
+		local sh = ProgressRules.paceShare(n)
+		Harness.truthy(sh >= prev and sh < 1, `share {sh} for {n}`)
+		prev = sh
+	end
+	Harness.eq(ProgressRules.paceShare(0), 0)
+	Harness.eq(ProgressRules.paceShare(0 / 0), 0)
+	-- a dirty island ignores pace; an emptied zone gets it
+	local base = ProgressRules.regrowRate(1)
+	Harness.near(ProgressRules.adaptiveRate(1, 0.05, 0.05, 0, 20), base, 1e-9)
+	Harness.near(ProgressRules.adaptiveRate(1, 0.1, 0.9, 0, 20), 0.5 * 20, 1e-9)
+	Harness.near(ProgressRules.adaptiveRate(1, 0.1, 0.9, 0, 1e6), ProgressRules.totalCap(1), 1e-9)
+	Harness.near(
+		ProgressRules.adaptiveRate(1, 0.1, 0.95, 0, 0 / 0),
+		base * ProgressRules.BOOST_MULT,
+		1e-9
+	)
+	-- the cap grows with players, up to TOTAL_CAP
+	Harness.eq(ProgressRules.totalCap(1), ProgressRules.TOTAL_CAP_PER_PLAYER)
+	Harness.eq(ProgressRules.totalCap(0), 0)
+	Harness.truthy(ProgressRules.totalCap(16) <= ProgressRules.TOTAL_CAP)
+	Harness.truthy(ProgressRules.totalCap(8) > ProgressRules.totalCap(4))
+end)
+
+Harness.test("regrow: lands in small piles, never over the cell max, exactly the budget", function()
+	local g = AshGrid.new(0)
+	local rng = Rng.new(21)
+	local added = g:regrow(rng, 600, nil)
+	Harness.eq(added, 600)
+	Harness.eq(g.totalUnits, 600)
+	local cells, biggest = 0, 0
+	for j = 1, g.N do
+		local v = g.levels[j]
+		if v > 0 then
+			cells += 1
+			biggest = math.max(biggest, v)
+		end
+	end
+	Harness.truthy(cells < 600 * 0.8, `{cells} cells for 600 units: piles, not dust`)
+	Harness.truthy(biggest <= g.max, "max")
+	-- a full grid takes nothing
+	local full = AshGrid.new("full")
+	Harness.eq(full:regrow(rng, 50, nil), 0)
 end)
 
 return {}

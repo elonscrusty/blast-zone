@@ -9,7 +9,9 @@
 --   Theme.text.*          text sizes (virtual px; TextScaled labels use these as the MAX size)
 --   Theme.radius.*        UDim corner radii        Theme.size.*  spacing / stroke / touch size
 --   Theme.duration.*      tween times (seconds)    Theme.ease.*  TweenInfo presets
---   Theme.DisplayOrder    HUD 10, Panels 20, Banner 25, Toasts 30, Overlay 40
+--   Theme.DisplayOrder    HUD 10, Banner 12, Toasts 14, Panels 20, Overlay 40 (an open panel
+--                         sits above the HUD, the banner and the toasts; toasts for an open
+--                         panel are shown inside it by PanelHost.notify)
 --   Theme.scale()         UIScale factor for the current screen;  Theme.scaleFor(w, h)
 --   Theme.fmt(n)          1.2K / 3.4M number text
 --   Theme.topInset()      height of Roblox's top bar in real px
@@ -34,21 +36,27 @@ local hex = {
 	ink = "#1B1220",
 	white = "#FFFFFF",
 	lava = "#FF7A2F",
+	lavaButton = "#D9561A", -- button faces / title bar: white text reads at 4:1 (lava is 2.6:1)
 	lavaDark = "#C9501A",
 	lavaDeep = "#8F3510",
+	lavaInk = "#5E2209",
 	red = "#E8412C",
 	redDark = "#A92A1B",
 	teal = "#1FB5A8",
 	tealDark = "#138A82",
 	tealDeep = "#0B5F5A",
+	tealInk = "#073E3B",
 	gold = "#FFC53D",
 	goldLight = "#FFE08A",
 	goldDark = "#D99A0B",
 	green = "#4CC764",
 	greenDark = "#2E9A45",
+	greenButton = "#2A8F40", -- button faces with white text (4.1:1; green is 2.2:1)
 	greenDeep = "#1D6B2E",
+	greenInk = "#124A1F",
 	sky = "#5BB8F5",
 	slate = "#6F7A8F",
+	greyLight = "#DCD6DA",
 	grey = "#B9B2B7",
 	greyDark = "#8E878F",
 	greyDeep = "#5E5760",
@@ -89,20 +97,22 @@ local function variant(
 end
 
 Theme.variant = {
-	primary = variant(hex.lava, hex.lavaDark, hex.lavaDeep, hex.white, hex.lavaDeep),
-	secondary = variant(hex.teal, hex.tealDark, hex.tealDeep, hex.white, hex.tealDeep),
-	good = variant(hex.green, hex.greenDark, hex.greenDeep, hex.white, hex.greenDeep),
+	-- faces are the darker tones so white text stays readable in sunlight (WCAG >= 3.9:1)
+	primary = variant(hex.lavaButton, hex.lavaDeep, hex.lavaInk, hex.white, hex.lavaInk),
+	secondary = variant(hex.tealDark, hex.tealDeep, hex.tealInk, hex.white, hex.tealInk),
+	good = variant(hex.greenButton, hex.greenDeep, hex.greenInk, hex.white, hex.greenInk),
 	gold = variant(hex.gold, hex.goldDark, "#8A5E00", hex.charcoal, hex.goldLight),
 	danger = variant(hex.red, hex.redDark, "#6E140B", hex.white, "#6E140B"),
 	neutral = variant(hex.creamLight, hex.parchmentLine, "#B99A5E", hex.charcoal, hex.creamLight),
 	dark = variant("#4A3F52", hex.ink, hex.ink, hex.cream, hex.ink),
-	disabled = variant(hex.grey, hex.greyDark, hex.greyDeep, "#F4F0F2", hex.greyDeep),
+	-- greyed out, but the words (a price, "Need 40 more") stay readable: dark on grey, 7:1
+	disabled = variant(hex.grey, hex.greyDark, hex.greyDeep, hex.charcoal, hex.greyLight),
 } :: { [string]: Variant }
 
 -- Toast / pill kinds.
 Theme.kind = {
 	info = { fill = color.ink, text = color.white, accent = color.sky },
-	good = { fill = color.greenDark, text = color.white, accent = color.green },
+	good = { fill = color.greenButton, text = color.white, accent = color.green },
 	warn = { fill = color.lavaDark, text = color.white, accent = color.lava },
 	gold = { fill = color.gold, text = color.charcoal, accent = color.goldDark },
 } :: { [string]: { fill: Color3, text: Color3, accent: Color3 } }
@@ -113,7 +123,7 @@ Theme.tone = {
 	pops = { fill = color.red, text = color.white },
 	ash = { fill = color.slate, text = color.white },
 	gold = { fill = color.gold, text = color.charcoal },
-	gems = { fill = color.teal, text = color.white },
+	gems = { fill = color.tealDark, text = color.white },
 } :: { [string]: { fill: Color3, text: Color3 } }
 
 -- ===== fonts, sizes =====
@@ -124,13 +134,18 @@ Theme.font = {
 }
 
 Theme.text = {
-	tiny = 11,
-	small = 13,
+	tiny = 12,
+	small = 14,
+	label = 15, -- words on the round thumb buttons (SWEEP, SELL)
 	body = 16,
+	icon = 20, -- emoji glyphs in pills, toasts and small pictures
 	big = 20,
 	title = 26,
+	count = 30, -- big countdown digits
+	emoji = 30, -- big emoji (panel title icon)
 	huge = 40,
-	min = 8, -- the smallest TextScaled will ever shrink to
+	logo = 64, -- splash broom
+	min = UiMath.K.textMin, -- 11: the smallest TextScaled may ever shrink to
 }
 
 Theme.radius = {
@@ -140,16 +155,20 @@ Theme.radius = {
 	full = UDim.new(0.5, 0),
 }
 
+-- Touch sizes live in shared/Ui/UiMath.K so Lune tests can check them (>= 44 px).
 Theme.size = {
-	touch = UiMath.K.touch,
+	touch = UiMath.K.touch, -- 44: the smallest thing a thumb may tap
+	button = UiMath.K.button, -- 48: every main action button (BUY, CLAIM, EQUIP, AUTO, MENU)
+	claimW = UiMath.K.claimW, -- 104: price / claim buttons on cards
 	pad = 8,
 	gap = 6,
 	stroke = 2,
 	strokeThick = 3,
-	lip = 4, -- depth of a button's bottom edge
-	titleBar = 54,
-	closeButton = 46,
-	menuButton = UiMath.K.touch,
+	lip = 4, -- depth of a button's bottom edge (drawn INSIDE the button; the whole box is tappable)
+	titleBar = UiMath.K.titleBar,
+	titleBarShort = UiMath.K.titleBarShort,
+	closeButton = UiMath.K.closeButton,
+	menuButton = UiMath.K.menuSize,
 }
 
 -- ===== motion =====
@@ -172,9 +191,9 @@ Theme.ease = {
 
 Theme.DisplayOrder = {
 	hud = 10,
+	banner = 12,
+	toasts = 14,
 	panels = 20,
-	banner = 25,
-	toasts = 30,
 	overlay = 40,
 }
 

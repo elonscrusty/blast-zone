@@ -79,7 +79,7 @@ local BurpTuning: Tuning = {
 	telegraph = 2,
 	minTelegraph = 1.5,
 	bombRadius = 7,
-	bodyRadius = 1.5,
+	bodyRadius = 0.5, -- the client draws the ring at bombRadius: a hit is what the eye sees
 	bombsPerWaveBase = 1,
 	playersPerExtraBomb = 4,
 	bombsPerWaveMax = 4,
@@ -94,9 +94,9 @@ local BurpTuning: Tuning = {
 	stormFraction = 0.3,
 
 	goldenDuration = 45,
-	goldenBaseCells = 12,
-	goldenPerPlayer = 2,
-	goldenMaxCells = 45,
+	goldenBaseCells = 10, -- 10 + 5 per player: every player gets about 5 gold cells in their
+	goldenPerPlayer = 5, -- own best zone (BurpService shares them out), so gold scales with
+	goldenMaxCells = 90, -- friends AND with progress
 
 	geyserDuration = 20,
 	geyserWaveEvery = 10,
@@ -105,7 +105,7 @@ local BurpTuning: Tuning = {
 	geyserSpotsMax = 10,
 	geyserGemsPerSpot = 3,
 
-	perfectBuffSeconds = 180,
+	perfectBuffSeconds = 120,
 	perfectKinds = { pops = true },
 }
 

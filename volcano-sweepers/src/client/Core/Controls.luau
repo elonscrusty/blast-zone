@@ -187,7 +187,7 @@ local function feedback(
 		Haptics.tap(0.3)
 	end
 	if CameraFx ~= nil then
-		CameraFx.nudge(0.3)
+		CameraFx.nudge(0.45)
 	end
 	if ashNear and Vfx ~= nil then
 		local ahead = math.min(reach * 0.6, 8)

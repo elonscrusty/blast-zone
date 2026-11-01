@@ -107,10 +107,11 @@ Harness.test(
 
 		-- buffs only count while endsAt > now
 		Harness.near(StatsCalc.compute(p, { party = 150 }, 100).sellMult, plain * 2, 1e-9)
-		Harness.near(StatsCalc.compute(p, { perfect = 150 }, 100).sellMult, plain * 1.1, 1e-9)
+		local pm = Config.Economy.perfectMult
+		Harness.near(StatsCalc.compute(p, { perfect = 150 }, 100).sellMult, plain * pm, 1e-9)
 		Harness.near(
 			StatsCalc.compute(p, { party = 150, perfect = 101 }, 100).sellMult,
-			plain * 2.2,
+			plain * 2 * pm,
 			1e-9
 		)
 		Harness.near(StatsCalc.compute(p, { party = 100 }, 100).sellMult, plain, 1e-9)

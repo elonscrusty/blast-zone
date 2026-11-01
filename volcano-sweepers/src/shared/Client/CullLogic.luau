@@ -283,8 +283,10 @@ end
 -- ===== sweep fan =====
 
 -- True when some cell in the fan in front of (px, pz) facing (dx, dz) has level > 0 and its zone is
--- in `allowed`. Same geometry as AshGrid.queryCone: a cell counts when its centre is within one cell
--- size of the player, or within `reach` and inside the fan.
+-- in `allowed`. Geometry: a cell counts when its centre is within one cell size of the player, or
+-- within `reach + half a cell` and inside the fan. That is a slightly generous SUPERSET of the
+-- server's cone (AshGrid.queryCone, measured to the centre or to the edge): Auto-Sweep must never
+-- miss ash the server would sweep; a rare extra swing that finds nothing costs nothing.
 function CullLogic.ashAhead(
 	layout: LayoutLike,
 	levels: { number },
@@ -305,9 +307,10 @@ function CullLogic.ashAhead(
 		ndx, ndz = dx / len, dz / len
 		cosHalf = math.cos(math.rad(arcDeg * 0.5))
 	end
-	local reach2 = reach * reach
+	local far = reach + cs * 0.5
+	local reach2 = far * far
 	local near2 = cs * cs
-	for _, j in layout.cellsInRadius(px, pz, math.max(reach, cs)) do
+	for _, j in layout.cellsInRadius(px, pz, math.max(far, cs)) do
 		local level = levels[j]
 		if level ~= nil and level > 0 and allowed[zone[j]] then
 			local ddx, ddz = cx[j] - px, cz[j] - pz

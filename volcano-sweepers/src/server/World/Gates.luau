@@ -67,85 +67,94 @@ local function buildSign(beam: BasePart, zone: Zones.Zone, accent: string)
 	gui.Parent = beam
 end
 
+local function buildGate(folder: Folder, g: WorldPlan.Gate)
+	local zone = Zones.byId[g.zoneId]
+	local accent = WorldUtil.zoneAccent[g.zoneId] or P.gold
+	local origin = V(g.x, 0, g.z)
+	local frame = CFrame.lookAt(origin, origin - V(g.ux, 0, g.uz)) -- walking inland is local -Z
+	local function G(x: number, y: number, z: number): CFrame
+		return frame * CFrame.new(x, y, z)
+	end
+	local model = Instance.new("Model")
+	model.Name = `Gate{g.zoneId}`
+
+	-- the glowing floor plate = the tagged gate part
+	local plate = WorldUtil.block(model, "GatePlate", G(0, 0.15, 0), V(16, 0.3, 5), accent, {
+		material = Enum.Material.Neon,
+		transparency = 0.35,
+	})
+
+	for _, side in { -1, 1 } do
+		local x = side * 9.2
+		WorldUtil.block(
+			model,
+			"PillarBase",
+			G(x, 0.5, 0),
+			V(3.6, 1, 3.6),
+			P.stone,
+			{ collide = true, shadow = true }
+		)
+		WorldUtil.cylinder(model, "Pillar", G(x, 6.5, 0).Position, 2.6, 11, zone.ground, {
+			collide = true,
+			shadow = true,
+		})
+		WorldUtil.cylinder(model, "PillarBandLow", G(x, 3, 0).Position, 2.9, 0.4, accent, {
+			material = Enum.Material.Neon,
+		})
+		WorldUtil.cylinder(model, "PillarBandHigh", G(x, 9.5, 0).Position, 2.9, 0.4, accent, {
+			material = Enum.Material.Neon,
+		})
+		WorldUtil.ball(model, "PillarCap", G(x, 12.4, 0).Position, 3.4, accent, {
+			material = Enum.Material.Neon,
+		})
+	end
+
+	local beam = WorldUtil.block(
+		model,
+		"Beam",
+		G(0, 13.2, 0),
+		V(22.4, 2.2, 3),
+		zone.ground,
+		{ shadow = true }
+	)
+	WorldUtil.block(model, "BeamStrip", G(0, 11.95, -1.4), V(21, 0.3, 0.3), accent, {
+		material = Enum.Material.Neon,
+	})
+	for i = 0, 4 do
+		WorldUtil.ball(model, "BeamLight", G(-8 + i * 4, 13.2, -1.6).Position, 0.6, accent, {
+			material = Enum.Material.Neon,
+		})
+	end
+	buildSign(beam, zone, accent)
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "GatePrompt"
+	prompt.ActionText = "Open gate"
+	prompt.ObjectText = zone.name
+	prompt.HoldDuration = 0.4
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	-- E is "sweep" and ButtonX is "sell" (client Controls): the gate gets its own keys
+	prompt.KeyboardKeyCode = Enum.KeyCode.G
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+	prompt.Parent = plate
+
+	plate:SetAttribute("ZoneId", g.zoneId)
+	CollectionService:AddTag(plate, "VSGate")
+	model.Parent = folder
+end
+
 function Gates.build(root: Instance, plan: WorldPlan.Plan)
 	local folder = Instance.new("Folder")
 	folder.Name = "Gates"
+	folder.Parent = root -- first: a gate that fails to build never hides the others
 
 	for _, g in plan.gates do
-		local zone = Zones.byId[g.zoneId]
-		local accent = WorldUtil.zoneAccent[g.zoneId] or P.gold
-		local origin = V(g.x, 0, g.z)
-		local frame = CFrame.lookAt(origin, origin - V(g.ux, 0, g.uz)) -- walking inland is local -Z
-		local function G(x: number, y: number, z: number): CFrame
-			return frame * CFrame.new(x, y, z)
+		local ok, err = pcall(buildGate, folder, g)
+		if not ok then
+			warn(`[Gates] gate {g.zoneId} failed: {err}`)
 		end
-		local model = Instance.new("Model")
-		model.Name = `Gate{g.zoneId}`
-
-		-- the glowing floor plate = the tagged gate part
-		local plate = WorldUtil.block(model, "GatePlate", G(0, 0.15, 0), V(16, 0.3, 5), accent, {
-			material = Enum.Material.Neon,
-			transparency = 0.35,
-		})
-
-		for _, side in { -1, 1 } do
-			local x = side * 9.2
-			WorldUtil.block(
-				model,
-				"PillarBase",
-				G(x, 0.5, 0),
-				V(3.6, 1, 3.6),
-				P.stone,
-				{ collide = true, shadow = true }
-			)
-			WorldUtil.cylinder(model, "Pillar", G(x, 6.5, 0).Position, 2.6, 11, zone.ground, {
-				collide = true,
-				shadow = true,
-			})
-			WorldUtil.cylinder(model, "PillarBandLow", G(x, 3, 0).Position, 2.9, 0.4, accent, {
-				material = Enum.Material.Neon,
-			})
-			WorldUtil.cylinder(model, "PillarBandHigh", G(x, 9.5, 0).Position, 2.9, 0.4, accent, {
-				material = Enum.Material.Neon,
-			})
-			WorldUtil.ball(model, "PillarCap", G(x, 12.4, 0).Position, 3.4, accent, {
-				material = Enum.Material.Neon,
-			})
-		end
-
-		local beam = WorldUtil.block(
-			model,
-			"Beam",
-			G(0, 13.2, 0),
-			V(22.4, 2.2, 3),
-			zone.ground,
-			{ shadow = true }
-		)
-		WorldUtil.block(model, "BeamStrip", G(0, 11.95, -1.4), V(21, 0.3, 0.3), accent, {
-			material = Enum.Material.Neon,
-		})
-		for i = 0, 4 do
-			WorldUtil.ball(model, "BeamLight", G(-8 + i * 4, 13.2, -1.6).Position, 0.6, accent, {
-				material = Enum.Material.Neon,
-			})
-		end
-		buildSign(beam, zone, accent)
-
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "GatePrompt"
-		prompt.ActionText = "Open gate"
-		prompt.ObjectText = zone.name
-		prompt.HoldDuration = 0.4
-		prompt.MaxActivationDistance = 16
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = plate
-
-		plate:SetAttribute("ZoneId", g.zoneId)
-		CollectionService:AddTag(plate, "VSGate")
-		model.Parent = folder
 	end
-
-	folder.Parent = root
 end
 
 return Gates

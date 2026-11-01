@@ -57,6 +57,7 @@ local started = false
 local owners: { [Player]: Owner } = {}
 local rng = Rng.new(os.time() + math.floor(os.clock() * 1000))
 local gridCache: AshGrid.AshGrid? = nil
+local ashModule: any = nil -- AshService, once found (for noteSwept)
 local gridTriedAt = -100
 local visible = 0
 local lastWarnAt = -100
@@ -81,6 +82,7 @@ local function ashGrid(): AshGrid.AshGrid?
 		local grid = (service :: any).grid
 		if type(grid) == "table" then
 			gridCache = grid :: AshGrid.AshGrid
+			ashModule = service
 		end
 	end
 	return gridCache
@@ -232,6 +234,11 @@ local function sweepBot(
 		local allowed = HelperRules.allowedZones(state.profile.zones)
 		local result = HelperRules.sweepAround(grid, bot.pos.X, bot.pos.Z, whole, allowed, rng)
 		if result.units > 0 then
+			-- bots count for the adaptive regrow too, so bot-heavy servers never starve players
+			local mod = ashModule
+			if mod ~= nil and type(mod.noteSwept) == "function" then
+				pcall(mod.noteSwept, result.units)
+			end
 			bot.pending += HelperRules.coinsFor(
 				result.valueUnits,
 				state.derived.helperMult,

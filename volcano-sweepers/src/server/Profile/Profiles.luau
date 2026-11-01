@@ -17,6 +17,12 @@
 --   Profiles.onLoaded:Connect(function(player, profile) end)   profile ready (also offline ones).
 --   Profiles.onLeaving:Connect(function(player, profile) end)  just before the final save: last
 --                                      chance to write stats (playSeconds ...) into the profile.
+--   Profiles.onRecovered:Connect(function(player, profile) end) an offline player's REAL profile
+--                                      loaded after all (background retries). `profile` is the same
+--                                      live table as before, now holding the real data.
+--   Profiles.onGaveUp:Connect(function(player, profile) end)   the background retries ended without
+--                                      the real profile (another live server still holds it).
+--   Profiles.isRetrying(player)        -> boolean. Offline, and still trying to load the real save.
 --   Profiles.markDirty(player)         cheap flag: "I changed the profile". Writes are never per change.
 --   Profiles.saveNow(player)           -> boolean. YIELDS up to ~6 s (DataStore write spacing): call it
 --                                      with task.spawn after a purchase or reward. true = nothing
@@ -81,6 +87,8 @@ end
 
 Profiles.onLoaded = newEvent()
 Profiles.onLeaving = newEvent()
+Profiles.onRecovered = newEvent()
+Profiles.onGaveUp = newEvent()
 
 -- In Studio JobId is empty; two Studio servers must still look different to the lock.
 local jobId: string = if game.JobId ~= ""
@@ -160,10 +168,22 @@ function Profiles.init()
 			Profiles.onLeaving:fire(player, profile.data)
 		end
 	end)
+	m.Recovered:connect(function(userId: number, profile: ProfileStore.Profile)
+		local player = known[userId]
+		if player then
+			Profiles.onRecovered:fire(player, profile.data)
+		end
+	end)
 	m.StatusChanged:connect(function(userId: number, status: string)
 		local player = known[userId]
 		if player == nil then
 			return
+		end
+		if status == "offline" and not m:isRetrying(userId) then
+			local data = m:data(userId)
+			if data ~= nil then
+				Profiles.onGaveUp:fire(player, data)
+			end
 		end
 		if status == "lost" then
 			warn(`[Profile] {player.Name}'s progress was opened by another server`)
@@ -228,11 +248,16 @@ function Profiles.isOffline(player: Player): boolean
 	return need():isOffline(player.UserId)
 end
 
+function Profiles.isRetrying(player: Player): boolean
+	return need():isRetrying(player.UserId)
+end
+
 function Profiles.status(player: Player): string
 	return need():status(player.UserId)
 end
 
--- Why the load failed while isOffline: "locked" | "error" | "future" | "corrupt" | "migration" | "busy".
+-- Why the load failed while isOffline: "locked" | "error" | "future" | "corrupt" | "migration" |
+-- "busy" | "noAccess".
 function Profiles.offlineReason(player: Player): string?
 	return need():failReason(player.UserId)
 end

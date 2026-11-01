@@ -8,6 +8,9 @@ local SparkPerks = require("../src/shared/Catalog/SparkPerks")
 local CoolDownModel = require("../src/shared/Ui/CoolDownModel")
 
 local MIN = Config.Economy.coolDownMinRunCoins
+local Format = require("../src/shared/Ui/Format")
+local MIN_TEXT = Format.compact(MIN)
+local HALF_TEXT = Format.compact(MIN / 2)
 
 local function blank(): any
 	return Economy.blankProfile()
@@ -18,9 +21,9 @@ Harness.test("cooldown: a new player is locked with an empty bar", function()
 	Harness.eq(v.canCoolDown, false)
 	Harness.eq(v.badge, false)
 	Harness.eq(v.fraction, 0)
-	Harness.eq(v.progressText, "0 / 9M")
-	Harness.eq(v.remainingText, "Earn 9M more coins to unlock")
-	Harness.eq(v.note, "Earn 9M more coins to unlock")
+	Harness.eq(v.progressText, `0 / {MIN_TEXT}`)
+	Harness.eq(v.remainingText, `Earn {MIN_TEXT} more coins to unlock`)
+	Harness.eq(v.note, `Earn {MIN_TEXT} more coins to unlock`)
 	Harness.eq(v.sparksNow, 0)
 	Harness.eq(v.sparksText, "Sparks so far: ✨ 0")
 	Harness.eq(v.sparks, 0)
@@ -44,8 +47,8 @@ Harness.test("cooldown: halfway there is still locked, Sparks grow", function()
 	Harness.near(v.fraction, 0.5)
 	Harness.eq(v.sparksNow, 7) -- floor(10 x sqrt(0.5))
 	Harness.eq(v.sparksText, "Sparks so far: ✨ 7")
-	Harness.eq(v.progressText, "4.5M / 9M")
-	Harness.eq(v.remainingText, "Earn 4.5M more coins to unlock")
+	Harness.eq(v.progressText, `{HALF_TEXT} / {MIN_TEXT}`)
+	Harness.eq(v.remainingText, `Earn {HALF_TEXT} more coins to unlock`)
 	p.runCoins = MIN - 1
 	Harness.eq(CoolDownModel.build(p).canCoolDown, false)
 end)
@@ -262,4 +265,24 @@ Harness.test("confirm: a clock that goes backwards does not confirm", function()
 	local c = CoolDownModel.newConfirm()
 	Harness.eq(CoolDownModel.tap(c, 100, true), "armed")
 	Harness.eq(CoolDownModel.tap(c, 50, true), "armed")
+end)
+
+Harness.test("CoolDownModel.footerText: one line that always explains the big button", function()
+	local min = Config.Economy.coolDownMinRunCoins
+	local locked = CoolDownModel.build({ runCoins = min / 4 })
+	Harness.eq(CoolDownModel.footerText(locked, false), locked.remainingText)
+	Harness.truthy(
+		string.find(CoolDownModel.footerText(locked, false), "more coins", 1, true) ~= nil
+	)
+	local ready = CoolDownModel.build({ runCoins = min * 4 })
+	local line = CoolDownModel.footerText(ready, false)
+	Harness.truthy(string.find(line, tostring(ready.sparksNow), 1, true) ~= nil, line)
+	Harness.truthy(string.find(line, "forever", 1, true) ~= nil, line)
+	local sure = CoolDownModel.footerText(ready, true)
+	Harness.truthy(string.find(sure, "Are you sure", 1, true) ~= nil, sure)
+	Harness.truthy(string.find(sure, "keep your treasure", 1, true) ~= nil, sure)
+	local fresh = CoolDownModel.build({ runCoins = 0, coolDowns = 1 })
+	Harness.truthy(
+		string.find(CoolDownModel.footerText(fresh, false), "Fresh start", 1, true) ~= nil
+	)
 end)

@@ -100,4 +100,27 @@ function Format.pair(a: number, b: number): string
 	return Format.compact(a) .. "/" .. Format.compact(b)
 end
 
+-- Cuts text to at most `maxChars` CHARACTERS (never inside an emoji or "—"), ending on a word with
+-- "…" when it had to cut. Bad UTF-8 falls back to a byte cut.
+function Format.clip(text: string, maxChars: number): string
+	if type(text) ~= "string" then
+		return ""
+	end
+	local limit = math.max(1, math.floor(maxChars))
+	local ok, n = pcall(utf8.len, text)
+	if not ok or type(n) ~= "number" then
+		return string.sub(text, 1, limit)
+	end
+	if n <= limit then
+		return text
+	end
+	local stop = utf8.offset(text, limit) -- first byte of the last character we may keep
+	local head = string.sub(text, 1, (stop or (limit + 1)) - 1)
+	local word = string.match(head, "^(.*%S)%s+%S*$")
+	if word ~= nil and #word >= #head * 0.6 then
+		head = word
+	end
+	return head .. "…"
+end
+
 return Format

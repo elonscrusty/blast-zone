@@ -15,17 +15,22 @@
 -- Regrowth lands more in zones that someone has unlocked (see AshService), so ash is where it is
 -- wanted.
 --
--- ADAPTIVE PART (so fast sweepers, up to ~58 u/s, are not starved and the island never runs dry):
---   boost   = 1 + (BOOST_MULT - 1) x pressure, BOOST_MULT = 4
+-- ADAPTIVE PART (so fast sweepers are never starved and a full server never runs dry; balanced by
+-- tests/pacing.test.luau, which runs the real rules with 1, 2, 4 and 16 sweepers):
+--   worked  = max(total clean, cleanest zone)   (kids empty their best zone and leave cheap ones full)
+--   boost   = 1 + (BOOST_MULT - 1) x pressure, BOOST_MULT = 3
 --   pressure= max(ramp(total clean, 0.70, 0.95), ramp(cleanest zone, 0.60, 0.95))
---             (a zone at 60% clean has only ~40% of its ash left: time to top it up)
---   demand  = share(total clean) x measured sweep rate (units/s, smoothed), share 0.35 -> 0.85
---             as the island goes from 50% to 95% clean
---   rate    = min(60, max(base x boost, demand))
--- The share stays below 1 and the total is capped, so a group that out-sweeps the regrow always
--- makes net progress and every milestone stays reachable (tests simulate it).
+--   demand  = share(worked) x measured sweep rate (units/s, smoothed), share 0.35 -> 0.85
+--             as worked goes from 50% to 95% clean
+--   fed     = ramp(worked, 0.1, 0.8) x paceShare(n) x summed pace   (pace = what each kid COULD
+--             sweep with their stats, trips counted; paceShare 0.5 solo, +0.12 a friend, max 0.95)
+--   rate    = min(totalCap(n), max(base x boost, demand, fed)),  totalCap = 30 u/s a player, <= 480
+-- The shares stay below 1, so a group that sweeps hard still makes net progress, and the cap grows
+-- with the server so each kid's supply holds up as friends join. Regrowth comes in small piles
+-- (AshGrid.REGROW_PILE) so a swing through regrown ash still feels full.
 
 local Config = require("../Config")
+local Tools = require("../Catalog/Tools")
 local Zones = require("../Catalog/Zones")
 
 local ProgressRules = {}
@@ -33,29 +38,53 @@ local ProgressRules = {}
 -- ===== milestones =====
 
 ProgressRules.MILESTONES = { 0.25, 0.5, 0.75, 1.0 }
--- A celebrated milestone re-arms once the fraction falls this far below it.
+-- A celebrated milestone re-arms once the fraction falls max(REARM_DIP, REARM_SHARE x milestone)
+-- below it: 25% re-arms under 15%, 50% under 30%, 75% under 45%, 100% under 60%. An Ash Storm
+-- (about -20% clean) does not re-arm a party on its own, so parties stay special.
 ProgressRules.REARM_DIP = 0.10
+ProgressRules.REARM_SHARE = 0.4
+
+-- The fraction a celebrated milestone must fall below before it can be celebrated again.
+function ProgressRules.rearmBelow(milestone: number): number
+	return milestone - math.max(ProgressRules.REARM_DIP, milestone * ProgressRules.REARM_SHARE)
+end
+-- After a party, no other party (any zone or the island) for this many seconds. A milestone
+-- reached meanwhile is NOT lost: it is celebrated when the cooldown ends if it still holds.
+ProgressRules.PARTY_COOLDOWN = 300
 -- Tracker keys: zone ids 1..5, and this key for the whole island.
 ProgressRules.ISLAND = 0
 
-export type Tracker = { celebrated: { [number]: number } } -- key -> highest celebrated milestone index
+export type Tracker = {
+	celebrated: { [number]: number }, -- key -> highest celebrated milestone index
+	lastPartyAt: number?, -- time of the last party (only when update() is given `now`)
+}
 
 function ProgressRules.newTracker(): Tracker
-	return { celebrated = {} }
+	return { celebrated = {}, lastPartyAt = nil }
 end
 
 -- Feed the current clean fraction (0..1) of one zone (or ISLAND). Returns the milestone that was
 -- just reached (0.25 / 0.5 / 0.75 / 1.0) or nil. A jump over several milestones celebrates only the
--- highest. A milestone that was celebrated is not celebrated again until the fraction dipped to
--- REARM_DIP below it (and then climbed back).
-function ProgressRules.update(tracker: Tracker, key: number, fraction: number): number?
+-- highest. A milestone that was celebrated is not celebrated again until the fraction dipped under
+-- rearmBelow(milestone) (and then climbed back). With `now` (seconds), parties also keep
+-- PARTY_COOLDOWN apart: during the cooldown nothing fires and nothing is marked, so the milestone
+-- fires once the cooldown is over (if the fraction still holds).
+function ProgressRules.update(
+	tracker: Tracker,
+	key: number,
+	fraction: number,
+	now: number?
+): number?
 	if fraction ~= fraction then
 		return nil
 	end
+	local cooling = now ~= nil
+		and tracker.lastPartyAt ~= nil
+		and now - (tracker.lastPartyAt :: number) < ProgressRules.PARTY_COOLDOWN
 	local ms = ProgressRules.MILESTONES
 	local done = tracker.celebrated[key] or 0
 	-- re-arm: walk down while the fraction fell REARM_DIP below the last celebrated milestone
-	while done > 0 and fraction < ms[done] - ProgressRules.REARM_DIP do
+	while done > 0 and fraction < ProgressRules.rearmBelow(ms[done]) do
 		done -= 1
 	end
 	-- reach: the highest milestone above `done` that the fraction now covers
@@ -66,8 +95,11 @@ function ProgressRules.update(tracker: Tracker, key: number, fraction: number): 
 			break
 		end
 	end
-	if reached > 0 then
+	if reached > 0 and not cooling then
 		tracker.celebrated[key] = reached
+		if now ~= nil then
+			tracker.lastPartyAt = now
+		end
 		return ms[reached]
 	end
 	tracker.celebrated[key] = done
@@ -93,6 +125,26 @@ function ProgressRules.gift(zone: number): number
 		raw = ProgressRules.ZONE_GIFT_PER_VALUE * Zones.valueOf(zone)
 	end
 	return math.clamp(math.floor(raw), ProgressRules.GIFT_MIN, ProgressRules.GIFT_MAX)
+end
+
+-- The gift one player gets: never more than a party of their OWN best zone is worth, so a
+-- veteran's Lava Heart party cannot buy a newcomer's first gates for them.
+function ProgressRules.giftFor(zone: number, playerBestZone: number): number
+	local full = ProgressRules.gift(zone)
+	local best = if type(playerBestZone) == "number" and playerBestZone == playerBestZone
+		then math.clamp(math.floor(playerBestZone), 1, 5)
+		else 1
+	local own = ProgressRules.gift(best)
+	return math.min(full, own)
+end
+
+-- Only players who swept within this many seconds get the coin gift (everyone gets the x2).
+ProgressRules.GIFT_RECENT_SECONDS = 120
+
+function ProgressRules.earnsGift(lastSweepAt: number, now: number): boolean
+	return lastSweepAt == lastSweepAt
+		and lastSweepAt > 0
+		and now - lastSweepAt <= ProgressRules.GIFT_RECENT_SECONDS
 end
 
 -- 0.25 -> 25 (what the Party remote carries)
@@ -177,14 +229,24 @@ function ProgressRules.regrowRate(players: number): number
 	)
 end
 
-ProgressRules.BOOST_MULT = 4
+ProgressRules.BOOST_MULT = 3
 ProgressRules.BOOST_TOTAL_FROM = 0.70 -- total clean where the boost starts ...
 ProgressRules.BOOST_ZONE_FROM = 0.60 -- ... and the cleanest zone's clean fraction where it starts
 ProgressRules.BOOST_FULL_AT = 0.95 -- both ramps reach full boost here
 ProgressRules.DEMAND_SHARE_LOW = 0.35 -- share of the measured sweep rate fed back at <= 50% clean
 ProgressRules.DEMAND_SHARE_HIGH = 0.85 -- ... and at >= 95% clean (always below 1)
-ProgressRules.TOTAL_CAP = 60 -- no regrow rate above this, whatever happens
+ProgressRules.TOTAL_CAP_PER_PLAYER = 30 -- the cap grows with the server, so friends never starve ...
+ProgressRules.TOTAL_CAP = 480 -- ... and no regrow rate is above this, whatever happens
 ProgressRules.SMOOTH_ALPHA = 0.3 -- sweep-rate smoothing per regrow step
+
+-- The most the island regrows per second with this many players.
+function ProgressRules.totalCap(players: number): number
+	if players ~= players or players < 1 then
+		return 0
+	end
+	local n = math.min(players, Config.Game.MaxPlayers)
+	return math.min(ProgressRules.TOTAL_CAP, ProgressRules.TOTAL_CAP_PER_PLAYER * n)
+end
 
 local function ramp(x: number, from: number, to: number): number
 	if x ~= x then
@@ -209,7 +271,8 @@ function ProgressRules.adaptiveRate(
 	players: number,
 	cleanTotal: number,
 	cleanestZone: number,
-	sweepRate: number
+	sweepRate: number,
+	pace: number?
 ): number
 	local base = ProgressRules.regrowRate(players)
 	if base <= 0 then
@@ -222,9 +285,77 @@ function ProgressRules.adaptiveRate(
 	local boosted = base * (1 + (ProgressRules.BOOST_MULT - 1) * pressure)
 	local demand = 0
 	if sweepRate == sweepRate and sweepRate > 0 and sweepRate < math.huge then
-		demand = ProgressRules.demandShare(cleanTotal) * sweepRate
+		-- players work their best zone and leave the cheap ones full, so the island-wide fraction
+		-- alone would say "dirty" forever: the zone they are emptying counts too
+		local worked = cleanTotal
+		if cleanestZone > worked then
+			worked = cleanestZone
+		end
+		demand = ProgressRules.demandShare(worked) * sweepRate
 	end
-	return math.max(base, math.min(ProgressRules.TOTAL_CAP, math.max(boosted, demand)))
+	-- the island also answers what the players COULD sweep, not only what they found: a big
+	-- vacuum in an emptied zone gets fed, up to paceShare of the summed pace when the zone is bare
+	local want = pace or 0
+	if want == want and want > 0 and want < math.huge then
+		local worked = cleanTotal
+		if cleanestZone > worked then
+			worked = cleanestZone
+		end
+		local fed = ProgressRules.paceShare(players) * want
+		local need = ramp(worked, ProgressRules.PACE_RAMP_FROM, ProgressRules.PACE_RAMP_FULL)
+		demand = math.max(demand, need * fed)
+	end
+	return math.max(base, math.min(ProgressRules.totalCap(players), math.max(boosted, demand)))
+end
+
+-- What one player could sweep per second with these stats (fresh ash, trips to the hut counted).
+-- AshService sums it over the ready players and passes it to regrowBudget, so bigger tools find more
+-- ash. 0 for junk input.
+function ProgressRules.pace(d: {
+	reach: number,
+	arcDeg: number,
+	power: number,
+	interval: number,
+	capacity: number,
+}): number
+	local cells = Tools.cellsHit(d.reach, d.arcDeg, Config.World.cellSize)
+	local raw = cells * math.min(d.power, 4) / d.interval
+	local cap = d.capacity
+	if
+		not (
+			raw == raw
+			and raw > 0
+			and raw < math.huge
+			and cap == cap
+			and cap > 0
+			and cap < math.huge
+		)
+	then
+		return 0
+	end
+	return cap / (cap / raw + Config.Player.tripSeconds)
+end
+
+-- Share of the players' summed pace the island can feed back. Solo it is half (the whole island's
+-- starting ash is theirs too); every friend adds a bit because a crowd shares that starting ash, so
+-- each kid's supply holds up as the server fills. Always below 1: sweeping hard still wins zones.
+ProgressRules.PACE_SHARE = 0.5
+ProgressRules.PACE_SHARE_PER_EXTRA = 0.12
+ProgressRules.PACE_SHARE_MAX = 0.95
+-- ... fed from when the worked zone is this clean, fully once it is this clean (a half-swept zone is
+-- already thin: walking from pile to pile, not sweeping, is what slows kids down)
+ProgressRules.PACE_RAMP_FROM = 0.1
+ProgressRules.PACE_RAMP_FULL = 0.8
+
+function ProgressRules.paceShare(players: number): number
+	if players ~= players or players < 1 then
+		return 0
+	end
+	local n = math.min(players, Config.Game.MaxPlayers)
+	return math.min(
+		ProgressRules.PACE_SHARE_MAX,
+		ProgressRules.PACE_SHARE + ProgressRules.PACE_SHARE_PER_EXTRA * (n - 1)
+	)
 end
 
 -- Moving average for the measured sweep rate.
@@ -244,11 +375,17 @@ function ProgressRules.regrowBudget(
 	carry: number,
 	cleanTotal: number?,
 	cleanestZone: number?,
-	sweepRate: number?
+	sweepRate: number?,
+	pace: number?
 ): (number, number)
 	local step = math.clamp(dt, 0, 5)
-	local rate =
-		ProgressRules.adaptiveRate(players, cleanTotal or 0, cleanestZone or 0, sweepRate or 0)
+	local rate = ProgressRules.adaptiveRate(
+		players,
+		cleanTotal or 0,
+		cleanestZone or 0,
+		sweepRate or 0,
+		pace
+	)
 	local total = carry + rate * step
 	local whole = math.floor(total)
 	return whole, total - whole

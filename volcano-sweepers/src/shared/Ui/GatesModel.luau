@@ -15,6 +15,7 @@
 local Config = require("../Config")
 local Pricing = require("../Rules/Pricing")
 local Zones = require("../Catalog/Zones")
+local Format = require("./Format")
 local Util = require("./ShopModelUtil")
 
 local GatesModel = {}
@@ -185,6 +186,36 @@ function GatesModel.build(view: { [string]: any }?): Model
 		canBuyAny = anyBuy,
 		hint = hint,
 	}
+end
+
+export type Prompt = {
+	enabled: boolean, -- false: the gate is already yours, so its prompt is hidden on this screen
+	actionText: string, -- "Open gate (800 coins)" / "Open Fern Forest first"
+}
+
+-- What the gate's ProximityPrompt says to THIS player (the server builds one prompt for everyone;
+-- the client restyles it locally). The server still checks everything when it is triggered.
+function GatesModel.prompt(view: { [string]: any }?, zoneId: number): Prompt
+	local model = GatesModel.build(view)
+	for _, row in model.rows do
+		if row.id == zoneId then
+			if row.state == "open" then
+				return { enabled = false, actionText = "Open" }
+			elseif row.state == "next" and row.price ~= nil then
+				local coins = if row.price == 1 then "coin" else "coins"
+				return {
+					enabled = true,
+					actionText = `Open gate ({Format.compact(row.price)} {coins})`,
+				}
+			end
+			local before = Zones.byId[zoneId - 1]
+			return {
+				enabled = true,
+				actionText = if before then `Open {before.name} first` else "Open gate",
+			}
+		end
+	end
+	return { enabled = true, actionText = "Open gate" }
 end
 
 function GatesModel.canBuyAny(view: { [string]: any }?): boolean

@@ -4,6 +4,10 @@
 --   rarities = list of { id, weight, ... }         ordered common -> legendary
 -- `luck` is a bonus fraction (0 = none, 0.5 = +50% chance) from the Treasure Luck upgrade and friends.
 --
+-- Rolls are rationed per player (takeRolls): at most ROLLS_PER_SECOND on average, so a huge tool
+-- clearing 20 cells a swing does not turn treasure into a stream of toasts (finds stay a treat, and
+-- ash stays the main income).
+--
 -- Two independent rolls per cleared cell:
 --   1. rainbow: very rare, zone 0 finds, can drop in any zone.
 --   2. normal: ~3% base, picks a rarity by weight (luck shifts weight toward rarer ones) and then a
@@ -25,6 +29,35 @@ FindRoller.rainbowMaxChance = 0.004
 FindRoller.rainbowLuckShare = 0.5 -- luck helps rainbow finds only this much as much
 FindRoller.rarityShift = 0.25 -- weight x (1 + shift x luck x rarityRank), rank 0 = most common
 FindRoller.maxLuck = 8 -- luck above this stops helping (keeps odds sane even if a stat goes wrong)
+
+FindRoller.ROLLS_PER_SECOND = 1.5
+FindRoller.ROLL_BURST = 4
+
+export type Budget = { tokens: number, at: number }
+
+function FindRoller.newBudget(now: number): Budget
+	return { tokens = FindRoller.ROLL_BURST, at = now }
+end
+
+-- How many of `wanted` rolls this player may make now (spends them). A clock that goes backwards
+-- mints nothing.
+function FindRoller.takeRolls(budget: Budget, now: number, wanted: number): number
+	if wanted ~= wanted or wanted < 1 then
+		return 0
+	end
+	local elapsed = now - budget.at
+	if elapsed == elapsed and elapsed > 0 then
+		budget.at = now
+		budget.tokens =
+			math.min(FindRoller.ROLL_BURST, budget.tokens + elapsed * FindRoller.ROLLS_PER_SECOND)
+	end
+	local n = math.min(math.floor(wanted), math.floor(budget.tokens + 1e-9))
+	if n <= 0 then
+		return 0
+	end
+	budget.tokens -= n
+	return n
+end
 
 local function cleanLuck(luck: number): number
 	if luck ~= luck then

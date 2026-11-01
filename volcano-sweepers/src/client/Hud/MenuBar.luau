@@ -1,19 +1,25 @@
 --!strict
--- Menu bar (left edge): one big icon button per registered panel, built from PanelHost.menuButtons.
--- Red dots: Hud.setBadge(panelId, true) by hand, plus automatic ones (you can afford something,
--- the daily gift is ready, Cool Down is possible).
+-- The MENU button (left, under the backpack bar): ONE 48 px button that opens the tile menu
+-- (Panels/Menu, id "menu"). It replaced a column of nine icon buttons that sat where the left thumb
+-- steers on a landscape phone.
+--
+-- Red dots: one dot on this button when ANY tile has one. Tile dots come from two places:
+--   * by hand: Hud.setBadge(panelId, on) (Book and Goals use it)
+--   * automatic (shared/Ui/MenuModel): a shop can sell you something NEW since you last opened it,
+--     the daily gift is ready (server UTC day), a Cool Down is possible (until you have looked).
+-- Opening a panel "acks" what it offers right now, so its dot goes out until there is news.
+-- Desktop: M opens/closes the menu. Gamepad: DPad up.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Economy = require(Shared.Rules.Economy)
-local Pricing = require(Shared.Rules.Pricing)
-local Tools = require(Shared.Catalog.Tools)
-local Upgrades = require(Shared.Catalog.Upgrades)
-local Zones = require(Shared.Catalog.Zones)
+local MenuModel = require(Shared.Ui.MenuModel)
 local UiMath = require(Shared.Ui.UiMath)
+local Badges = require(script.Parent.Parent.Ui.Badges)
 local Components = require(script.Parent.Parent.Ui.Components)
 local PanelHost = require(script.Parent.Parent.Ui.PanelHost)
+local Theme = require(script.Parent.Parent.Ui.Theme)
 local Context = require(script.Parent.Context)
 local Widget = require(script.Parent.Widget)
 
@@ -24,151 +30,64 @@ export type MenuWidget = Widget.Widget & {
 	rebuild: () -> (),
 }
 
--- Panel ids can be spelled a few ways ("cool_down", "CoolDown"): compare them squashed.
-local function squash(id: string): string
-	return (string.gsub(string.lower(id), "[^%w]", ""))
-end
-
-local KIND_OF: { [string]: string } = {
-	upgrades = "upgrades",
-	upgrade = "upgrades",
-	tools = "tools",
-	tool = "tools",
-	helpers = "helpers",
-	helper = "helpers",
-	bots = "helpers",
-	gates = "gates",
-	gate = "gates",
-	zones = "gates",
-	daily = "daily",
-	cooldown = "cooldown",
-}
-
-local function affordable(kind: string, id: string | number, view: { [string]: any }): boolean
-	local ok, price = pcall(Pricing.priceOf, kind, id, view :: any)
-	if not ok or type(price) ~= "number" then
-		return false
-	end
-	local coins = view.coins
-	return type(coins) == "number" and price <= coins
-end
-
--- Which auto dots are on for this store view.
-local function autoDots(view: { [string]: any }): { [string]: boolean }
-	local dots: { [string]: boolean } = {}
-	if type(view.coins) ~= "number" then
-		return dots
-	end
-	for _, id in Upgrades.order do
-		if affordable("upgrade", id, view) then
-			dots.upgrades = true
-			break
-		end
-	end
-	for _, tool in Tools.list do
-		if affordable("tool", tool.id, view) then
-			dots.tools = true
-			break
-		end
-	end
-	for _, zone in Zones.list do
-		if zone.id > 1 and affordable("zone", zone.id, view) then
-			dots.gates = true
-			break
-		end
-	end
-	if affordable("helper", "", view) or affordable("helperUp", "", view) then
-		dots.helpers = true
-	end
-	local daily = view.daily
-	if
-		type(daily) == "table"
-		and type(daily.lastDay) == "number"
-		and UiMath.dailyReady(daily.lastDay, os.time())
-	then
-		dots.daily = true
-	end
-	local okCool, can = pcall(Economy.canCoolDown, view :: any)
-	if okCool and can == true then
-		dots.cooldown = true
-	end
-	return dots
-end
+local MENU_ID = "menu"
+local BAR_W = 0.5 -- hamburger bars: share of the face width
+local BAR_H = 4
+local BAR_GAP = 6
 
 function MenuBar.new(parent: Instance, ctx: Context.Context): MenuWidget
 	local K = UiMath.K
-	local scroll = Instance.new("ScrollingFrame")
-	scroll.Name = "Menu"
-	scroll.BackgroundTransparency = 1
-	scroll.BorderSizePixel = 0
-	scroll.Size = UDim2.fromOffset(K.touch + 2 * K.menuPad, 300)
-	scroll.CanvasSize = UDim2.new()
-	scroll.ScrollBarThickness = 0
-	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
-	scroll.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
-	scroll.Parent = parent
+	local button = Components.Button({
+		parent = parent,
+		name = "Menu_menu", -- the tutorial finger looks for this name
+		size = UDim2.fromOffset(K.menuSize, K.menuSize),
+		variant = "secondary",
+	})
+	-- three bars drawn from frames (no font needed) + the word MENU under them
+	for i = 1, 3 do
+		local bar = Instance.new("Frame")
+		bar.Name = "Bar" .. i
+		bar.AnchorPoint = Vector2.new(0.5, 0.5)
+		bar.Position = UDim2.new(0.5, 0, 0, 9 + (i - 1) * BAR_GAP)
+		bar.Size = UDim2.new(BAR_W, 0, 0, BAR_H)
+		bar.BackgroundColor3 = Theme.color.white
+		bar.BorderSizePixel = 0
+		bar.Active = false
+		bar.Parent = button.face
+		local round = Instance.new("UICorner")
+		round.CornerRadius = Theme.radius.full
+		round.Parent = bar
+	end
+	Components.Label({
+		parent = button.face,
+		name = "Word",
+		text = "MENU",
+		textSize = Theme.text.min,
+		font = Theme.font.title,
+		color = Theme.color.white,
+		outline = Theme.color.tealInk,
+		anchor = Vector2.new(0.5, 1),
+		position = UDim2.new(0.5, 0, 1, -2),
+		size = UDim2.new(1, -4, 0, 13),
+	})
+	local badge = Components.Badge({ parent = button.root })
 
-	local buttons: { [string]: { button: Components.Button, badge: Components.Badge } } = {}
-	local order: { string } = {}
-	local manual: { [string]: boolean } = {}
-	local auto: { [string]: boolean } = {}
-	local cols = 1
+	button.onClick(function()
+		PanelHost.toggle(MENU_ID)
+	end)
+
+	local acks: MenuModel.Acks = {}
 	local dirty = true
 
-	local function place()
-		local step = K.touch + K.menuGap
-		for i, id in order do
-			local entry = buttons[id]
-			if entry then
-				local col = (i - 1) % cols
-				local row = (i - 1) // cols
-				entry.button.root.Position =
-					UDim2.fromOffset(K.menuPad + col * step, K.menuPad + row * step)
-			end
-		end
-		local rows = math.ceil(#order / math.max(1, cols))
-		scroll.CanvasSize = UDim2.fromOffset(0, K.menuPad * 2 + rows * step)
-	end
-
-	local function paintBadges()
-		for id, entry in buttons do
-			local kind = KIND_OF[squash(id)]
-			local on = manual[id] == true or (kind ~= nil and auto[kind] == true)
-			entry.badge.set(on)
-		end
-	end
-
-	local function rebuild()
-		for _, entry in buttons do
-			entry.badge.destroy()
-			entry.button.destroy()
-		end
-		table.clear(buttons)
-		table.clear(order)
-		for _, def in PanelHost.menuButtons do
-			local id = def.id
-			local button = Components.IconButton({
-				parent = scroll,
-				name = "Menu_" .. id,
-				icon = def.icon,
-				size = UDim2.fromOffset(K.touch, K.touch),
-				variant = "neutral",
-			})
-			button.onClick(function()
-				PanelHost.toggle(id)
-			end)
-			local badge = Components.Badge({ parent = button.root })
-			buttons[id] = { button = button, badge = badge }
-			table.insert(order, id)
-		end
-		place()
-		paintBadges()
+	local function paint()
+		badge.set(Badges.anyOn())
 	end
 
 	local function recompute()
 		dirty = false
-		auto = autoDots(ctx.view())
-		paintBadges()
+		local view = ctx.view()
+		Badges.setAuto(MenuModel.dots(view, ctx.serverNow(), acks))
+		paint()
 	end
 
 	-- Store changes only mark the dots dirty; the 4 Hz tick recomputes them (cheap, no flicker).
@@ -182,6 +101,8 @@ function MenuBar.new(parent: Instance, ctx: Context.Context): MenuWidget
 		"daily",
 		"runCoins",
 		"sparks",
+		"sparkPerks",
+		"coolDowns",
 	}, function()
 		dirty = true
 	end)
@@ -194,31 +115,43 @@ function MenuBar.new(parent: Instance, ctx: Context.Context): MenuWidget
 	ctx.every(30, function()
 		dirty = true
 	end)
-	local changedConn = PanelHost.changed:connect(rebuild)
-	ctx.onCleanup(function()
-		changedConn:disconnect()
+
+	-- opening a panel = "I have seen what it sells": quiet its dot until something new comes
+	local stateConn = PanelHost.stateChanged:connect(function(openId: string?)
+		if openId ~= nil and openId ~= MENU_ID then
+			MenuModel.ack(acks, openId, ctx.view())
+			dirty = true
+		end
 	end)
-	rebuild()
+	local badgeConn = Badges.changed:connect(paint)
+	ctx.onCleanup(function()
+		stateConn:disconnect()
+		badgeConn:disconnect()
+	end)
+
+	-- keyboard / gamepad shortcut (never while typing in chat)
+	ctx.connect(UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.M or input.KeyCode == Enum.KeyCode.DPadUp then
+			PanelHost.toggle(MENU_ID)
+		end
+	end))
+
+	recompute()
 
 	return {
-		root = scroll,
+		root = button.root,
 		setBadge = function(panelId: string, on: boolean)
-			manual[panelId] = on
-			paintBadges()
+			Badges.setManual(panelId, on)
 		end,
-		rebuild = rebuild,
-		layout = function(_rect: UiMath.Rect, all: UiMath.Layout)
-			local newCols = math.max(1, all.menuCols)
-			scroll.ScrollingEnabled = all.menuScroll
-			scroll.ScrollBarThickness = if all.menuScroll then 3 else 0
-			cols = newCols
-			place()
+		rebuild = function()
+			dirty = true
 		end,
 		destroy = function()
-			for _, entry in buttons do
-				entry.badge.destroy()
-			end
-			scroll:Destroy()
+			badge.destroy()
+			button.destroy()
 		end,
 	}
 end

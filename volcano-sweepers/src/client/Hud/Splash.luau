@@ -28,14 +28,24 @@ function Splash.new(): SplashHandle
 	local group = Instance.new("CanvasGroup")
 	group.Name = "Splash"
 	group.Size = UDim2.fromScale(1, 1)
-	group.BackgroundColor3 = Theme.color.lavaDark
+	-- white base: a UIGradient MULTIPLIES the colour under it, so gold -> lava shows true only on white
+	group.BackgroundColor3 = Theme.color.white
 	group.BorderSizePixel = 0
 	group.Active = true -- swallow taps while loading
 	group.Parent = screen.gui
+	-- the gradient lives on its own backdrop frame: on a CanvasGroup it could tint the whole group,
+	-- white title included
+	local backdrop = Instance.new("Frame")
+	backdrop.Name = "Backdrop"
+	backdrop.Size = UDim2.fromScale(1, 1)
+	backdrop.BackgroundColor3 = Theme.color.white
+	backdrop.BorderSizePixel = 0
+	backdrop.ZIndex = 0
+	backdrop.Parent = group
 	local bg = Instance.new("UIGradient")
 	bg.Color = ColorSequence.new(Theme.color.gold, Theme.color.lava)
 	bg.Rotation = 90
-	bg.Parent = group
+	bg.Parent = backdrop
 
 	local content = Instance.new("Frame")
 	content.Name = "Content"
@@ -55,14 +65,14 @@ function Splash.new(): SplashHandle
 	local broom = Components.Label({
 		parent = content,
 		text = "🧹",
-		textSize = 64,
+		textSize = Theme.text.logo,
 		position = UDim2.fromOffset(0, 0),
 		size = UDim2.new(1, 0, 0, 80),
 	})
 	Components.Label({
 		parent = content,
 		text = string.upper(Config.Game.Name),
-		textSize = 40,
+		textSize = Theme.text.huge,
 		font = Theme.font.title,
 		color = Theme.color.white,
 		outline = Theme.color.lavaDeep,

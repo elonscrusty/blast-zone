@@ -12,6 +12,7 @@ local BOOT_ORDER: { { string } } = {
 	{ "Core", "Net" },
 	{ "Profile", "Profiles" },
 	{ "Player", "PlayerState" },
+	{ "Core", "MoveWatch" },
 	{ "World", "World" },
 	{ "Ash", "AshService" },
 	{ "Sweep", "SweepService" },

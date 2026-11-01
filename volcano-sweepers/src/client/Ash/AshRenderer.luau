@@ -14,6 +14,8 @@
 -- Golden cells: the `Golden` remote ({ cells, endsAt }) lists the golden cell indices (worth 5x). They
 -- glow gold (Neon, gentle pulse) while their level is > 0 and before endsAt (server time). A cell
 -- stops being golden when it reaches level 0. `cells = {}` clears all gold.
+-- A golden cell may be bare ground when `Golden` arrives (the server tops it up, and that level comes
+-- in the NEXT AshDelta): it is flagged anyway and lights up as soon as the delta raises it.
 --
 -- Exports: levelAt(i), cellAt(x, z), ashAhead(...), partCount(), cleared (Signal: x, z, zone),
 -- loaded (true after the first snapshot).
@@ -30,14 +32,17 @@ local CullLogic = require(Shared.Client.CullLogic)
 local Signal = require(Shared.Signal)
 local Net = require(script.Parent.Parent.Core.Net)
 
-local RADIUS = 200 -- studs around the player that get Parts
-local MARGIN = 24 -- extra studs before an active cell is given up
+-- 140 studs covers the default max camera zoom (128) with room to spare: about 650 Parts at the
+-- beach spawn and ~920 at the island centre (was 200: up to 1932 Parts, too many for old phones).
+local RADIUS = 140 -- studs around the player that get Parts
+local MARGIN = 16 -- extra studs before an active cell is given up
+local PART_CAP = 1100 -- hard ceiling on live ash Parts, whatever happens
 local MIN_MOVE = 6 -- studs the player must move before the range is recomputed
 local MAX_UPDATES_PER_FRAME = 600
 local FRAME_BUDGET = 0.004 -- seconds of cell work per frame
 local MAX_ANIMS = 100
 local ANIM_TIME = 0.12
-local POOL_MAX = 700
+local POOL_MAX = 900
 local MIN_HEIGHT = 0.03 -- slab height at the end of the "cleared" shrink
 local FOLDER_NAME = "VSAshClient"
 
@@ -66,6 +71,7 @@ local goldenEndsAt = 0
 local goldLook: { [number]: boolean } = {} -- the Part currently wears the gold look
 local pool: { Part } = {}
 local liveParts = 0
+local starved: { number } = {} -- cells that wanted a Part while over PART_CAP
 
 local zoneAsh: { [number]: string } = {}
 for _, zone in Zones.list do
@@ -164,6 +170,11 @@ local function release(i: number)
 		else
 			part:Destroy()
 		end
+		-- a Part is free again: give it to a cell that was waiting (if it still wants one)
+		local waiting = table.remove(starved)
+		if waiting ~= nil and range.active[waiting] and levels[waiting] > 0 then
+			queue.push(waiting)
+		end
 	end
 end
 
@@ -212,6 +223,11 @@ local function refresh(i: number)
 
 	local h = CullLogic.slabHeight(level)
 	if part == nil then
+		if liveParts >= PART_CAP then
+			-- over budget: this (far) cell waits until another Part is given up
+			table.insert(starved, i)
+			return
+		end
 		local fresh = acquire(i)
 		applyLook(i, fresh)
 		partOf[i] = fresh
@@ -256,6 +272,8 @@ end
 
 -- ===== where the player is =====
 
+-- Only the character counts: before it exists the camera sits at the world origin, and building
+-- the cells around (0, 0) only to throw them away a moment later wastes the first seconds.
 local function centre(): (number?, number?)
 	local character = Players.LocalPlayer.Character
 	if character ~= nil then
@@ -263,11 +281,6 @@ local function centre(): (number?, number?)
 		if hrp ~= nil and hrp:IsA("BasePart") then
 			return hrp.Position.X, hrp.Position.Z
 		end
-	end
-	local cam = workspace.CurrentCamera
-	if cam ~= nil then
-		local p = cam.Focus.Position
-		return p.X, p.Z
 	end
 	return nil, nil
 end
@@ -313,13 +326,7 @@ Net.on("Golden", function(info: any)
 	goldenEndsAt = endsAt
 	if endsAt > 0 then
 		for _, i in info.cells do
-			if
-				type(i) == "number"
-				and i == math.floor(i)
-				and i >= 1
-				and i <= N
-				and (levels[i] > 0 or not AshRenderer.loaded)
-			then
+			if type(i) == "number" and i == math.floor(i) and i >= 1 and i <= N then
 				setGolden(i, true)
 				table.insert(touched, i)
 			end

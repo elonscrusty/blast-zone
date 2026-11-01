@@ -186,6 +186,23 @@ function CoolDownModel.doneText(sparksGained: number): string
 	return "The volcano is cooler now."
 end
 
+-- The one line in the Cool Down footer, right above the big button (the footer never scrolls
+-- away, so the button and its explanation are always on screen together).
+--   armed        -> "Are you sure? ... you get ✨ 12 Sparks!"
+--   allowed      -> "✨ 12 Sparks now! After this: +60% coins forever"
+--   not allowed  -> "Earn 7.8M more coins to unlock"
+function CoolDownModel.footerText(view: View, armedNow: boolean): string
+	local word = plural(view.sparksNow, "Spark", "Sparks")
+	if view.canCoolDown and armedNow then
+		return `Are you sure? You start over, but you keep your treasure and get ✨ {view.sparksNow} {word}!`
+	elseif view.canCoolDown then
+		return `✨ {view.sparksNow} {word} now! {view.afterBonusText}`
+	elseif view.justReset then
+		return "Fresh start! Your Sparks are already helping."
+	end
+	return view.remainingText
+end
+
 -- ===== the "tap twice" safety step =====
 -- idle --tap--> armed (wait 1 s) --tap--> sent.   Armed for too long = back to idle.
 CoolDownModel.CONFIRM_DELAY = 1

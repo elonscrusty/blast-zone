@@ -3,6 +3,10 @@
 --   Cool Down   what it is, what you keep and what starts over, the Sparks you would get, a bar to
 --               the first allowed Cool Down, and one big lava button that needs TWO taps (the second
 --               one after a 1 second wait) before the server is ever asked.
+--               The button never scrolls: it lives in a pinned footer (a right-hand column on a
+--               landscape phone, the bottom on portrait) with one line of text above it that
+--               explains it. Arming shows "Not now" in a slot ABOVE the button, so the button
+--               itself never moves between the first and the second tap.
 --   Spark Shop  spend Sparks on forever perks (Buy "sparkPerk"), see your Sparks and your coin bonus.
 -- All words and numbers come from shared/Ui/CoolDownModel. The server checks every rule again.
 -- The menu's red dot (Cool Down possible) comes from the HUD.
@@ -16,21 +20,23 @@ local Components = require(script.Parent.Parent.Ui.Components)
 local PanelHost = require(script.Parent.Parent.Ui.PanelHost)
 local Theme = require(script.Parent.Parent.Ui.Theme)
 local Context = require(script.Parent.Parent.Hud.Context)
+local PanelKit = require(script.Parent.Shared.PanelKit)
 
 local ID = "cooldown"
 
 -- layout numbers (virtual px)
-local BODY_SIDE = 12 -- PanelHost pads the body by this much left and right
 local SCROLL_SIDE = 14 -- ScrollList padding left 4 + right 4 + 6 for the scroll bar
 local WIDE_FROM = 480 -- two columns from this width up
 local TABS_H = Theme.size.touch
 local ROW_H = 22 -- one line in a keep/reset list
 local LIST_TITLE_H = 24
 local LIST_CARD_H = 8 + LIST_TITLE_H + 5 * ROW_H + 8 -- room for the longer list (5 rows)
-local BIG_H = 60 -- the big lava button
-local WARN_H = 52
+local BIG_H = 56 -- the big lava button
+local INFO_H = 52 -- the one line above it (portrait)
+local FOOT_W = 210 -- landscape: width of the pinned action column
+local NOT_NOW_H = Theme.size.button
 local PERK_H = 92
-local PERK_BUTTON_W = 104
+local PERK_BUTTON_W = Theme.size.claimW
 local DONE_SHOW_SECONDS = 8
 local SENT_LATCH = 3 -- seconds the big button stays grey after the CoolDown message went out
 local BUY_LATCH = 1 -- seconds a perk button stays grey after a tap
@@ -57,28 +63,6 @@ local function make(className: string, props: { [string]: any }): any
 		inst.Parent = parent
 	end
 	return inst
-end
-
--- The panel root (named Panel_<id> by PanelHost) is sized in virtual px; that is the width we lay out in.
-local function panelRoot(body: Instance): GuiObject?
-	local node: Instance? = body
-	while node ~= nil do
-		if string.sub(node.Name, 1, 6) == "Panel_" and node:IsA("GuiObject") then
-			return node :: GuiObject
-		end
-		node = node.Parent
-	end
-	return nil
-end
-
-local function bodyWidth(root: GuiObject?): number
-	if root ~= nil then
-		local w = root.Size.X.Offset
-		if w > 2 * BODY_SIDE then
-			return w - 2 * BODY_SIDE
-		end
-	end
-	return 312
 end
 
 -- A card with a title and one line per item ("keep" and "start over" lists).
@@ -124,7 +108,6 @@ end
 local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 	local live = Context.new()
 	local conns: { RBXScriptConnection } = {}
-	local root = panelRoot(parent)
 
 	local view: CoolDownModel.View = CoolDownModel.build(Bridge.view())
 	local confirm = CoolDownModel.newConfirm()
@@ -151,10 +134,14 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 	})
 	shopList.root.Visible = false
 
+	local footerRef: Frame? = nil
 	local function showPage(id: string)
 		page = id
 		coolList.root.Visible = id == "cool"
 		shopList.root.Visible = id == "shop"
+		if footerRef then
+			footerRef.Visible = id == "cool"
+		end
 	end
 	tabs = Components.Tabs({
 		parent = parent,
@@ -302,31 +289,22 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 	)
 	resetCard.LayoutOrder = 2
 
-	-- the big lava button (+ the "are you sure" step)
-	local action = make("Frame", {
-		Name = "Action",
+	-- the pinned footer: one line that explains the button, the "Not now" slot, the big button
+	local footer = make("Frame", {
+		Name = "Footer",
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, BIG_H),
-		LayoutOrder = 5,
-		Parent = cool,
+		Parent = parent,
 	})
-	make("UIListLayout", {
-		Padding = UDim.new(0, Theme.size.gap),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = action,
-	})
-	local warnCard = Components.Card({
-		parent = action,
-		name = "Warn",
+	local infoCard = Components.Card({
+		parent = footer,
+		name = "Info",
 		color = Theme.color.goldLight:Lerp(Theme.color.white, 0.4),
-		layoutOrder = 1,
-		size = UDim2.new(1, 0, 0, WARN_H),
 	})
 	local warnLabel = Components.Label({
-		parent = warnCard,
-		name = "WarnText",
-		text = "Are you sure? You start over, but you keep your treasure and get your Sparks!",
+		parent = infoCard,
+		name = "InfoText",
+		text = "",
 		textSize = Theme.text.body,
 		font = Theme.font.bold,
 		color = Theme.color.charcoal,
@@ -334,24 +312,19 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 		position = UDim2.fromOffset(Theme.size.pad, 2),
 		size = UDim2.new(1, -2 * Theme.size.pad, 1, -4),
 	})
-	warnCard.Visible = false
 	local main = Components.Button({
-		parent = action,
+		parent = footer,
 		name = "CoolDownButton",
 		text = "COOL DOWN",
 		variant = "primary",
 		textSize = Theme.text.title,
-		layoutOrder = 2,
-		size = UDim2.new(1, 0, 0, BIG_H),
 	})
 	local cancel = Components.Button({
-		parent = action,
+		parent = footer,
 		name = "NotNow",
 		text = "Not now",
 		variant = "neutral",
 		textSize = Theme.text.big,
-		layoutOrder = 3,
-		size = UDim2.new(1, 0, 0, Theme.size.touch),
 	})
 	cancel.root.Visible = false
 
@@ -481,8 +454,45 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 	end
 
 	-- ================= layout and drawing =================
+	footerRef = footer
+	local bodySize = Vector2.new(312, 400)
+	local armedShown = false
+
+	-- The big button sits at the very bottom of the footer and never moves. Above it: the
+	-- "Not now" slot (only while armed), and the info line takes whatever is left.
+	local function placeFooter()
+		local gap = Theme.size.gap
+		local w, h = bodySize.X, bodySize.Y - pageTop
+		local side = w >= PanelKit.WIDE_FROM
+		local footH: number
+		local footW: number
+		if side then
+			footW = FOOT_W
+			footH = h
+			footer.Position = UDim2.new(1, -FOOT_W, 0, pageTop)
+			coolList.root.Size = UDim2.new(1, -(FOOT_W + gap), 1, -pageTop)
+		else
+			footW = w
+			footH = INFO_H + gap + BIG_H + (if armedShown then NOT_NOW_H + gap else 0)
+			footer.Position = UDim2.new(0, 0, 1, -footH)
+			coolList.root.Size = UDim2.new(1, 0, 1, -(pageTop + footH + gap))
+		end
+		footer.Size = UDim2.fromOffset(footW, footH)
+		main.root.Position = UDim2.new(0, 0, 1, -BIG_H)
+		main.root.Size = UDim2.new(1, 0, 0, BIG_H)
+		local slotY = footH - BIG_H - gap - NOT_NOW_H
+		cancel.root.Position = UDim2.fromOffset(0, slotY)
+		cancel.root.Size = UDim2.new(1, 0, 0, NOT_NOW_H)
+		local infoBottom = if armedShown then slotY - gap else footH - BIG_H - gap
+		infoCard.Position = UDim2.new()
+		infoCard.Size = UDim2.new(1, 0, 0, math.max(Theme.size.touch, infoBottom))
+	end
+
 	local function layout()
-		local wide = bodyWidth(root) - SCROLL_SIDE >= WIDE_FROM
+		local wide = bodySize.X
+				- (if bodySize.X >= PanelKit.WIDE_FROM then FOOT_W else 0)
+				- SCROLL_SIDE
+			>= WIDE_FROM
 		hero.Size = UDim2.new(1, 0, 0, if wide then 84 else 106)
 		heroText.Size = UDim2.new(1, -(60 + Theme.size.pad), 0, if wide then 40 else 62)
 		if wide then
@@ -496,6 +506,7 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 			keepCard.Size = UDim2.new(1, 0, 0, LIST_CARD_H)
 			resetCard.Size = UDim2.new(1, 0, 0, LIST_CARD_H)
 		end
+		placeFooter()
 	end
 
 	local function render()
@@ -515,8 +526,11 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 
 		local cv = CoolDownModel.confirmView(confirm, now, view.canCoolDown)
 		local cooling = sentAt ~= nil and now - sentAt < SENT_LATCH
-		warnCard.Visible = cv.warn
 		cancel.root.Visible = cv.warn
+		if armedShown ~= cv.warn then
+			armedShown = cv.warn
+			placeFooter()
+		end
 		if cooling then
 			main.setText("Cooling down...")
 			main.setEnabled(false)
@@ -525,13 +539,7 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 			main.setVariant(if cv.armed then "danger" else "primary")
 			main.setEnabled(cv.enabled)
 		end
-		local sparkWord = if view.sparksNow == 1 then "Spark" else "Sparks"
-		warnLabel.Text =
-			`Are you sure? You start over, but you keep your treasure and get ✨ {view.sparksNow} {sparkWord}!`
-		local extra = if cv.warn
-			then WARN_H + Theme.size.gap + Theme.size.touch + Theme.size.gap
-			else 0
-		action.Size = UDim2.new(1, 0, 0, BIG_H + extra)
+		warnLabel.Text = CoolDownModel.footerText(view, cv.warn)
 
 		-- Spark Shop page
 		bankLabel.Text = view.sparksBalanceText
@@ -575,7 +583,10 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 		dirty = true
 	end)
 
-	layout()
+	local stopSize = PanelKit.watchSize(parent, function(size: Vector2)
+		bodySize = size
+		layout()
+	end)
 	render()
 	live.watch({ "runCoins", "sparks", "coolDowns", "sparkPerks" }, function()
 		dirty = true
@@ -602,16 +613,8 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): (() -> ())?
 		end
 	end)
 
-	if root ~= nil then
-		table.insert(
-			conns,
-			root:GetPropertyChangedSignal("Size"):Connect(function()
-				layout()
-			end)
-		)
-	end
-
 	return function()
+		stopSize()
 		live.destroy()
 		for _, c in conns do
 			c:Disconnect()

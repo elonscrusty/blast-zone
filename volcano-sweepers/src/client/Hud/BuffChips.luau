@@ -1,5 +1,8 @@
 --!strict
 -- Buff chips: Party x2 / Perfect +10% / Golden, each with the time left (server time).
+-- Sizes come from UiMath.chipPlan: a chip never gets narrower than K.chipMinW, shows its word
+-- ("x2 4:59") only when that still fits at a readable size (else just "4:59" next to the emoji),
+-- and when even that is too tight the extra chips wait (in ORDER) instead of being crushed.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -40,8 +43,7 @@ local FALLBACK: Look =
 	{ icon = "✨", label = "Boost", fill = Theme.color.sky, text = Theme.color.white }
 local ORDER = { "party", "perfect", "golden" }
 
-local CHIP_MAX_W = 96
-local CHIP_GAP = 4
+local K = UiMath.K
 local LOW_SECONDS = 10
 
 function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
@@ -53,7 +55,7 @@ function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
 	root.Parent = parent
 	local list = Instance.new("UIListLayout")
 	list.FillDirection = Enum.FillDirection.Horizontal
-	list.Padding = UDim.new(0, CHIP_GAP)
+	list.Padding = UDim.new(0, K.chipGap)
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.Parent = root
@@ -71,7 +73,7 @@ function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
 		local made = Components.Pill({
 			parent = root,
 			name = "Chip_" .. id,
-			size = UDim2.fromOffset(CHIP_MAX_W, UiMath.K.chipH),
+			size = UDim2.fromOffset(K.chipMaxW, UiMath.K.chipH),
 			layoutOrder = index,
 			icon = look.icon,
 			text = look.label,
@@ -81,6 +83,8 @@ function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
 			textSize = Theme.text.small,
 			align = Enum.TextXAlignment.Left,
 		})
+		made.label.Position = UDim2.fromOffset(K.chipIconW, 0)
+		made.label.Size = UDim2.new(1, -(K.chipIconW + K.chipPadR), 1, 0)
 		chips[id] = made
 		Components.punch(made.root, 0.12)
 		return made
@@ -97,9 +101,28 @@ function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
 				end
 			end
 		end
-		local alive: { [string]: boolean } = {}
+		table.sort(active, function(a: string, b: string)
+			return (table.find(ORDER, a) or 99) < (table.find(ORDER, b) or 99)
+		end)
+		-- the longest words decide whether every chip can show its word
+		local sample, timeSample = "", ""
 		for _, id in active do
-			alive[id] = true
+			local look = LOOKS[id] or FALLBACK
+			local clock = Format.countdown(UiMath.secondsLeft((buffs :: any)[id], now))
+			local full = `{look.label} {clock}`
+			if #full > #sample then
+				sample = full
+			end
+			if #clock > #timeSample then
+				timeSample = clock
+			end
+		end
+		local plan = UiMath.chipPlan(totalW, #active, sample, timeSample)
+		local alive: { [string]: boolean } = {}
+		for i, id in active do
+			if i <= plan.count then
+				alive[id] = true
+			end
 		end
 		for id, chip in chips do
 			if not alive[id] then
@@ -107,13 +130,20 @@ function BuffChips.new(parent: Instance, ctx: Context.Context): Widget.Widget
 				chips[id] = nil
 			end
 		end
-		local width = UiMath.chipWidth(totalW, #active, CHIP_MAX_W, CHIP_GAP)
-		for _, id in active do
+		for i, id in active do
+			if i > plan.count then
+				break
+			end
 			local chip = ensureChip(id)
 			local look = LOOKS[id] or FALLBACK
 			local left = UiMath.secondsLeft((buffs :: any)[id], now)
-			chip.root.Size = UDim2.fromOffset(width, UiMath.K.chipH)
-			chip.setText(`{look.label} {Format.countdown(left)}`)
+			chip.root.Size = UDim2.fromOffset(plan.w, UiMath.K.chipH)
+			local clock = Format.countdown(left)
+			chip.setText(if plan.full then `{look.label} {clock}` else clock)
+			local limit = chip.label:FindFirstChildOfClass("UITextSizeConstraint")
+			if limit then
+				limit.MaxTextSize = plan.textSize
+			end
 			-- last seconds: blink the chip a little so kids notice the boost running out
 			chip.root.BackgroundTransparency = if left <= LOW_SECONDS
 					and math.floor(left * 2) % 2 == 0

@@ -25,7 +25,7 @@ local SCROLL_SIDE = 14 -- ScrollList padding left 4 + right 4 + 6 for the scroll
 local HEADER_H = 46
 local ROW_H = 24
 local REWARD_H = 20
-local CLAIM_W = 104
+local CLAIM_W = Theme.size.claimW
 local PILL_W = 54
 local TILE_H = 98
 local TILE_MIN_W = 84
@@ -292,7 +292,8 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): (() -> ())?
 		Name = "Sheet",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -2 * Theme.size.pad, 0, DETAIL_H),
+		-- never taller than the panel body (short landscape phones): the constraint caps it at DETAIL_H
+		Size = UDim2.new(1, -2 * Theme.size.pad, 1, -8),
 		BackgroundColor3 = Theme.color.creamLight,
 		BorderSizePixel = 0,
 		Active = true, -- taps on the sheet never reach the dim behind it

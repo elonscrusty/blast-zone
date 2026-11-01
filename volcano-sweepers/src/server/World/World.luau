@@ -162,6 +162,30 @@ local function run(name: string, fn: () -> ())
 	end
 end
 
+-- If the hub's spawn pads failed to build, Roblox would drop everyone at the origin, which is inside
+-- the volcano: put one plain pad on the first spawn spot instead.
+local function ensureSpawn(root: Folder)
+	for _, d in root:GetDescendants() do
+		if d:IsA("SpawnLocation") then
+			return
+		end
+	end
+	local spot = World.spawnPositions[1]
+	if spot == nil then
+		return
+	end
+	local pad = Instance.new("SpawnLocation")
+	pad.Name = "FallbackSpawn"
+	pad.Anchored = true
+	pad.Neutral = true
+	pad.Duration = 0
+	pad.Size = Vector3.new(6, 0.6, 6)
+	pad.Color = Color3.fromHex("#2EC4B6")
+	pad.CFrame = CFrame.new(spot)
+	pad.Parent = root
+	warn("[World] no spawn pads were built: using a fallback spawn at the hub")
+end
+
 -- Anybody who spawned before the world existed starts at the origin, which is inside the volcano.
 local function rescuePlayers()
 	local count = #World.spawnPositions
@@ -243,6 +267,9 @@ function World.init()
 	end)
 	run("gates", function()
 		Gates.build(root, plan)
+	end)
+	run("spawn fallback", function()
+		ensureSpawn(root)
 	end)
 
 	root.Parent = Workspace

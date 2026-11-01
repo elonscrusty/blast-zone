@@ -153,14 +153,16 @@ end
 local SHAKE_STEPS = { -7, 7, -5, 5, -2, 0 }
 local shaking: { [Instance]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
--- Wiggle sideways around the current position (for "can't afford"). Do not use on children of a
--- UIListLayout (the layout resets Position); Button.shake() wiggles its inner face instead.
-function Components.shakeX(inst: GuiObject)
+-- Wiggle sideways (for "can't afford"). `rest` is where it must end up; pass it when the thing may
+-- be mid-tween (a button face that is still rising after a press), otherwise the current spot is
+-- used. Do not use on children of a UIListLayout (the layout resets Position); Button.shake()
+-- wiggles its inner face instead.
+function Components.shakeX(inst: GuiObject, rest: UDim2?)
 	if shaking[inst] then
 		return
 	end
 	shaking[inst] = true
-	local base = inst.Position
+	local base = rest or inst.Position
 	task.spawn(function()
 		for _, dx in SHAKE_STEPS do
 			if inst.Parent == nil then
@@ -384,7 +386,8 @@ export type ButtonProps = Common & {
 
 export type Button = {
 	root: Frame,
-	face: TextButton,
+	face: Frame, -- the visible face (moves down when pressed); parent pictures to it
+	hit: TextButton, -- invisible, covers the WHOLE button box: this is what fingers touch
 	label: TextLabel,
 	icon: TextLabel,
 	enabled: boolean,
@@ -426,24 +429,37 @@ function Components.Button(props: ButtonProps): Button
 		Size = faceSize,
 		BackgroundColor3 = look.lip,
 		BorderSizePixel = 0,
+		Active = false,
 		Parent = root,
 	})
 	corner(lip, radius)
 	local lipStroke = stroke(lip, look.rim, 2)
 
-	local face = make("TextButton", {
+	local face = make("Frame", {
 		Name = "Face",
 		Position = facePos,
 		Size = faceSize,
 		BackgroundColor3 = look.face,
-		AutoButtonColor = false,
-		Text = "",
 		BorderSizePixel = 0,
+		Active = false,
 		Parent = root,
 	})
 	corner(face, radius)
 	local faceStroke = stroke(face, look.rim, 2)
 	sheen(face, 0.86)
+
+	-- The hit box is the whole root (lip included), so a 44 px button really is 44 px under a
+	-- finger. It sits above the face and draws nothing.
+	local hit = make("TextButton", {
+		Name = "Hit",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		BorderSizePixel = 0,
+		ZIndex = 10,
+		Parent = root,
+	})
 
 	local shine = make("Frame", {
 		Name = "Shine",
@@ -555,7 +571,7 @@ function Components.Button(props: ButtonProps): Button
 
 	table.insert(
 		conns,
-		face.InputBegan:Connect(function(input: InputObject)
+		hit.InputBegan:Connect(function(input: InputObject)
 			local t = input.UserInputType
 			if
 				(t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch)
@@ -567,7 +583,7 @@ function Components.Button(props: ButtonProps): Button
 	)
 	table.insert(
 		conns,
-		face.InputEnded:Connect(function(input: InputObject)
+		hit.InputEnded:Connect(function(input: InputObject)
 			local t = input.UserInputType
 			if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
 				setPressed(false)
@@ -576,14 +592,14 @@ function Components.Button(props: ButtonProps): Button
 	)
 	table.insert(
 		conns,
-		face.MouseEnter:Connect(function()
+		hit.MouseEnter:Connect(function()
 			hovered = true
 			paint()
 		end)
 	)
 	table.insert(
 		conns,
-		face.MouseLeave:Connect(function()
+		hit.MouseLeave:Connect(function()
 			hovered = false
 			setPressed(false)
 			paint()
@@ -591,7 +607,7 @@ function Components.Button(props: ButtonProps): Button
 	)
 	table.insert(
 		conns,
-		face.Activated:Connect(function()
+		hit.Activated:Connect(function()
 			if not enabled then
 				Bridge.play("error")
 				self.shake()
@@ -610,6 +626,7 @@ function Components.Button(props: ButtonProps): Button
 	self = {
 		root = root,
 		face = face,
+		hit = hit,
 		label = label,
 		icon = icon,
 		enabled = enabled,
@@ -645,7 +662,8 @@ function Components.Button(props: ButtonProps): Button
 			end
 		end,
 		shake = function()
-			Components.shakeX(face)
+			-- always settle at the resting spot, even if the press tween is still running
+			Components.shakeX(face, facePos)
 		end,
 		destroy = function()
 			for _, c in conns do
@@ -702,7 +720,10 @@ export type Badge = {
 	destroy: () -> (),
 }
 
--- Sits on the top-right corner of its parent.
+-- Sits on the top-right corner of its parent. When it lights it pops and pulses three times, then
+-- stays still (a dot that never stops moving is noise, not news).
+local BADGE_PULSES = 2 -- extra repeats after the first pulse
+
 function Components.Badge(props: BadgeProps): Badge
 	local px = props.size or 16
 	local dot = make("Frame", {
@@ -722,7 +743,7 @@ function Components.Badge(props: BadgeProps): Badge
 	local num = Components.Label({
 		parent = dot,
 		text = "",
-		textSize = 11,
+		textSize = Theme.text.min,
 		font = Theme.font.title,
 		color = Theme.color.white,
 		zIndex = 21,
@@ -879,7 +900,7 @@ function Components.Pill(props: PillProps): Pill
 			})
 			make(
 				"UITextSizeConstraint",
-				{ MaxTextSize = 20, MinTextSize = Theme.text.min, Parent = glyph }
+				{ MaxTextSize = Theme.text.icon, MinTextSize = Theme.text.min, Parent = glyph }
 			)
 			iconObj = glyph
 			textX = 6 + 24
@@ -1439,7 +1460,7 @@ function Components.CostButton(props: CostButtonProps): CostButton
 		local spark = Components.Label({
 			parent = group,
 			text = "✨",
-			textSize = 22,
+			textSize = Theme.text.icon,
 			size = UDim2.fromOffset(22, 22),
 			layoutOrder = 1,
 		})
@@ -1451,6 +1472,8 @@ function Components.CostButton(props: CostButtonProps): CostButton
 			layoutOrder = 1,
 		})
 	end
+	-- a fixed size (not scaled) label that grows with its text, so "35" and "1.2M" both sit in
+	-- the middle next to the coin (prices are short: Theme.fmt gives at most ~6 characters)
 	local priceLabel = Components.Label({
 		parent = group,
 		name = "Amount",
@@ -1458,11 +1481,26 @@ function Components.CostButton(props: CostButtonProps): CostButton
 		textSize = props.textSize or Theme.text.body,
 		font = Theme.font.title,
 		color = Theme.color.white,
-		outline = Theme.color.greenDeep,
-		size = UDim2.new(0, 70, 1, 0),
+		outline = Theme.color.greenInk,
+		size = UDim2.new(0, 0, 1, 0),
 		align = Enum.TextXAlignment.Left,
 		layoutOrder = 2,
+		scaled = false,
 	})
+	priceLabel.AutomaticSize = Enum.AutomaticSize.X
+	-- only used while it shows a word ("MAXED") in TextScaled mode
+	make("UITextSizeConstraint", {
+		MaxTextSize = props.textSize or Theme.text.body,
+		MinTextSize = Theme.text.min,
+		Parent = priceLabel,
+	})
+	local priceStroke = priceLabel:FindFirstChildOfClass("UIStroke")
+	local function paintPrice(color: Color3, outline: Color3)
+		priceLabel.TextColor3 = color
+		if priceStroke then
+			priceStroke.Color = outline
+		end
+	end
 
 	local blockedSignal = Signal.new()
 	local buySignal = Signal.new()
@@ -1480,26 +1518,30 @@ function Components.CostButton(props: CostButtonProps): CostButton
 		set = function(price: number?, affordable: boolean, label: string?)
 			if price == nil then
 				currencyIcon.Visible = false
+				priceLabel.AutomaticSize = Enum.AutomaticSize.None
+				priceLabel.TextScaled = true
 				priceLabel.Size = UDim2.fromScale(1, 1)
 				priceLabel.TextXAlignment = Enum.TextXAlignment.Center
 				priceLabel.Text = label or ""
-				priceLabel.TextColor3 = Theme.variant.disabled.text
+				paintPrice(Theme.variant.disabled.text, Theme.variant.disabled.textStroke)
 				button.setVariant("disabled")
 				button.setEnabled(false)
 				return
 			end
 			currencyIcon.Visible = true
-			priceLabel.Size = UDim2.new(0, 70, 1, 0)
+			priceLabel.TextScaled = false
+			priceLabel.Size = UDim2.new(0, 0, 1, 0)
+			priceLabel.AutomaticSize = Enum.AutomaticSize.X
 			priceLabel.TextXAlignment = Enum.TextXAlignment.Left
 			priceLabel.Text = Theme.fmt(price)
 			if affordable then
 				button.setVariant("good")
 				button.setEnabled(true)
-				priceLabel.TextColor3 = Theme.color.white
+				paintPrice(Theme.color.white, Theme.color.greenInk)
 			else
 				button.setVariant("disabled")
 				button.setEnabled(false)
-				priceLabel.TextColor3 = Theme.variant.disabled.text
+				paintPrice(Theme.variant.disabled.text, Theme.variant.disabled.textStroke)
 			end
 		end,
 		onBuy = function(fn: () -> ()): () -> ()
@@ -1538,7 +1580,14 @@ export type Panel = {
 	titleLabel: TextLabel,
 	close: Button,
 	setTitle: (text: string) -> (),
+	-- slimmer title bar and padding on short screens (PanelHost calls it from the panel height)
+	setCompact: (compact: boolean) -> (),
+	-- a one-line message strip under the title bar (toasts while a panel is open)
+	notify: (text: string, kind: string?) -> (),
 }
+
+local NOTICE_H = 30
+local NOTICE_SECONDS = 2.6
 
 function Components.Panel(props: PanelProps): Panel
 	local holder = make(
@@ -1573,11 +1622,13 @@ function Components.Panel(props: PanelProps): Panel
 	card.Active = true -- swallow taps so they never fall through to the backdrop behind
 
 	local barH = Theme.size.titleBar
+	local barColor = Theme.color.lavaButton
 	local bar = make("Frame", {
 		Name = "TitleBar",
 		Size = UDim2.new(1, 0, 0, barH),
-		BackgroundColor3 = Theme.color.lava,
+		BackgroundColor3 = barColor,
 		BorderSizePixel = 0,
+		ZIndex = 5,
 		Parent = card,
 	})
 	corner(bar, Theme.radius.lg)
@@ -1586,7 +1637,7 @@ function Components.Panel(props: PanelProps): Panel
 		Name = "BarFill",
 		Position = UDim2.new(0, 0, 1, -Theme.radius.lg.Offset),
 		Size = UDim2.new(1, 0, 0, Theme.radius.lg.Offset),
-		BackgroundColor3 = Theme.color.lava,
+		BackgroundColor3 = barColor,
 		BorderSizePixel = 0,
 		Parent = bar,
 	})
@@ -1595,7 +1646,7 @@ function Components.Panel(props: PanelProps): Panel
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 0, 3),
-		BackgroundColor3 = Theme.color.lavaDark,
+		BackgroundColor3 = Theme.color.lavaDeep,
 		BorderSizePixel = 0,
 		Parent = bar,
 	})
@@ -1605,7 +1656,7 @@ function Components.Panel(props: PanelProps): Panel
 			parent = bar,
 			name = "TitleIcon",
 			text = props.icon,
-			textSize = 30,
+			textSize = Theme.text.emoji,
 			position = UDim2.fromOffset(10, 0),
 			size = UDim2.new(0, 38, 1, -4),
 		})
@@ -1618,7 +1669,7 @@ function Components.Panel(props: PanelProps): Panel
 		textSize = Theme.text.title,
 		font = Theme.font.title,
 		color = Theme.color.white,
-		outline = Theme.color.lavaDeep,
+		outline = Theme.color.lavaInk,
 		align = Enum.TextXAlignment.Left,
 		position = UDim2.fromOffset(titleX, 0),
 		size = UDim2.new(1, -(titleX + closeSize + 14), 1, -4),
@@ -1662,7 +1713,7 @@ function Components.Panel(props: PanelProps): Panel
 		ClipsDescendants = true,
 		Parent = card,
 	})
-	make("UIPadding", {
+	local bodyPad = make("UIPadding", {
 		PaddingTop = UDim.new(0, 10),
 		PaddingBottom = UDim.new(0, 10),
 		PaddingLeft = UDim.new(0, 12),
@@ -1670,7 +1721,36 @@ function Components.Panel(props: PanelProps): Panel
 		Parent = body,
 	})
 
-	return {
+	-- the notice strip slides out from under the title bar, over the top of the body
+	local notice = make("Frame", {
+		Name = "Notice",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, barH - NOTICE_H),
+		Size = UDim2.new(1, -24, 0, NOTICE_H),
+		BackgroundColor3 = Theme.kind.info.fill,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 4,
+		Active = false,
+		Parent = card,
+	})
+	corner(notice, Theme.radius.md)
+	local noticeStroke = stroke(notice, Theme.kind.info.accent, 2)
+	local noticeText = Components.Label({
+		parent = notice,
+		name = "Text",
+		text = "",
+		textSize = Theme.text.small,
+		font = Theme.font.bold,
+		color = Theme.kind.info.text,
+		position = UDim2.fromOffset(8, 0),
+		size = UDim2.new(1, -16, 1, 0),
+		zIndex = 5,
+	})
+	local noticeToken = 0
+
+	local self: Panel
+	self = {
 		root = holder,
 		body = body,
 		titleLabel = titleLabel,
@@ -1678,7 +1758,47 @@ function Components.Panel(props: PanelProps): Panel
 		setTitle = function(text: string)
 			titleLabel.Text = text
 		end,
+		setCompact = function(compact: boolean)
+			barH = if compact then Theme.size.titleBarShort else Theme.size.titleBar
+			local x = if compact then Theme.size.touch else Theme.size.closeButton
+			bar.Size = UDim2.new(1, 0, 0, barH)
+			close.root.Size = UDim2.fromOffset(x, x)
+			body.Position = UDim2.fromOffset(0, barH)
+			body.Size = UDim2.new(1, 0, 1, -barH)
+			local v = if compact then 6 else 10
+			bodyPad.PaddingTop = UDim.new(0, v)
+			bodyPad.PaddingBottom = UDim.new(0, v)
+			if not notice.Visible then
+				notice.Position = UDim2.new(0.5, 0, 0, barH - NOTICE_H)
+			end
+		end,
+		notify = function(text: string, kind: string?)
+			local look = Theme.kind[kind or "info"] or Theme.kind.info
+			notice.BackgroundColor3 = look.fill
+			noticeStroke.Color = look.accent
+			noticeText.TextColor3 = look.text
+			noticeText.Text = text
+			noticeToken += 1
+			local mine = noticeToken
+			notice.Visible = true
+			Components.tween(notice, { Position = UDim2.new(0.5, 0, 0, barH + 4) }, Theme.ease.pop)
+			task.delay(NOTICE_SECONDS, function()
+				if mine ~= noticeToken or notice.Parent == nil then
+					return
+				end
+				local t = Components.tween(
+					notice,
+					{ Position = UDim2.new(0.5, 0, 0, barH - NOTICE_H) },
+					Theme.ease.normal
+				)
+				t.Completed:Connect(function()
+					if mine == noticeToken then
+						notice.Visible = false
+					end
+				end)
+			end)
+		end,
 	}
+	return self
 end
-
 return Components

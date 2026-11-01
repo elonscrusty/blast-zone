@@ -7,10 +7,11 @@ local Config = require("../Config")
 
 local SweepRules = {}
 
--- A swing is accepted at most once per `interval x RATE_SLACK` seconds on average (the contract's
--- 0.8: a little slack so honest network jitter never drops a swing). BURST swings may arrive
+-- A swing is accepted at most once per `interval x RATE_SLACK` seconds on average. 0.95 (was the
+-- contract's 0.8, which gave a script +25% over an honest client): honest network jitter is
+-- absorbed by the BURST instead, so an honest swing is still never dropped. BURST swings may arrive
 -- together after a hiccup, then the average rate applies again.
-SweepRules.RATE_SLACK = 0.8
+SweepRules.RATE_SLACK = 0.95
 SweepRules.BURST = 2
 
 -- A flattened facing shorter than this (looking straight up or down) is rejected.

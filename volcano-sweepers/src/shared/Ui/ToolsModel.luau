@@ -1,6 +1,6 @@
 --!strict
 -- View-model for the Tools panel: the eight tools with their state (equipped / owned / can buy /
--- saving up / locked), stat bars and the "next tool" highlight. Pure: no Roblox types.
+-- saving up for later), stat bars and the "next tool" highlight. Pure: no Roblox types.
 --
 --   ToolsModel.build(view) -> Model
 --   ToolsModel.glyphOf(id) -> emoji used as the tool's picture (no asset ids anywhere)
@@ -11,7 +11,9 @@
 --   "owned"     yours, tap to put it on              (button: EQUIP)
 --   "buy"       not owned and you have the coins     (button: price, green)
 --   "short"     the NEXT tool up, coins not enough   (button: price, grey, "Need N more coins!")
---   "locked"    further ahead than the next tool, coins not enough (padlock, price grey)
+--   "later"     any other tool you cannot afford yet (price, grey, "Need N more coins!")
+-- There is NO padlock: the server sells any tool you have the coins for (Pricing.priceOf only
+-- refuses tools you own), so the panel never shows a tool as locked when it is not.
 -- "Next tool" = the lowest tier above the best tool you own that you do not own yet.
 
 local Pricing = require("../Rules/Pricing")
@@ -216,7 +218,7 @@ function ToolsModel.build(view: { [string]: any }?): Model
 		elseif isNext then
 			status = "short"
 		else
-			status = "locked"
+			status = "later"
 		end
 		if status == "buy" then
 			anyBuy = true

@@ -5,14 +5,20 @@
 --   AshService.dropAround(x, z, units)    puts lost backpack ash back on the ground nearby; returns
 --                                         how many units found room
 --   AshService.zoneAt(x, z)               zone id 1..5, or nil outside the rings
---   AshService.noteSwept(units)           report units players removed (for the adaptive regrow)
+--   AshService.noteSwept(units)           report units players AND helper bots removed (adaptive regrow)
+--   AshService.flushNow()                 send the pending AshDelta right now (BurpService calls it
+--                                         before `Golden`, so a gold cell is never drawn on bare ground)
 --
 -- What runs (one Heartbeat, three timers; each step is pcall'd so one bad step never stops the rest):
 --   10 Hz  AshDelta   dirty cells -> every ready player, chunks of <= 400 pairs, nothing when empty
---   2 s    regrow     units back on the ground: scaled by player count, boosted when the island is
---                     nearly clean, and fed by how fast players sweep (numbers: ProgressRules)
+--   2 s    regrow     units back on the ground (in small piles): scaled by player count, boosted when
+--                     a zone is nearly clean, fed by how fast players sweep AND by what their tools
+--                     could sweep, capped per player (numbers: ProgressRules, balanced by pacing.test)
 --   1 s    Progress   clean fractions when any moved >= 0.005, PlayerState.setClean, and milestone
---                     parties (25/50/75/100% of a zone or of the whole island)
+--                     parties (25/50/75/100% of a zone or of the whole island; at most one party per
+--                     ProgressRules.PARTY_COOLDOWN). A party: x2 coins for EVERY ready player for
+--                     60 s x the best Spark "Long Buffs" here, and a coin gift for each player who swept
+--                     in the last 2 minutes, never more than a party in their own best zone pays.
 -- A player gets the full AshSnapshot (and the current Progress) when PlayerState says they are ready.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +27,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AshGrid = require(Shared.Ash.AshGrid)
+local BurpGlue = require(Shared.Burp.BurpGlue)
 local ProgressRules = require(Shared.Sweep.ProgressRules)
 local Rng = require(Shared.Rng)
 local SweepRules = require(Shared.Sweep.SweepRules)
@@ -121,6 +128,14 @@ local function regrowStep(elapsed: number)
 	for _, id in ZONE_IDS do
 		cleanest = math.max(cleanest, grid:zoneClean(id))
 	end
+	-- what the kids here COULD sweep (their stats): big tools in an emptied zone get fed
+	local pace = 0
+	for _, s in states do
+		local ok, p = pcall(ProgressRules.pace, s.derived)
+		if ok and p == p then
+			pace += p
+		end
+	end
 	local whole
 	whole, regrowCarry = ProgressRules.regrowBudget(
 		#states,
@@ -128,7 +143,8 @@ local function regrowStep(elapsed: number)
 		regrowCarry,
 		grid:totalClean(),
 		cleanest,
-		sweepRate
+		sweepRate,
+		pace
 	)
 	if whole <= 0 then
 		return
@@ -148,31 +164,62 @@ local function regrowStep(elapsed: number)
 	grid:regrow(rng, whole, biasScratch)
 end
 
+-- The longest party any ready player's Spark "Long Buffs" allows (1 .. BurpGlue.maxBuffMult).
+local function partyStretch(): number
+	local best = 1
+	for _, s in PlayerState.all() do
+		local m = s.derived.buffTime
+		if type(m) == "number" and m == m and m > best then
+			best = m
+		end
+	end
+	return math.min(best, BurpGlue.maxBuffMult)
+end
+
 local function celebrate(zone: number, milestone: number)
 	local players = readyPlayers()
 	if #players == 0 then
 		return
 	end
-	local gift = ProgressRules.gift(zone)
 	local percent = ProgressRules.percent(milestone)
-	PlayerState.setBuff("party", workspace:GetServerTimeNow() + PARTY_SECONDS)
-	for _, s in PlayerState.all() do
-		PlayerState.addCoins(s.player, gift)
-	end
 	local what = "The island"
 	local info = Zones.byId[zone]
 	if info ~= nil then
 		what = info.name
 	end
+	-- gifts first, each on its own: one odd player can never cancel the party for the others
+	local now = os.clock()
+	for _, s in PlayerState.all() do
+		local ok, err = pcall(function()
+			if s.player.Parent ~= Players then
+				return
+			end
+			local text
+			if ProgressRules.earnsGift(s.lastSweepAt, now) then
+				local gift = ProgressRules.giftFor(zone, BurpGlue.bestZone(s.profile.zones))
+				PlayerState.addCoins(s.player, gift)
+				text = `Island Party! {what} is {percent}% clean! +{gift} coins!`
+			else
+				text = `Island Party! {what} is {percent}% clean! Sweep to join the fun!`
+			end
+			Net.fire("Toast", s.player, { text = text, kind = "gold" } :: Types.ToastInfo)
+		end)
+		if not ok then
+			warn(`[AshService] party gift failed: {err}`)
+		end
+	end
 	Net.fireAll("Party", { milestone = percent, zone = zone } :: Types.PartyInfo)
-	Net.fireMany(
-		"Toast",
-		players,
-		{
-			text = `Island Party! {what} is {percent}% clean! +{gift} coins for everyone!`,
-			kind = "gold",
-		} :: Types.ToastInfo
-	)
+	local ok, err = pcall(function()
+		local seconds = PARTY_SECONDS * partyStretch()
+		local endsAt = workspace:GetServerTimeNow() + seconds
+		-- a party during a party never shortens it
+		if PlayerState.buffLeft("party") < seconds then
+			PlayerState.setBuff("party", endsAt)
+		end
+	end)
+	if not ok then
+		warn(`[AshService] party buff failed: {err}`)
+	end
 end
 
 local function progressStep()
@@ -182,14 +229,16 @@ local function progressStep()
 		ProgressRules.copyInto(lastSent, current)
 		Net.fireMany("Progress", readyPlayers(), progressPayload())
 	end
-	-- parties: zones first, then the whole island (each may fire; the buff is just refreshed)
+	-- parties: zones first, then the whole island; the tracker keeps parties PARTY_COOLDOWN apart
+	-- (a milestone reached during the cooldown waits for it, it is not lost)
+	local now = os.clock()
 	for _, id in ZONE_IDS do
-		local m = ProgressRules.update(tracker, id, current[id])
+		local m = ProgressRules.update(tracker, id, current[id], now)
 		if m ~= nil then
 			celebrate(id, m)
 		end
 	end
-	local m = ProgressRules.update(tracker, ISLAND, current[ISLAND])
+	local m = ProgressRules.update(tracker, ISLAND, current[ISLAND], now)
 	if m ~= nil then
 		celebrate(ISLAND, m)
 	end
@@ -210,6 +259,10 @@ function AshService.noteSwept(units: number)
 	if units == units and units > 0 and units < 1e6 then
 		sweptSince += units
 	end
+end
+
+function AshService.flushNow()
+	guarded("delta", flushDelta)
 end
 
 function AshService.zoneAt(x: number, z: number): number?

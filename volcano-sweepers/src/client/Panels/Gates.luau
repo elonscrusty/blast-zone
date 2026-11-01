@@ -5,7 +5,13 @@
 --   * every zone brags how many times more coins its ash is worth
 -- The client only asks (Buy "zone", "2"); the server checks everything and sends the new State.
 -- Texts and states come from GatesModel (unit tested), which uses the same Pricing as the server.
+--
+-- This module also restyles the gate ProximityPrompts in the world for THIS player (the server
+-- builds one prompt per gate for everyone): key G / gamepad Y (E is "hold to sweep", so a desktop
+-- player sweeping near a gate never buys it by accident), the price in the text ("Open gate
+-- (800 coins)"), and hidden once that gate is yours. Local only; the server still checks it all.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -16,6 +22,7 @@ local PanelHost = require(script.Parent.Parent.Ui.PanelHost)
 local Theme = require(script.Parent.Parent.Ui.Theme)
 local PanelKit = require(script.Parent.Shared.PanelKit)
 local StoreBinding = require(script.Parent.Shared.StoreBinding)
+local Context = require(script.Parent.Parent.Hud.Context)
 
 local L = {
 	disc = 150, -- the ring picture is a square this big
@@ -23,15 +30,15 @@ local L = {
 	scrollPad = 14, -- the scroll area's own padding and scroll bar
 	cardWideFrom = 400, -- cards at least this wide put the price button beside the text
 	cardH = 100,
-	cardHTall = 152,
+	cardHTall = 164, -- room for the 48 px button under the "x3 more coins" pill
 	node = 40,
 	pad = 8,
 	textX = 58,
 	tagW = 92,
 	tagH = 18,
-	buttonW = 104,
-	buttonH = 44,
-	buttonHTall = 42,
+	buttonW = Theme.size.claimW,
+	buttonH = Theme.size.button,
+	buttonHTall = Theme.size.button,
 	pillW = 190,
 	pillH = 18,
 }
@@ -481,6 +488,61 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): () -> ()
 		end
 	end
 end
+
+-- ===== the gate prompts in the world (always on, panel open or not) =====
+local GATE_TAG = "VSGate"
+local PROMPT_NAME = "GatePrompt"
+local PROMPT_WAIT = 30
+
+local prompts: { [Instance]: ProximityPrompt } = {}
+
+local function stylePrompt(gate: Instance, prompt: ProximityPrompt)
+	local zoneId = gate:GetAttribute("ZoneId")
+	prompt.KeyboardKeyCode = Enum.KeyCode.G
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+	if type(zoneId) ~= "number" then
+		return
+	end
+	local look = GatesModel.prompt(Bridge.view(), zoneId)
+	prompt.ActionText = look.actionText
+	prompt.Enabled = look.enabled
+end
+
+local function restyleAll()
+	for gate, prompt in prompts do
+		if gate.Parent == nil or prompt.Parent == nil then
+			prompts[gate] = nil
+		else
+			local ok, err = pcall(stylePrompt, gate, prompt)
+			if not ok then
+				warn(`[Gates] prompt style failed: {err}`)
+			end
+		end
+	end
+end
+
+local function trackGate(gate: Instance)
+	if prompts[gate] ~= nil then
+		return
+	end
+	task.spawn(function()
+		local found = gate:WaitForChild(PROMPT_NAME, PROMPT_WAIT)
+		if found ~= nil and found:IsA("ProximityPrompt") and gate.Parent ~= nil then
+			prompts[gate] = found
+			pcall(stylePrompt, gate, found)
+		end
+	end)
+end
+
+CollectionService:GetInstanceAddedSignal(GATE_TAG):Connect(trackGate)
+CollectionService:GetInstanceRemovedSignal(GATE_TAG):Connect(function(gate: Instance)
+	prompts[gate] = nil
+end)
+for _, gate in CollectionService:GetTagged(GATE_TAG) do
+	trackGate(gate)
+end
+local promptLive = Context.new() -- lives as long as the client does
+promptLive.watch({ "zones" }, restyleAll)
 
 local def: PanelHost.Def = {
 	id = "gates",

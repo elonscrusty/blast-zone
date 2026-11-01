@@ -26,14 +26,14 @@ local data: { { value: number, price: number, ground: string, ash: string, blurb
 	},
 	{
 		value = 3,
-		price = 400,
+		price = 550,
 		ground = "#6FBF5A",
 		ash = "#A9AEA2",
 		blurb = "Giant ferns and glowing mushrooms. Richer ash!",
 	},
 	{
 		value = 8,
-		price = 4000,
+		price = 9000,
 		ground = "#7FD6E8",
 		ash = "#C2AEB6",
 		blurb = "Warm bubbly pools and pink rocks.",
@@ -47,7 +47,7 @@ local data: { { value: number, price: number, ground: string, ash: string, blurb
 	},
 	{
 		value = 60,
-		price = 1800000,
+		price = 600000,
 		ground = "#2B2230",
 		ash = "#6E5A66",
 		blurb = "The glowing heart of the volcano. The best ash of all!",

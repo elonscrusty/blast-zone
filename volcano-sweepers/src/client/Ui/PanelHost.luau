@@ -2,11 +2,15 @@
 -- One modal panel at a time, always the same way: dimmed backdrop, pop-in, big red X, tap outside /
 -- Escape / gamepad B to close. Panels only describe themselves; the host builds the frame.
 --
---   PanelHost.register(def)    def = { id, title, icon, order, build = function(parent, ctx) ... end }
---                              build fills `parent` (the panel body) and may return a cleanup function
---                              that runs when the panel closes (stop timers, disconnect events).
---   PanelHost.open(id) / close() / toggle(id) / isOpen(): boolean / currentId(): string?
---   PanelHost.menuButtons      LIVE list { {id,title,icon,order} } sorted by order (the HUD menu reads it)
+--   PanelHost.register(def)    def = { id, title, icon, order, build = function(parent, ctx) ... end,
+--                              inMenu? } build fills `parent` (the panel body) and may return a
+--                              cleanup function that runs when the panel closes. inMenu = false keeps
+--                              a panel off the tile menu (the menu launcher itself).
+--   PanelHost.open(id) / close(quiet?) / toggle(id) / isOpen(): boolean / currentId(): string?
+--   PanelHost.notify(text, kind?) -> boolean   show a message strip inside the open panel (false
+--                              when no panel is open). The HUD sends toasts here while a panel is up,
+--                              because toasts and the banner draw UNDER panels.
+--   PanelHost.menuButtons      LIVE list { {id,title,icon,order} } sorted by order (the tile menu)
 --   PanelHost.changed          Signal: fires when a panel is registered
 --   PanelHost.stateChanged     Signal(openId: string?): fires when a panel opens or closes
 --   PanelHost.toastHandler     set by the HUD so ctx.toast works from panels
@@ -37,6 +41,7 @@ export type Def = {
 	icon: string,
 	order: number,
 	build: (parent: Frame, ctx: Ctx) -> (() -> ())?,
+	inMenu: boolean?,
 }
 
 export type MenuButton = { id: string, title: string, icon: string, order: number }
@@ -72,7 +77,12 @@ local function rebuildMenu()
 	local list = PanelHost.menuButtons
 	table.clear(list)
 	for _, def in defs do
-		table.insert(list, { id = def.id, title = def.title, icon = def.icon, order = def.order })
+		if def.inMenu ~= false then
+			table.insert(
+				list,
+				{ id = def.id, title = def.title, icon = def.icon, order = def.order }
+			)
+		end
 	end
 	table.sort(list, function(a: MenuButton, b: MenuButton)
 		if a.order ~= b.order then
@@ -98,6 +108,7 @@ function PanelHost.register(def: Def)
 		icon = if type(def.icon) == "string" then def.icon else "",
 		order = if type(def.order) == "number" then def.order else 100,
 		build = def.build,
+		inMenu = def.inMenu ~= false,
 	}
 	rebuildMenu()
 	PanelHost.changed:fire()
@@ -127,6 +138,7 @@ local function placePanel(open: Open)
 	open.panel.root.AnchorPoint = Vector2.new(0.5, 0.5)
 	open.panel.root.Position = UDim2.fromOffset(rect.x + rect.w / 2, rect.y + rect.h / 2)
 	open.panel.root.Size = UDim2.fromOffset(rect.w, rect.h)
+	open.panel.setCompact(rect.h < UiMath.K.shortPanel)
 	open.backdrop.Position = UDim2.fromOffset(-SPILL, -SPILL)
 	open.backdrop.Size = UDim2.fromOffset(s.size.X + 2 * SPILL, s.size.Y + 2 * SPILL)
 end
@@ -157,7 +169,8 @@ local function unbindKeys()
 	end
 end
 
-function PanelHost.close()
+-- quiet = true when the caller already played a click (the X button does).
+function PanelHost.close(quiet: boolean?)
 	local open = current
 	if open == nil or open.closing then
 		return
@@ -173,7 +186,9 @@ function PanelHost.close()
 			warn(`[PanelHost] cleanup for {open.id} failed: {err}`)
 		end
 	end
-	Bridge.play("click")
+	if quiet ~= true then
+		Bridge.play("click")
+	end
 	Components.tween(open.backdrop, { BackgroundTransparency = 1 }, TweenInfo.new(CLOSE_TIME))
 	local t = Components.tween(
 		open.pop,
@@ -225,7 +240,7 @@ function PanelHost.open(id: string)
 		title = def.title,
 		icon = def.icon,
 		onClose = function()
-			PanelHost.close()
+			PanelHost.close(true) -- the X already clicked
 		end,
 	})
 	-- tapping the backdrop (outside the panel) closes it
@@ -283,7 +298,7 @@ function PanelHost.open(id: string)
 
 	Components.tween(backdrop, { BackgroundTransparency = BACKDROP_DIM }, Theme.ease.normal)
 	Components.tween(pop, { Scale = 1 }, Theme.ease.pop)
-	Bridge.play("click")
+	-- no sound here: the button that opened the panel already clicked
 
 	resizeConn = s.resized:connect(function()
 		if current == open and not open.closing then
@@ -307,9 +322,18 @@ function PanelHost.open(id: string)
 	PanelHost.stateChanged:fire(id)
 end
 
+function PanelHost.notify(text: string, kind: string?): boolean
+	local open = current
+	if open == nil or open.closing or type(text) ~= "string" or text == "" then
+		return false
+	end
+	open.panel.notify(text, kind)
+	return true
+end
+
 function PanelHost.toggle(id: string)
 	if PanelHost.currentId() == id then
-		PanelHost.close()
+		PanelHost.close(true) -- the button that toggles already clicked
 	else
 		PanelHost.open(id)
 	end

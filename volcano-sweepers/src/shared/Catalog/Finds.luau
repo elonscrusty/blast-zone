@@ -33,7 +33,7 @@ Finds.rarities = {
 	{ id = "common", weight = 62, coinMult = 1, colorHex = "#B8C4CC", label = "Common" },
 	{ id = "uncommon", weight = 25, coinMult = 2.5, colorHex = "#5BD66F", label = "Uncommon" },
 	{ id = "rare", weight = 11, coinMult = 7, colorHex = "#4DA3FF", label = "Rare" },
-	{ id = "legendary", weight = 2, coinMult = 25, colorHex = "#FFC83D", label = "Legendary" },
+	{ id = "legendary", weight = 2, coinMult = 15, colorHex = "#FFC83D", label = "Legendary" },
 } :: { Rarity }
 
 Finds.rarityById = {} :: { [string]: Rarity }
@@ -55,8 +55,11 @@ for _, s in Finds.sets do
 	Finds.setById[s.id] = s
 end
 
--- Base coins for a common find in each zone (index = zone id; [0] = rainbow).
-local zoneBase: { [number]: number } = { [0] = 250, 20, 80, 320, 1500, 6000 }
+-- Base coins for a common find in each zone (index = zone id; [0] = rainbow): 12-30 ash units of
+-- that zone, so a find is a happy bonus and the sets are the real prize, never the main income
+-- (tests/pacing.test.luau checks the share stays between 3% and 20%). Early zones are kept low so
+-- one lucky find never skips a whole step of the opening.
+local zoneBase: { [number]: number } = { [0] = 500, 12, 40, 240, 660, 1800 }
 local setOfZone: { [number]: string } =
 	{ [0] = "rainbow", "beach", "forest", "springs", "rim", "heart" }
 

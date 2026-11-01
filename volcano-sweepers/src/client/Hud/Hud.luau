@@ -4,13 +4,15 @@
 --
 --   Hud.init()                          build the HUD (safe to call twice)
 --   Hud.destroy()                       remove everything, disconnect everything
---   Hud.toast(text, kind?)              kind: "info" | "good" | "warn" | "gold"
---   Hud.setBadge(panelId, on)           red dot on a menu button
+--   Hud.toast(text, kind?)              kind: "info" | "good" | "warn" | "gold". While a panel is
+--                                       open it shows INSIDE the panel (PanelHost.notify): toasts
+--                                       draw under panels and never cover what you are tapping.
+--   Hud.setBadge(panelId, on)           red dot on that panel's menu tile (and on the MENU button)
 --   Hud.coinTargetPosition(): UDim2?    centre of the coin icon in screen pixels (for flying coins)
 --   Hud.sweepHeld(): boolean            true while the SWEEP button is held
 --
--- Screens (one ScreenGui per layer, ResetOnSpawn off): HUD 10, Panels 20 (PanelHost), Banner 25,
--- Toasts 30, Splash 40.
+-- Screens (one ScreenGui per layer, ResetOnSpawn off): HUD 10, Banner 12, Toasts 14,
+-- Panels 20 (PanelHost), Splash 40.
 
 local UserInputService = game:GetService("UserInputService")
 
@@ -18,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local UiMath = require(Shared.Ui.UiMath)
+local Badges = require(script.Parent.Parent.Ui.Badges)
 local Bridge = require(script.Parent.Parent.Ui.Bridge)
 local Components = require(script.Parent.Parent.Ui.Components)
 local PanelHost = require(script.Parent.Parent.Ui.PanelHost)
@@ -80,7 +83,7 @@ local function relayout(s: State)
 	local l = UiMath.layout(screen.size.X, screen.size.Y, {
 		top = Theme.topInset() / screen.scale,
 		touch = UserInputService.TouchEnabled,
-		menuCount = #PanelHost.menuButtons,
+		offline = s.ctx.view().offline == true,
 	})
 
 	local function put(w: Widget.Widget?, r: UiMath.Rect)
@@ -96,7 +99,12 @@ local function relayout(s: State)
 	put(s.clean, l.clean)
 	put(s.buffs, l.buffs)
 	put(s.banner, l.banner)
-	put(s.offline, l.offline)
+	if s.offline then
+		-- the guest badge only gets room (and shows) when this session cannot save
+		if l.offline.w > 0 then
+			put(s.offline, l.offline)
+		end
+	end
 	put(s.menu, l.menu)
 	if s.toasts then
 		-- keep a one-row region even when the screen is very short (a toast must never vanish)
@@ -116,6 +124,9 @@ local function relayout(s: State)
 end
 
 function Hud.toast(text: string, kind: string?)
+	if PanelHost.notify(text, kind) then
+		return -- a panel is open: the message shows inside it, right where the child is looking
+	end
 	local s = state
 	if s and s.toasts then
 		s.toasts.push(text, kind)
@@ -125,10 +136,7 @@ function Hud.toast(text: string, kind: string?)
 end
 
 function Hud.setBadge(panelId: string, on: boolean)
-	local s = state
-	if s and s.menu then
-		s.menu.setBadge(panelId, on)
-	end
+	Badges.setManual(panelId, on == true)
 end
 
 function Hud.coinTargetPosition(): UDim2?
@@ -221,6 +229,9 @@ function Hud.init()
 		relayout(s)
 	end)
 	local resizeConn = hudScreen.resized:connect(function()
+		relayout(s)
+	end)
+	ctx.watch({ "offline" }, function()
 		relayout(s)
 	end)
 	table.insert(s.connections, openConn)

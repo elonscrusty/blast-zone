@@ -5,6 +5,7 @@ local Economy = require("../src/shared/Rules/Economy")
 local Pricing = require("../src/shared/Rules/Pricing")
 local Zones = require("../src/shared/Catalog/Zones")
 local GatesModel = require("../src/shared/Ui/GatesModel")
+local ShopModelUtil = require("../src/shared/Ui/ShopModelUtil")
 
 local function rowOf(model: GatesModel.Model, id: number): GatesModel.Row
 	return model.rows[id]
@@ -17,9 +18,10 @@ Harness.test("GatesModel: new player has the beach open and Fern Forest next", f
 	Harness.eq(rowOf(m, 1).buttonLabel, "OPEN")
 	Harness.eq(rowOf(m, 1).best, true)
 	Harness.eq(rowOf(m, 2).state, "next")
-	Harness.eq(rowOf(m, 2).price, 400)
-	Harness.eq(rowOf(m, 2).needText, "Need 400 more coins!")
-	Harness.eq(rowOf(m, 2).reasonText, "Need 400 more coins!")
+	local price2 = Zones.byId[2].unlockPrice
+	Harness.eq(rowOf(m, 2).price, price2)
+	Harness.eq(rowOf(m, 2).needText, `Need {ShopModelUtil.coinsText(price2)} more coins!`)
+	Harness.eq(rowOf(m, 2).reasonText, `Need {ShopModelUtil.coinsText(price2)} more coins!`)
 	Harness.eq(rowOf(m, 3).state, "locked")
 	Harness.eq(rowOf(m, 3).price, nil)
 	Harness.eq(rowOf(m, 3).buttonLabel, "LOCKED")
@@ -47,7 +49,8 @@ end)
 Harness.test("GatesModel: price and reason match Pricing", function()
 	local p = Economy.blankProfile()
 	p.zones = { ["1"] = true, ["2"] = true }
-	p.coins = 3999
+	local price3 = Zones.byId[3].unlockPrice
+	p.coins = price3 - 1
 	local m = GatesModel.build(p)
 	Harness.eq(rowOf(m, 3).price, Pricing.priceOf("zone", 3, p))
 	Harness.eq(rowOf(m, 3).missing, 1)
@@ -56,7 +59,7 @@ Harness.test("GatesModel: price and reason match Pricing", function()
 	Harness.eq(rowOf(m, 2).best, true)
 	Harness.eq(rowOf(m, 1).best, false)
 	Harness.eq(rowOf(m, 4).reasonText, "Open Hot Springs first!")
-	p.coins = 4000
+	p.coins = price3
 	Harness.eq(rowOf(GatesModel.build(p), 3).affordable, true)
 end)
 
@@ -108,4 +111,26 @@ Harness.test("GatesModel: broken zone tables never throw", function()
 	local m = GatesModel.build(weird)
 	Harness.eq(rowOf(m, 2).state, "next")
 	Harness.eq(m.coins, 0)
+end)
+
+Harness.test("GatesModel.prompt: price on the next gate, hidden once open, why when far", function()
+	local p = Economy.blankProfile()
+	local price = Zones.byId[2].unlockPrice
+	local nextGate = GatesModel.prompt(p, 2)
+	Harness.eq(nextGate.enabled, true)
+	Harness.truthy(
+		string.find(nextGate.actionText, "Open gate (", 1, true) ~= nil
+			and string.find(nextGate.actionText, "coins)", 1, true) ~= nil,
+		nextGate.actionText
+	)
+	Harness.truthy(string.len(nextGate.actionText) <= 32, "fits a prompt")
+	Harness.truthy(price > 0)
+	local far = GatesModel.prompt(p, 3)
+	Harness.eq(far.enabled, true)
+	Harness.eq(far.actionText, `Open {Zones.byId[2].name} first`)
+	p.zones["2"] = true
+	Harness.eq(GatesModel.prompt(p, 2).enabled, false)
+	Harness.eq(GatesModel.prompt(p, 1).enabled, false) -- the beach is always yours
+	Harness.eq(GatesModel.prompt(p, 99).actionText, "Open gate")
+	Harness.eq(GatesModel.prompt(nil, 2).enabled, true)
 end)

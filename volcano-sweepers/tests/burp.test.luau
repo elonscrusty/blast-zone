@@ -443,8 +443,8 @@ Harness.test("burp: hitTest uses radius plus body radius", function()
 	local bomb: Bomb = { id = 1, x = 10, z = 20, radius = 7, landsAt = 5 }
 	Harness.eq(d:hitTest(bomb, 10, 20), true)
 	Harness.eq(d:hitTest(bomb, 10 + 7, 20), true)
-	Harness.eq(d:hitTest(bomb, 10 + 8.4, 20), true, "body radius counts")
-	Harness.eq(d:hitTest(bomb, 10 + 8.6, 20), false)
+	Harness.eq(d:hitTest(bomb, 10 + 7.4, 20), true, "body radius counts")
+	Harness.eq(d:hitTest(bomb, 10 + 7.6, 20), false, "outside the drawn ring is safe")
 	Harness.eq(d:hitTest(bomb, 10, 20 - 9), false)
 end)
 

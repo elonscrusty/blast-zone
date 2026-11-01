@@ -1,6 +1,8 @@
 --!strict
 -- Volcano banner (under the clean bar): driven by the `Burp` remote. A colour per event, a big
 -- countdown during the rumble and a timer bar that shrinks. Hidden when the volcano is calm.
+-- The banner draws under open panels, so a new phase also shows inside an open panel
+-- (PanelHost.notify): a child shopping still hears "RUMBLE!" in time to run.
 
 local TweenService = game:GetService("TweenService")
 
@@ -9,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local UiMath = require(Shared.Ui.UiMath)
 local Components = require(script.Parent.Parent.Ui.Components)
+local PanelHost = require(script.Parent.Parent.Ui.PanelHost)
 local Theme = require(script.Parent.Parent.Ui.Theme)
 local Context = require(script.Parent.Context)
 local Widget = require(script.Parent.Widget)
@@ -72,7 +75,7 @@ function BurpBanner.new(parent: Instance, ctx: Context.Context): Widget.Widget
 		parent = card,
 		name = "Text",
 		text = "",
-		textSize = 20,
+		textSize = Theme.text.big,
 		font = Theme.font.title,
 		color = Theme.tone.rumble.text,
 		outline = Theme.color.ink,
@@ -83,7 +86,7 @@ function BurpBanner.new(parent: Instance, ctx: Context.Context): Widget.Widget
 		parent = card,
 		name = "Count",
 		text = "",
-		textSize = 30,
+		textSize = Theme.text.count,
 		font = Theme.font.title,
 		color = Theme.color.white,
 		outline = Theme.color.ink,
@@ -199,6 +202,7 @@ function BurpBanner.new(parent: Instance, ctx: Context.Context): Widget.Widget
 				setPulse(false)
 			end
 			Components.punch(holder, 0.04)
+			PanelHost.notify(`🌋 {spec.text}`, if spec.tone == "gold" then "gold" else "warn")
 		end
 		if shownText ~= spec.text then
 			shownText = spec.text

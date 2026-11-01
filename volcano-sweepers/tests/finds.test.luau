@@ -112,3 +112,19 @@ Harness.test("finds: empty zones, no rainbow finds, deterministic", function()
 		Harness.eq(a and a.id, b and b.id)
 	end
 end)
+
+Harness.test("finds: rolls are rationed per player (burst, then ~1.5 a second)", function()
+	local b = FindRoller.newBudget(0)
+	Harness.eq(FindRoller.takeRolls(b, 0, 40), FindRoller.ROLL_BURST, "a big swing gets the burst")
+	Harness.eq(FindRoller.takeRolls(b, 0, 5), 0)
+	local total = 0
+	local t = 0
+	for _ = 1, 600 do -- 60 s of huge swings every 0.1 s
+		t += 0.1
+		total += FindRoller.takeRolls(b, t, 20)
+	end
+	Harness.near(total, 60 * FindRoller.ROLLS_PER_SECOND, 2)
+	Harness.eq(FindRoller.takeRolls(b, t - 50, 5), 0, "a clock going backwards mints nothing")
+	Harness.eq(FindRoller.takeRolls(b, t + 100, 0 / 0), 0)
+	Harness.eq(FindRoller.takeRolls(b, t + 100, 2), 2, "small swings are never cut")
+end)

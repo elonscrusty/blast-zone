@@ -30,7 +30,7 @@ function Backpack.new(parent: Instance, ctx: Context.Context): BackpackWidget
 		parent = root,
 		name = "Icon",
 		text = "🎒",
-		textSize = 20,
+		textSize = Theme.text.icon,
 		position = UDim2.fromOffset(0, 0),
 		size = UDim2.fromOffset(24, UiMath.K.packH),
 	})

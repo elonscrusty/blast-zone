@@ -4,17 +4,23 @@
 --
 -- Calls other code may use:
 --   Vfx.puff(worldPos, hexColor, amount?)        ash-coloured cloud
---   Vfx.floatText(worldPos, text, kind?)         rising number. kind: coin | ash | good | bad | find | info
+--   Vfx.floatText(worldPos, text, kind?, look?)  rising number. kind: coin | ash | good | bad | find | info
+--                                                look = { color = "#RRGGBB"?, scale = number? } overrides
+--   Vfx.dust(worldPos, hexColor, count?)         small low dust (footsteps)
 --   Vfx.coinBurst(count)                         gold coins fly from the screen centre to the coin
 --                                                counter (Hud.coinTargetPosition() if the Hud exists)
 --   Vfx.shake(strength, duration)                camera shake (through CameraFx, respects settings.shake)
 --   Vfx.fireworks(worldPos, count?)              rockets + bursts around a point
 --   Vfx.lavaTelegraph(bomb)                      red pulsing disc until bomb.landsAt, then the impact
 --   Vfx.lavaImpact(x, z, radius)                 the splash itself
---   Vfx.screenTint(colorHex, alpha, seconds)     full-screen colour flash (own ScreenGui, order 50)
+--   Vfx.screenTint(colorHex, alpha, seconds)     full-screen colour flash (own ScreenGui)
 --
 -- Remote hooks (world-space only; toasts and banners belong to the HUD): SweepFx, Sold, Burp, Bombs,
 -- BurpHit, Party, FindFound, CoolDownDone, GeyserGems. Cleared ash cells also sparkle a little.
+-- Also: soft grey snow during an Ash Storm, and a red screen-edge warning while a lava target you
+-- are standing in (or next to) is about to land.
+-- Geyser gems: the SERVER draws the gem Parts (everyone sees the same gem); this file only adds the
+-- sparkle and the pickup sound, so there is no second copy at a different height.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -29,6 +35,7 @@ local Layout = require(Shared.Ash.Layout)
 local StoreLogic = require(Shared.Client.StoreLogic)
 local Tools = require(Shared.Catalog.Tools)
 local Types = require(Shared.Types)
+local BurpTuning = require(Shared.Burp.BurpTuning)
 local Zones = require(Shared.Catalog.Zones)
 local Net = require(script.Parent.Parent.Core.Net)
 
@@ -54,6 +61,33 @@ local Sfx: any = softRequire(clientRoot, "Core", "Sfx")
 local Haptics: any = softRequire(clientRoot, "Core", "Haptics")
 local CameraFx: any = softRequire(clientRoot, "Core", "CameraFx")
 local AshRenderer: any = softRequire(clientRoot, "Ash", "AshRenderer")
+local Theme: any = softRequire(clientRoot, "Ui", "Theme")
+
+-- Screen layers, from Theme.DisplayOrder when the UI kit is there.
+local ORDER = { hud = 10, overlay = 40 }
+if Theme ~= nil and type(Theme.DisplayOrder) == "table" then
+	ORDER.hud = tonumber(Theme.DisplayOrder.hud) or ORDER.hud
+	ORDER.overlay = tonumber(Theme.DisplayOrder.overlay) or ORDER.overlay
+end
+local ORDER_VIGNETTE = ORDER.hud - 1 -- under the HUD buttons
+local ORDER_TINT = ORDER.hud + 1 -- over the world and the HUD, under panels
+local ORDER_COINS = ORDER.overlay - 1 -- flying coins over everything but the splash
+
+-- A full-screen ScreenGui whose pixel (0, 0) is the screen's top-left (no inset, no safe area),
+-- so screen positions taken from other guis' AbsolutePosition can be used after subtracting ours.
+local function fullScreenGui(name: string, order: number, parent: Instance): ScreenGui
+	local gui = Instance.new("ScreenGui")
+	gui.Name = name
+	gui.DisplayOrder = order
+	gui.IgnoreGuiInset = true
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	pcall(function()
+		(gui :: any).ScreenInsets = Enum.ScreenInsets.None
+	end)
+	gui.Parent = parent
+	return gui
+end
 
 type Bomb = Types.Bomb
 
@@ -61,6 +95,7 @@ local Vfx = {}
 
 local LocalPlayer = Players.LocalPlayer
 local GROUND_Y: number = Config.World.groundY
+local BODY_RADIUS: number = tonumber((BurpTuning :: any).bodyRadius) or 0.5
 
 -- ===== tiny helpers =====
 
@@ -161,12 +196,15 @@ end
 
 -- ===== pooled particle emitters =====
 
-type EmitterKind = "puff" | "spark" | "glitter" | "firework"
+type EmitterKind = "puff" | "spark" | "glitter" | "firework" | "dust"
 type Slot = { part: Part, emitter: ParticleEmitter }
 
-local POOL_SIZE: { [string]: number } = { puff = 28, spark = 14, glitter = 14, firework = 10 }
-local emitterPools: { [string]: { Slot } } = { puff = {}, spark = {}, glitter = {}, firework = {} }
-local emitterCursor: { [string]: number } = { puff = 0, spark = 0, glitter = 0, firework = 0 }
+local POOL_SIZE: { [string]: number } =
+	{ puff = 28, spark = 14, glitter = 14, firework = 10, dust = 8 }
+local emitterPools: { [string]: { Slot } } =
+	{ puff = {}, spark = {}, glitter = {}, firework = {}, dust = {} }
+local emitterCursor: { [string]: number } =
+	{ puff = 0, spark = 0, glitter = 0, firework = 0, dust = 0 }
 
 local function seq(points: { { number } }): NumberSequence
 	local keys: { NumberSequenceKeypoint } = {}
@@ -211,6 +249,16 @@ local function configure(kind: string, e: ParticleEmitter)
 		e.Transparency = seq({ { 0, 0 }, { 0.7, 0.2 }, { 1, 1 } })
 		e.LightEmission = 1
 		e.LightInfluence = 0
+	elseif kind == "dust" then
+		e.Lifetime = NumberRange.new(0.35, 0.7)
+		e.Speed = NumberRange.new(1, 3)
+		e.SpreadAngle = Vector2.new(70, 70)
+		e.Acceleration = Vector3.new(0, 1.5, 0)
+		e.Drag = 3
+		e.Size = seq({ { 0, 0.35 }, { 0.5, 0.8 }, { 1, 1.1 } })
+		e.Transparency = seq({ { 0, 0.5 }, { 0.6, 0.75 }, { 1, 1 } })
+		e.LightEmission = 0
+		e.LightInfluence = 0.7
 	else -- firework
 		e.Lifetime = NumberRange.new(1, 1.6)
 		e.Speed = NumberRange.new(22, 42)
@@ -263,6 +311,10 @@ function Vfx.puff(worldPos: Vector3, hexColor: string, amount: number?)
 	emit("puff", worldPos, color3(hexColor), amount or 6)
 end
 
+function Vfx.dust(worldPos: Vector3, hexColor: string, count: number?)
+	emit("dust", worldPos, color3(hexColor), count or 2)
+end
+
 -- ===== float text =====
 
 type Style = { color: string, size: number, dur: number, rise: number }
@@ -287,7 +339,7 @@ type Floater = {
 	base: Vector3,
 }
 
-local FLOATERS = 24
+local FLOATERS = 32
 local floaters: { Floater } = {}
 local floaterCursor = 0
 
@@ -341,7 +393,9 @@ local function makeFloater(): Floater
 	}
 end
 
-function Vfx.floatText(worldPos: Vector3, text: string, kind: string?)
+export type Look = { color: string?, scale: number? }
+
+function Vfx.floatText(worldPos: Vector3, text: string, kind: string?, look: Look?)
 	if not finite(worldPos.X) or not finite(worldPos.Y) or not finite(worldPos.Z) then
 		return
 	end
@@ -360,8 +414,12 @@ function Vfx.floatText(worldPos: Vector3, text: string, kind: string?)
 	f.rise = style.rise
 	f.base = worldPos
 	f.label.Text = tostring(text)
-	f.label.TextSize = style.size
-	f.label.TextColor3 = color3(style.color)
+	local scale = if look ~= nil and finite(look.scale)
+		then math.clamp(look.scale :: number, 0.5, 2)
+		else 1
+	f.label.TextSize = math.floor(style.size * scale + 0.5)
+	f.label.TextColor3 =
+		color3(if look ~= nil and look.color ~= nil then look.color else style.color)
 	f.label.TextTransparency = 0
 	f.stroke.Transparency = 0
 	f.scale.Scale = 0.6
@@ -425,19 +483,15 @@ local function ensureCoinGui(): ScreenGui?
 	if pg == nil then
 		return nil
 	end
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "VSFxCoins"
-	gui.DisplayOrder = 45
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = pg
+	local gui = fullScreenGui("VSFxCoins", ORDER_COINS, pg)
 	coinGui = gui
 	return gui
 end
 
--- Pixel position of the coin counter, from the HUD when it exists.
-local function coinTarget(size: Vector2): Vector2
+-- Pixel position of the coin counter inside `gui`, from the HUD when it exists. The HUD gives an
+-- AbsolutePosition (its own gui may sit inside the phone's safe area): subtracting our gui's
+-- AbsolutePosition puts both in the same space, notch or no notch.
+local function coinTarget(size: Vector2, gui: ScreenGui): Vector2
 	if hudModule == nil and hudTries < 3 then
 		hudTries += 1
 		hudModule = softRequire(clientRoot, "Hud", "Hud")
@@ -448,7 +502,7 @@ local function coinTarget(size: Vector2): Vector2
 			return Vector2.new(
 				pos.X.Scale * size.X + pos.X.Offset,
 				pos.Y.Scale * size.Y + pos.Y.Offset
-			)
+			) - gui.AbsolutePosition
 		end
 	end
 	return Vector2.new(size.X * 0.08, size.Y * 0.08)
@@ -468,7 +522,7 @@ function Vfx.coinBurst(count: number)
 	if size.X < 10 or size.Y < 10 then
 		size = if cam ~= nil then cam.ViewportSize else Vector2.new(800, 400)
 	end
-	local target = coinTarget(size)
+	local target = coinTarget(size, gui)
 	local px = math.clamp(size.Y / 720, 0.8, 1.5) * 26
 	for k = 1, n do
 		local frame = Instance.new("Frame")
@@ -568,13 +622,7 @@ local function ensureTint(): Frame?
 	if pg == nil then
 		return nil
 	end
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "VSFxTint"
-	gui.DisplayOrder = 50
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = pg
+	local gui = fullScreenGui("VSFxTint", ORDER_TINT, pg)
 	local frame = Instance.new("Frame")
 	frame.Name = "Tint"
 	frame.Size = UDim2.fromScale(1, 1)
@@ -688,6 +736,72 @@ function Vfx.fireworks(worldPos: Vector3, count: number?)
 					+ Vector3.new((math.random() * 2 - 1) * 22, 0, (math.random() * 2 - 1) * 22)
 			)
 		end)
+	end
+end
+
+-- ===== lava warning (screen edges glow red while a target I stand in is about to land) =====
+
+local vignette: { Frame } = {}
+local vignetteLevel = 0
+local lastDangerHaptic = 0
+
+local function ensureVignette(): boolean
+	if #vignette == 4 and vignette[1].Parent ~= nil then
+		return true
+	end
+	local pg = playerGui()
+	if pg == nil then
+		return false
+	end
+	local gui = fullScreenGui("VSFxDanger", ORDER_VIGNETTE, pg)
+	table.clear(vignette)
+	-- left, right, top, bottom strips; each fades from the edge inward
+	local specs = {
+		{ size = UDim2.fromScale(0.2, 1), pos = UDim2.fromScale(0, 0), rot = 0 },
+		{ size = UDim2.fromScale(0.2, 1), pos = UDim2.fromScale(0.8, 0), rot = 180 },
+		{ size = UDim2.fromScale(1, 0.22), pos = UDim2.fromScale(0, 0), rot = 90 },
+		{ size = UDim2.fromScale(1, 0.22), pos = UDim2.fromScale(0, 0.78), rot = 270 },
+	}
+	for _, spec in specs do
+		local frame = Instance.new("Frame")
+		frame.Name = "Edge"
+		frame.Size = spec.size
+		frame.Position = spec.pos
+		frame.BackgroundColor3 = Color3.fromRGB(255, 50, 20)
+		frame.BackgroundTransparency = 1
+		frame.BorderSizePixel = 0
+		frame.Active = false
+		local g = Instance.new("UIGradient")
+		g.Rotation = spec.rot
+		g.Transparency = seq({ { 0, 0 }, { 0.55, 0.65 }, { 1, 1 } })
+		g.Parent = frame
+		frame.Parent = gui
+		table.insert(vignette, frame)
+	end
+	return true
+end
+
+-- danger 0..1: how much a landing lava target threatens me right now
+local function setDanger(danger: number, now: number)
+	if danger <= 0 and vignetteLevel <= 0 then
+		return
+	end
+	if not ensureVignette() then
+		return
+	end
+	-- ease toward the target so it never flickers
+	vignetteLevel += (danger - vignetteLevel) * 0.25
+	if vignetteLevel < 0.01 then
+		vignetteLevel = 0
+	end
+	local pulse = 0.5 + 0.5 * math.sin(now * (8 + 10 * danger))
+	local alpha = vignetteLevel * (0.45 + 0.25 * pulse)
+	for _, frame in vignette do
+		frame.BackgroundTransparency = 1 - alpha
+	end
+	if danger > 0.5 and now - lastDangerHaptic > 0.35 then
+		lastDangerHaptic = now
+		haptic(0.25 * danger)
 	end
 end
 
@@ -821,10 +935,25 @@ end
 
 local function stepTelegraphs()
 	if telegraphCount == 0 then
+		if vignetteLevel > 0 then
+			setDanger(0, os.clock())
+		end
 		return
 	end
 	local now = serverNow()
+	local danger = 0
+	local mine = myRoot()
 	for id, t in telegraphs do
+		if mine ~= nil and now < t.landsAt then
+			local dx, dz = mine.Position.X - t.x, mine.Position.Z - t.z
+			local d = math.sqrt(dx * dx + dz * dz)
+			local edge = t.radius + BODY_RADIUS -- the server's hit test counts my body too
+			if d < edge + 5 then
+				local close = if d <= edge then 1 else 1 - (d - edge) / 5
+				local soon = math.clamp(1 - (t.landsAt - now) / 2.5, 0.35, 1)
+				danger = math.max(danger, close * soon)
+			end
+		end
 		if now >= t.landsAt then
 			telegraphs[id] = nil
 			telegraphCount -= 1
@@ -841,6 +970,7 @@ local function stepTelegraphs()
 			t.inner.Transparency = math.clamp(0.4 - 0.15 * progress - 0.08 * pulse, 0.05, 0.9)
 		end
 	end
+	setDanger(danger, os.clock())
 	-- forget old landings
 	if next(landedAt) ~= nil then
 		local clock = os.clock()
@@ -853,8 +983,11 @@ local function stepTelegraphs()
 end
 
 -- ===== geyser gems =====
+-- The server owns and draws every gem Part (GeyserService). Here we only remember where each gem is,
+-- sparkle when one appears or is taken, and give instant pickup feedback when I walk onto one (the
+-- server still decides who really got it).
 
-type Gem = { ball: Part, halo: Part, x: number, z: number, y: number, phase: number, born: number }
+type Gem = { x: number, z: number, rarity: string, born: number, felt: boolean }
 
 local GEM_COLORS: { [string]: string } = {
 	common = "#BFE6FF", -- white-blue
@@ -862,10 +995,10 @@ local GEM_COLORS: { [string]: string } = {
 	rare = "#B070FF", -- purple
 	legendary = "#FFD23F", -- gold
 }
-local GEM_SCALE: { [string]: number } = { common = 1, uncommon = 1.1, rare = 1.25, legendary = 1.5 }
-local GEM_TTL = 70
+local GEM_TTL = 40 -- the server keeps a gem about 25 s
 local MAX_GEMS = 60
 local PICKUP_LOOK = 4
+local GEM_Y = GROUND_Y + 2.5
 local gems: { [number]: Gem } = {}
 local gemCount = 0
 
@@ -877,56 +1010,26 @@ local function removeGem(id: number, popped: boolean)
 	gems[id] = nil
 	gemCount -= 1
 	if popped then
-		emit("glitter", Vector3.new(g.x, g.y, g.z), color3("#FFFFFF"), 14, color3("#7FE7FF"))
+		local hex = GEM_COLORS[g.rarity] or GEM_COLORS.common
+		emit("glitter", Vector3.new(g.x, GEM_Y, g.z), color3("#FFFFFF"), 16, color3(hex))
 	end
-	g.ball:Destroy()
-	g.halo:Destroy()
 end
 
 local function clearGems()
-	for id in gems do
-		removeGem(id, false)
-	end
+	table.clear(gems)
+	gemCount = 0
 end
 
 local function addGem(id: number, x: number, z: number, rarity: string)
 	if gems[id] ~= nil or gemCount >= MAX_GEMS then
 		return
 	end
-	local hex = GEM_COLORS[rarity] or GEM_COLORS.common
-	local scale = GEM_SCALE[rarity] or 1
-	local ball = Instance.new("Part")
-	ball.Name = "Gem"
-	ball.Shape = Enum.PartType.Ball
-	ball.Material = Enum.Material.Neon
-	ball.Color = color3(hex)
-	ball.Size = Vector3.new(1.6, 1.6, 1.6) * scale
-	ball.Anchored = true
-	ball.CanCollide = false
-	ball.CanQuery = false
-	ball.CanTouch = false
-	ball.CastShadow = false
-	local halo = Instance.new("Part")
-	halo.Name = "GemHalo"
-	halo.Shape = Enum.PartType.Ball
-	halo.Material = Enum.Material.Neon
-	halo.Color = color3(hex)
-	halo.Transparency = 0.72
-	halo.Size = Vector3.new(3.4, 3.4, 3.4) * scale
-	halo.Anchored = true
-	halo.CanCollide = false
-	halo.CanQuery = false
-	halo.CanTouch = false
-	halo.CastShadow = false
-	local y = GROUND_Y + 3
-	ball.CFrame = CFrame.new(x, y, z)
-	halo.CFrame = ball.CFrame
-	ball.Parent = folder
-	halo.Parent = folder
-	gems[id] =
-		{ ball = ball, halo = halo, x = x, z = z, y = y, phase = id * 1.7, born = os.clock() }
+	gems[id] = { x = x, z = z, rarity = rarity, born = os.clock(), felt = false }
 	gemCount += 1
-	emit("glitter", Vector3.new(x, y, z), color3("#FFFFFF"), 10, color3(hex))
+	local hex = GEM_COLORS[rarity] or GEM_COLORS.common
+	if distFlat(x, z) < 160 then
+		emit("glitter", Vector3.new(x, GEM_Y, z), color3("#FFFFFF"), 10, color3(hex))
+	end
 end
 
 local function stepGems()
@@ -938,21 +1041,89 @@ local function stepGems()
 	for id, g in gems do
 		if now - g.born > GEM_TTL then
 			removeGem(id, false)
-		else
-			local bob = math.sin(now * 3 + g.phase) * 0.5
-			local cf = CFrame.new(g.x, g.y + bob, g.z) * CFrame.Angles(0, now * 2 + g.phase, 0)
-			g.ball.CFrame = cf
-			g.halo.CFrame = cf
-			if mine ~= nil then
-				local dx, dz = mine.Position.X - g.x, mine.Position.Z - g.z
-				if dx * dx + dz * dz < PICKUP_LOOK * PICKUP_LOOK then
-					-- a guess for instant feedback; the server decides who really got the gem
-					removeGem(id, true)
-					sfx("coin", 0.5)
-					haptic(0.3)
-				end
+		elseif mine ~= nil and not g.felt then
+			local dx, dz = mine.Position.X - g.x, mine.Position.Z - g.z
+			if dx * dx + dz * dz < PICKUP_LOOK * PICKUP_LOOK then
+				-- instant feedback; the server's "removed" message pops the sparkle for everyone
+				g.felt = true
+				sfx("coin", 0.5)
+				haptic(0.3)
 			end
 		end
+	end
+end
+
+-- ===== ash storm snow =====
+-- One emitter box that follows the camera while an Ash Storm is on: soft grey flakes drifting down.
+
+local SNOW_SIZE = 110
+local SNOW_HEIGHT = 34
+local snowPart: Part? = nil
+local snowEmitter: ParticleEmitter? = nil
+local snowUntil = 0
+
+local function ensureSnow(): (Part, ParticleEmitter)
+	if snowPart ~= nil and snowEmitter ~= nil and snowPart.Parent ~= nil then
+		return snowPart, snowEmitter
+	end
+	local p = Instance.new("Part")
+	p.Name = "AshSnow"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Transparency = 1
+	p.Size = Vector3.new(SNOW_SIZE, 1, SNOW_SIZE)
+	local e = Instance.new("ParticleEmitter")
+	e.Enabled = false
+	e.Rate = 150
+	e.EmissionDirection = Enum.NormalId.Bottom
+	e.Shape = Enum.ParticleEmitterShape.Box
+	e.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	e.Lifetime = NumberRange.new(5, 7)
+	e.Speed = NumberRange.new(5, 8)
+	e.SpreadAngle = Vector2.new(18, 18)
+	e.Acceleration = Vector3.new(1.4, 0, 0.8) -- a gentle sideways drift
+	e.Drag = 0.3
+	e.Rotation = NumberRange.new(0, 360)
+	e.RotSpeed = NumberRange.new(-60, 60)
+	e.Size = seq({ { 0, 0.35 }, { 0.5, 0.5 }, { 1, 0.4 } })
+	e.Transparency = seq({ { 0, 1 }, { 0.1, 0.25 }, { 0.85, 0.35 }, { 1, 1 } })
+	e.Color = ColorSequence.new(Color3.fromRGB(205, 200, 196), Color3.fromRGB(150, 144, 140))
+	e.LightEmission = 0
+	e.LightInfluence = 0.8
+	e.Parent = p
+	p.Parent = folder
+	snowPart, snowEmitter = p, e
+	return p, e
+end
+
+local function setSnow(on: boolean, seconds: number?)
+	if on then
+		local _, e = ensureSnow()
+		snowUntil = os.clock() + math.clamp(seconds or 30, 1, 90)
+		e.Enabled = true
+	else
+		snowUntil = 0
+		if snowEmitter ~= nil then
+			snowEmitter.Enabled = false
+		end
+	end
+end
+
+local function stepSnow()
+	local e = snowEmitter
+	if e == nil or not e.Enabled then
+		return
+	end
+	if os.clock() > snowUntil then
+		e.Enabled = false -- the "event over" message was lost: stop anyway
+		return
+	end
+	local f = focusPos()
+	if f ~= nil and snowPart ~= nil then
+		snowPart.CFrame = CFrame.new(f.X, f.Y + SNOW_HEIGHT, f.Z)
 	end
 end
 
@@ -963,6 +1134,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 	stepCoins(dt)
 	stepTelegraphs()
 	stepGems()
+	stepSnow()
 end)
 
 -- ===== remote hooks =====
@@ -1059,9 +1231,21 @@ Net.on("Sold", function(info: any)
 			Vfx.floatText(top + Vector3.new(0, 2.6, 0), "LUCKY x2!", "find")
 		end)
 	end
-	local visual = 4 + math.floor(math.log10(math.max(coinsPaid, 1)) * 3)
+	-- the cha-ching: coins fly to the counter, a gold fountain at the counter, a little kick
+	local size = math.log10(math.max(coinsPaid, 1)) -- 0 for 1 coin, 3 for 1000, 6 for a million
+	local visual = 4 + math.floor(size * 3)
 	Vfx.coinBurst(math.clamp(visual, 4, 20))
-	emit("glitter", top, color3("#FFD23F"), 18)
+	emit("glitter", top, color3("#FFD23F"), 18 + math.floor(size * 4))
+	emit(
+		"spark",
+		at + Vector3.new(0, 4, 0),
+		color3("#FFE27A"),
+		16 + math.floor(size * 5),
+		color3("#FFB020")
+	)
+	if CameraFx ~= nil then
+		CameraFx.nudge(0.6)
+	end
 	sfx("sell")
 	task.delay(0.12, function()
 		sfx("coin")
@@ -1105,6 +1289,7 @@ Net.on("Burp", function(info: any)
 		sfx("bomb", 0.5)
 		if kind == "ashStorm" then
 			Vfx.screenTint("#8A8480", 0.22, 2)
+			setSnow(true, left + 3)
 		elseif kind == "golden" then
 			Vfx.screenTint("#FFD23F", 0.22, 1.2)
 		elseif kind == "geysers" then
@@ -1117,6 +1302,9 @@ Net.on("Burp", function(info: any)
 			CameraFx.setRumble(0)
 		end
 		clearGems()
+	end
+	if not (phase == "event" and kind == "ashStorm") then
+		setSnow(false)
 	end
 end)
 
@@ -1156,10 +1344,22 @@ Net.on("BurpHit", function(info: any)
 	end
 end)
 
-Net.on("Party", function(_info: any)
+Net.on("Party", function(info: any)
 	local hrp = myRoot()
 	local at = if hrp ~= nil then hrp.Position else Vector3.new(Layout.hubX, GROUND_Y, Layout.hubZ)
-	Vfx.fireworks(at, 6)
+	local milestone = if type(info) == "table" and finite(info.milestone)
+		then info.milestone
+		else 25
+	local big = milestone >= 100 or (type(info) == "table" and info.zone == 0)
+	Vfx.fireworks(at, if big then 10 else 6)
+	if big then
+		-- and a second wave a moment later, so the 100% party feels like a real party
+		task.delay(1.4, function()
+			local h = myRoot()
+			Vfx.fireworks(if h ~= nil then h.Position else at, 8)
+		end)
+	end
+	Vfx.screenTint("#FFD23F", 0.18, 0.8)
 	haptic(0.5)
 end)
 
@@ -1250,7 +1450,7 @@ if AshRenderer ~= nil and AshRenderer.cleared ~= nil then
 		lastSparkle = now
 		local z1 = Zones.byId[zone]
 		local r, g, b = CullLogic.shade(if z1 ~= nil then z1.ground else "#F2D9A0", 0.3)
-		emit("glitter", Vector3.new(x, GROUND_Y + 0.8, z), Color3.fromRGB(r, g, b), 3)
+		emit("glitter", Vector3.new(x, GROUND_Y + 0.8, z), Color3.fromRGB(r, g, b), 5)
 	end)
 end
 

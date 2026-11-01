@@ -4,6 +4,14 @@
 --
 -- Everything that changes a level goes through `write`, which keeps the per-zone unit totals, the
 -- dirty list (for network deltas) and the golden flags consistent.
+--
+-- WHICH CELLS A SWING HITS (the "cone"; server, helper bots and the client's auto-sweep agree):
+--   * the cell you stand in, always (so a swing on ash under your feet is never wasted), plus
+--   * every cell whose centre is within `reach + EDGE_SHARE x cellSize` (reach is measured to the
+--     near part of the cell, not its centre) AND inside the fan of `arcDeg` around your facing.
+-- So every bit of Reach and every degree of arc adds cells on average, and each tool's shape shows.
+-- Tool traits the grid knows about: `melt` (a cell left with this many units or fewer after the
+-- swing melts to bare ground, room allowing: the Lava Mop and the Volcano Vacuum).
 
 local Config = require("../Config")
 local Layout = require("./Layout")
@@ -12,7 +20,7 @@ local Rng = require("../Rng")
 type Rng = Rng.Rng
 type LayoutData = Layout.LayoutData
 
-export type Tool = { reach: number, arcDeg: number, power: number }
+export type Tool = { reach: number, arcDeg: number, power: number, melt: number? }
 
 export type SweepResult = {
 	changed: { number }, -- cell indices whose level dropped (nearest first)
@@ -84,9 +92,13 @@ export type AshGrid = {
 
 local AshGrid = {}
 
+-- Reach is measured to this share of a cell past its centre (0.25 x 8 = 2 studs).
+AshGrid.EDGE_SHARE = 0.25
+AshGrid.REGROW_PILE = 3 -- regrow drops 1..this many units on each cell it picks
+
 local MAX_UNITS: number = Config.World.maxUnitsPerCell
 local GOLDEN_MULT = 5
-local GOLDEN_MIN_LEVEL = 6 -- a freshly flagged golden cell is topped up to at least this
+local GOLDEN_MIN_LEVEL = 8 -- a freshly flagged golden cell is topped up to at least this
 
 local CHARS: { string } = {}
 for level = 0, MAX_UNITS do
@@ -126,6 +138,28 @@ local function write(self: AshGrid, i: number, new: number): boolean
 	return true
 end
 
+-- The cell index (x, z) stands in, or 0 when that spot has no ash cell.
+function AshGrid.ownCell(L: LayoutData, x: number, z: number): number
+	if x ~= x or z ~= z then
+		return 0
+	end
+	local cs = L.cellSize
+	local ix = math.floor((x - L.x0) / cs)
+	local iz = math.floor((z - L.z0) / cs)
+	if ix < 0 or iz < 0 or ix >= L.cols or iz >= L.cols then
+		return 0
+	end
+	return L.lookup[iz * L.cols + ix + 1] or 0
+end
+
+-- The centre distance up to which a cell counts as "in reach".
+function AshGrid.coneReach(reach: number, cellSize: number): number
+	if reach ~= reach or reach < 0 then
+		return 0
+	end
+	return reach + cellSize * AshGrid.EDGE_SHARE
+end
+
 -- Fill the scratch buffers with every cell in the cone, sorted nearest first. Returns the count.
 local function collectCone(
 	self: AshGrid,
@@ -141,9 +175,10 @@ local function collectCone(
 	local cols = L.cols
 	local x0, z0 = L.x0, L.z0
 	local lookup, cx, cz = L.lookup, L.cx, L.cz
-	local searchR = math.max(reach, cs)
-	local reach2 = reach * reach
-	local near2 = cs * cs
+	local edgeReach = AshGrid.coneReach(reach, cs)
+	local searchR = edgeReach + cs
+	local reach2 = edgeReach * edgeReach
+	local own = AshGrid.ownCell(L, px, pz)
 
 	local len = math.sqrt(dx * dx + dz * dz)
 	local useArc = arcDeg < 360 and len > 1e-6
@@ -166,7 +201,7 @@ local function collectCone(
 			if j ~= 0 then
 				local ddx, ddz = cx[j] - px, cz[j] - pz
 				local d2 = ddx * ddx + ddz * ddz
-				local ok = d2 <= near2
+				local ok = j == own
 				if not ok and d2 <= reach2 then
 					if useArc then
 						ok = ddx * ndx + ddz * ndz >= cosHalf * math.sqrt(d2)
@@ -280,6 +315,8 @@ function methods.sweep(
 	end
 	local whole = math.floor(power)
 	local frac = power - whole
+	local melt = tool.melt
+	local meltBelow = if melt ~= nil and melt == melt and melt > 0 then math.floor(melt) else 0
 
 	local n = collectCone(self, px, pz, dx, dz, tool.reach, tool.arcDeg)
 	local levels, zoneOf = self.levels, self.layout.zone
@@ -300,6 +337,9 @@ function methods.sweep(
 			end
 			if amount > 0 then
 				local take = math.min(amount, level, room)
+				if meltBelow > 0 and level - take <= meltBelow then
+					take = math.min(level, room) -- the leftovers melt away
+				end
 				local wasGolden = self.goldenSet[j] == true
 				write(self, j, level - take)
 				room -= take
@@ -358,7 +398,8 @@ function methods.regrow(
 		return 0
 	end
 	local added = 0
-	for _ = 1, math.floor(count) do
+	local left = math.floor(count)
+	while left > 0 do
 		local r = rng:next() * totalW
 		local z = ids[#ids]
 		for k, w in weights do
@@ -369,14 +410,19 @@ function methods.regrow(
 			end
 		end
 		local list = L.zoneCells[z]
+		local put = 0
 		for _ = 1, 8 do
 			local j = list[rng:int(1, #list)]
-			if self.levels[j] < self.max then
-				write(self, j, self.levels[j] + 1)
-				added += 1
+			local level = self.levels[j]
+			if level < self.max then
+				-- small piles, not a thin dusting: a swing through regrown ash still feels full
+				put = math.min(left, rng:int(1, AshGrid.REGROW_PILE), self.max - level)
+				write(self, j, level + put)
+				added += put
 				break
 			end
 		end
+		left -= math.max(1, put)
 	end
 	return added
 end

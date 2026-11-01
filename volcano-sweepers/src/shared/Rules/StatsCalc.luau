@@ -11,7 +11,7 @@
 --                        +900% (x10 total with the base 1). n = Sparks earned so far = unspent
 --                        Sparks + Sparks spent on perks, so buying perks never lowers your bonus.
 --     party   = Config.Economy.partyMult (2.0)    only while buffs.party   > now
---     perfect = Config.Economy.perfectMult (1.10) only while buffs.perfect > now
+--     perfect = Config.Economy.perfectMult (1.25) only while buffs.perfect > now
 --     golden  = NO multiplier: golden cells are worth 5x in the cell itself (ash value)
 -- Other stats:
 --   reach    = tool.reach x (1 + reach bonus)            arcDeg = tool.arcDeg
@@ -21,8 +21,9 @@
 --   walkSpeed= (baseWalkSpeed + perk quick_feet) x (1 + walk bonus)
 --   luck     = 1 + luck bonus + perk lucky_charm         (multiplier on treasure chance)
 --   armor    = min(maxArmor, armor bonus)                (share of carried ash kept when hit)
+--   melt     = tool.melt (0 for most tools): cells left with this many units or fewer melt away
 -- Extras beyond Types.Derived (extra fields are fine for the client): sweetChance, luckyChance,
--- helperMult, buffTime.
+-- helperMult, buffTime, melt.
 
 local Config = require("../Config")
 local Types = require("../Types")
@@ -45,6 +46,7 @@ export type Full = {
 	luckyChance: number, -- 0..1 chance a sale pays double
 	helperMult: number, -- multiplier on helper bot output
 	buffTime: number, -- multiplier on how long Party / Perfect buffs last
+	melt: number, -- tool trait: a cell left with <= this many units after a swing melts (0 = none)
 }
 
 local StatsCalc = {}
@@ -122,6 +124,7 @@ function StatsCalc.compute(profile: Types.Profile, buffs: { [string]: number }, 
 		luckyChance = math.clamp(up("lucky_coins"), 0, 1),
 		helperMult = 1 + perk("bot_boost"),
 		buffTime = 1 + perk("long_buffs"),
+		melt = tool.melt or 0,
 	}
 end
 

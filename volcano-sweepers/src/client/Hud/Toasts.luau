@@ -1,10 +1,14 @@
 --!strict
--- Toasts: short messages in a stack under the banner. Newest on top, at most 3 (fewer when the
--- screen is short), 3 seconds each, slide in and fade out. The same message twice just refreshes.
+-- Toasts: short messages in a small stack, newest on top, 3 seconds each, slide in and fade out.
+-- The same message twice just refreshes. Where they sit is decided by UiMath.layout: the empty
+-- top-right corner in landscape, under the banner in portrait, never over the character (so they
+-- never hide the lava circles a child must dodge). Slightly see-through, two short lines max.
+-- While a panel is open Hud.toast sends messages into the panel instead (PanelHost.notify).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Format = require(Shared.Ui.Format)
 local UiMath = require(Shared.Ui.UiMath)
 local Components = require(script.Parent.Parent.Ui.Components)
 local Theme = require(script.Parent.Parent.Ui.Theme)
@@ -33,8 +37,9 @@ local ICONS: { [string]: string } = {
 	gold = "⭐",
 }
 
-local MAX_TEXT = 80
+local MAX_CHARS = 64 -- characters, not bytes (Format.clip never cuts an emoji in half)
 local STEP = UiMath.K.toastH + UiMath.K.toastGap
+local SEE_THROUGH = 0.15 -- the world shows a little through a toast
 
 function Toasts.new(parent: Instance, _ctx: Context.Context): ToastsWidget
 	local root = Instance.new("Frame")
@@ -97,9 +102,7 @@ function Toasts.new(parent: Instance, _ctx: Context.Context): ToastsWidget
 			return
 		end
 		local k = if kind ~= nil and Theme.kind[kind] ~= nil then kind else "info"
-		if #text > MAX_TEXT then
-			text = string.sub(text, 1, MAX_TEXT)
-		end
+		text = Format.clip(text, MAX_CHARS)
 		for _, e in entries do
 			if e.text == text and e.kind == k then
 				arm(e)
@@ -114,6 +117,7 @@ function Toasts.new(parent: Instance, _ctx: Context.Context): ToastsWidget
 		frame.Size = UDim2.new(1, 0, 0, UiMath.K.toastH)
 		frame.Position = UDim2.fromOffset(0, -14)
 		frame.BackgroundColor3 = look.fill
+		frame.BackgroundTransparency = SEE_THROUGH
 		frame.BorderSizePixel = 0
 		frame.GroupTransparency = 1
 		frame.Parent = root
@@ -130,7 +134,7 @@ function Toasts.new(parent: Instance, _ctx: Context.Context): ToastsWidget
 			parent = frame,
 			name = "Icon",
 			text = ICONS[k] or "",
-			textSize = 18,
+			textSize = Theme.text.icon,
 			position = UDim2.fromOffset(6, 0),
 			size = UDim2.new(0, 24, 1, 0),
 		})
@@ -138,11 +142,12 @@ function Toasts.new(parent: Instance, _ctx: Context.Context): ToastsWidget
 			parent = frame,
 			name = "Text",
 			text = text,
-			textSize = Theme.text.small + 1,
+			textSize = Theme.text.small,
 			font = Theme.font.bold,
 			color = look.text,
-			position = UDim2.fromOffset(34, 0),
-			size = UDim2.new(1, -42, 1, 0),
+			wrap = true, -- up to two lines, so long messages stay big instead of shrinking
+			position = UDim2.fromOffset(34, 2),
+			size = UDim2.new(1, -42, 1, -4),
 			align = Enum.TextXAlignment.Left,
 		})
 

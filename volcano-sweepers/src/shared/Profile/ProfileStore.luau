@@ -18,6 +18,7 @@
 --   * One profile per player key at a time in this server (a rejoin waits for the old one to release).
 
 local ProfileSchema = require("./ProfileSchema")
+local SaveRetry = require("../SaveRetry")
 local Receipts = require("./Receipts")
 local Serializable = require("./Serializable")
 local Types = require("../Types")
@@ -162,7 +163,8 @@ local function newProfile(
 	}
 end
 
--- Returns a Profile, or nil and a reason: "locked", "future", "corrupt", "migration", "error", "busy".
+-- Returns a Profile, or nil and a reason: "locked", "future", "corrupt", "migration", "error",
+-- "busy", "noAccess".
 function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 	local deps = self.deps
 	local key = ProfileStore.keyFor(userId)
@@ -239,7 +241,9 @@ function ProfileStore.load(self: Store, userId: number): (Profile?, string?)
 		)
 
 		if not ok then
-			return fail("error", err)
+			-- "noAccess": API access is off / the place is unpublished. It can never load here, so
+			-- nobody should keep trying (ProfileManager retries "error", "locked" and "busy").
+			return fail(if SaveRetry.isPermanent(err) then "noAccess" else "error", err)
 		end
 		if outcome.kind == "locked" then
 			if attempt < deps.cfg.loadLockTries then

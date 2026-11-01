@@ -22,7 +22,7 @@ Harness.test("ToolsModel: eight tools, twig broom equipped, push broom is NEXT",
 	Harness.eq(rowOf(model, "twig_broom").status, "equipped")
 	Harness.eq(rowOf(model, "push_broom").status, "short")
 	Harness.eq(rowOf(model, "push_broom").badge, "NEXT")
-	Harness.eq(rowOf(model, "leaf_blower").status, "locked")
+	Harness.eq(rowOf(model, "leaf_blower").status, "later")
 	Harness.eq(rowOf(model, "leaf_blower").badge, nil)
 	Harness.eq(model.canBuyAny, false)
 	for i, tool in Tools.list do
@@ -33,9 +33,10 @@ end)
 
 Harness.test("ToolsModel: short shows 'Need N more coins!'", function()
 	local p = Economy.blankProfile()
-	p.coins = 100
+	local price = Tools.byId.push_broom.price
+	p.coins = price - 30
 	local row = rowOf(ToolsModel.build(p), "push_broom")
-	Harness.eq(row.price, 130)
+	Harness.eq(row.price, price)
 	Harness.eq(row.missing, 30)
 	Harness.eq(row.needText, "Need 30 more coins!")
 	Harness.eq(row.affordable, false)
@@ -43,12 +44,14 @@ end)
 
 Harness.test("ToolsModel: with the coins, the next tool and a far tool can be bought", function()
 	local p = Economy.blankProfile()
-	p.coins = 700
+	-- enough for the Leaf Blower (tier 3), not for the Dust Vac (tier 4)
+	p.coins = Tools.byId.leaf_blower.price
+	Harness.truthy(p.coins < Tools.byId.dust_vac.price, "catalog prices climb")
 	local model = ToolsModel.build(p)
 	Harness.eq(rowOf(model, "push_broom").status, "buy")
 	Harness.eq(rowOf(model, "leaf_blower").status, "buy") -- allowed by the rules, so shown as buyable
 	Harness.eq(model.canBuyAny, true)
-	Harness.eq(rowOf(model, "dust_vac").status, "locked")
+	Harness.eq(rowOf(model, "dust_vac").status, "later")
 end)
 
 Harness.test("ToolsModel: owned tools can be equipped, equipped one is marked", function()
@@ -71,7 +74,19 @@ Harness.test("ToolsModel: next skips holes (own tier 5 only -> next is tier 6)",
 	p.tool = "turbo_vac"
 	local model = ToolsModel.build(p)
 	Harness.eq(model.nextId, "lava_mop")
-	Harness.eq(rowOf(model, "push_broom").status, "locked") -- cheaper but behind you: not the NEXT one
+	Harness.eq(rowOf(model, "push_broom").status, "later") -- cheaper but behind you: not the NEXT one
+end)
+
+Harness.test("ToolsModel: no tool is ever shown locked: every unowned tool has a price", function()
+	local p = Economy.blankProfile()
+	p.coins = 3
+	for _, row in ToolsModel.build(p).rows do
+		Harness.truthy(row.status ~= "locked", "no padlock state")
+		if not row.owned then
+			Harness.truthy(row.price > 0, `{row.id} has a price`)
+			Harness.truthy(row.needText ~= nil, `{row.id} says how many coins are missing`)
+		end
+	end
 end)
 
 Harness.test("ToolsModel: owning everything leaves no NEXT", function()

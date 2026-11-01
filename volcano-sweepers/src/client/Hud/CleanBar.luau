@@ -1,6 +1,7 @@
 --!strict
--- Island clean bar (top centre): how clean the whole island is, the name of the zone you stand in
--- (worked out from your position, no server call), milestone ticks at 25/50/75%.
+-- Island clean bar (top centre): how clean the whole island is (bar + % on the right), milestone
+-- ticks at 25/50/75%, and on the left the zone you stand in with ITS clean % (from the server's
+-- `Progress` remote; parties fire per zone, so this is the number a child can push up right here).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -82,6 +83,13 @@ function CleanBar.new(parent: Instance, ctx: Context.Context): Widget.Widget
 	local first = true
 	local lastSparkle = 0
 	local zoneId = 0
+	local zoneClean: { [string]: number } = {}
+
+	local function paintZone()
+		local name = zoneName(zoneId)
+		local f = zoneClean[tostring(zoneId)]
+		nameLabel.Text = if f ~= nil then `{name} {Format.percent(f)}` else name
+	end
 
 	local function sparkle()
 		local now = os.clock()
@@ -98,7 +106,7 @@ function CleanBar.new(parent: Instance, ctx: Context.Context): Widget.Widget
 			star.Size = UDim2.fromOffset(16, 16)
 			star.Font = Theme.font.title
 			star.Text = "✨"
-			star.TextSize = 14
+			star.TextSize = Theme.text.small
 			star.TextColor3 = if i == 1 then Theme.color.goldLight else Theme.color.white
 			star.ZIndex = 8
 			star.Active = false
@@ -145,11 +153,24 @@ function CleanBar.new(parent: Instance, ctx: Context.Context): Widget.Widget
 		local id = UiMath.zoneAt(hrp.Position.X, hrp.Position.Z, Config.World.zones)
 		if id ~= zoneId then
 			zoneId = id
-			nameLabel.Text = zoneName(id)
+			paintZone()
 		end
 	end
 
-	nameLabel.Text = zoneName(1)
+	ctx.listen("Progress", function(payload: any)
+		if type(payload) ~= "table" or type(payload.zones) ~= "table" then
+			return
+		end
+		for key, f in payload.zones do
+			if type(key) == "string" and type(f) == "number" and f == f then
+				zoneClean[key] = UiMath.barFill(f)
+			end
+		end
+		paintZone()
+	end)
+
+	zoneId = 1
+	paintZone()
 	ctx.every(0.25, pollZone)
 	ctx.watch({ "cleanTotal" }, refresh)
 

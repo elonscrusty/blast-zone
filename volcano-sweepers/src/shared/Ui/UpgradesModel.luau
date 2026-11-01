@@ -7,9 +7,10 @@
 --   UpgradesModel.levelUps(before, view) -> { id }   lines whose level went UP since `before`
 --   UpgradesModel.canBuyAny(view) -> boolean         for the red dot on the menu button
 --
--- "Best next buy" = the not-maxed line with the lowest price right now. If something is
--- affordable that is the cheapest affordable one; if nothing is, it is the one closest to
--- affordable. Ties go to the earlier line in the catalog.
+-- The star (Row.best, tag text Model.bestTag) = the not-maxed line with the LOWEST price right now,
+-- and the panel says so ("⭐ Cheapest"): upgrade lines do different things, so the game does not
+-- pretend one is "the best". Ties go to the earlier line in the catalog.
+-- A player who has bought nothing yet is told how cheap the first upgrade is.
 
 local Pricing = require("../Rules/Pricing")
 local Upgrades = require("../Catalog/Upgrades")
@@ -35,7 +36,7 @@ export type Row = {
 	effectNow: string, -- "+16% reach"
 	effectNext: string?, -- "+20%" (nil when maxed)
 	effectLine: string, -- "+16% reach → +20%"
-	best: boolean, -- the ⭐ best next buy
+	best: boolean, -- the ⭐ cheapest next step
 }
 
 export type Model = {
@@ -46,7 +47,11 @@ export type Model = {
 	canBuyAny: boolean,
 	allMaxed: boolean,
 	hint: string, -- one friendly line under the coin counter
+	bestTag: string, -- text of the star tag: "⭐ Cheapest"
+	firstBuy: boolean, -- nothing bought yet
 }
+
+UpgradesModel.BEST_TAG = "⭐ Cheapest"
 
 local ICONS: { [string]: string } = {
 	power = "💪",
@@ -147,10 +152,12 @@ function UpgradesModel.build(view: { [string]: any }?): Model
 	local best: Row? = nil
 	local anyAffordable = false
 	local allMaxed = true
+	local bought = 0
 	for _, id in Upgrades.order do
 		local up = Upgrades.byId[id]
 		local row = buildRow(profile, up)
 		table.insert(rows, row)
+		bought += row.level
 		if not row.maxed then
 			allMaxed = false
 			if row.affordable then
@@ -166,13 +173,18 @@ function UpgradesModel.build(view: { [string]: any }?): Model
 		best.best = true
 	end
 
+	local firstBuy = bought == 0
 	local hint: string
 	if allMaxed then
 		hint = "Wow! Every upgrade is maxed out!"
+	elseif firstBuy and best ~= nil and best.price ~= nil then
+		hint = if anyAffordable
+			then "Tap a green button to get stronger!"
+			else `Your first upgrade costs only {best.price} coins! Sweep and sell to get it.`
 	elseif anyAffordable then
-		hint = "You can buy something! Tap a green button."
+		hint = "Green = you can buy it. ⭐ = cheapest next step."
 	elseif best ~= nil then
-		hint = `Next goal: {best.name}. {best.needText or ""}`
+		hint = `Cheapest next: {best.name}. {best.needText or ""}`
 	else
 		hint = ""
 	end
@@ -184,6 +196,8 @@ function UpgradesModel.build(view: { [string]: any }?): Model
 		canBuyAny = anyAffordable,
 		allMaxed = allMaxed,
 		hint = hint,
+		bestTag = UpgradesModel.BEST_TAG,
+		firstBuy = firstBuy,
 	}
 end
 

@@ -11,19 +11,25 @@
 --               client's job (it hears the same remote). Round bookkeeping for burpDodged.
 --   bombs    -> `Bombs` remote to everyone + falling lava bomb Parts (BombVisuals, at most 40 live).
 --   land     -> BombVisuals.land, then every ready player outside the hub is hit-tested with
---               BurpDirector:hitTest. Hit = bounce (velocity away from the blast), lose
+--               BurpDirector:hitTest, using MoveWatch's trusted position (hopping into the hub by
+--               teleport does not dodge). Hit = bounce (a short LinearVelocity kick away from the
+--               blast, made on the server so it replicates to the owning client), lose
 --               0.2 x (1 - armor) of the backpack (that ash falls back onto the ground nearby),
 --               `BurpHit` remote, stat burpHits, a 2.5 s shield, director:reportHit. Nobody ever dies.
 --   rain     -> AshService.grid:rain
---   golden   -> AshService.grid:spawnGolden (only zones somebody here has unlocked), clearGolden at
---               expiry, buff "golden" for the HUD timer
+--   golden   -> AshService.grid:spawnGolden: the director's cell count is shared out so every
+--               player gets gold in THEIR best unlocked zone (so gold is worth racing for at every
+--               stage, and more friends = more gold), clearGolden at expiry, buff "golden" for the HUD
 --   geysers  -> GeyserService.spawnWave
---   perfect  -> buff "perfect" (stretched by the best Spark "long buffs" in the server) + a gold Toast
+--   perfect  -> buff "perfect" (stretched by the best Spark "long buffs" in the server) + a gold Toast,
+--               only when somebody was actually out on the island when a bomb landed (waiting in
+--               the hub earns nothing)
 --   burpDodged +1 for each ready player outside the hub who was around when a bomb landed and was not
 --   hit by the time that event ended.
 --
 -- With nobody ready the director sleeps and nothing happens.
 
+local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,12 +42,15 @@ local Config = require(Shared.Config)
 local Rng = require(Shared.Rng)
 local Types = require(Shared.Types)
 
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
 local PlayerState = require(script.Parent.Parent.Player.PlayerState)
 local BombVisuals = require(script.Parent.BombVisuals)
 local GeyserService = require(script.Parent.GeyserService)
 
-local TICK_SECONDS = 0.25
+local TICK_SECONDS = 0.1 -- a bomb is judged at most 0.1 s after it lands
+local BOUNCE_SECONDS = 0.15 -- how long the knockback push lasts
+local BOUNCE_GRACE = 2 -- MoveWatch accepts the flight
 local RED = Color3.fromRGB(255, 80, 50)
 local MAX_RED = 0.55 -- how far toward RED the light goes at intensity 1
 
@@ -61,6 +70,7 @@ local director: BurpDirector.BurpDirector = BurpDirector.new(Rng.new(os.time() +
 local book = BurpGlue.newBook()
 local round = BurpGlue.newRound()
 local goldenUntil: number? = nil
+local outsideThisEvent = false -- somebody outside the hub when a bomb landed (perfect needs it)
 local ashMod: any = nil
 local lastWarn = -10
 
@@ -163,14 +173,14 @@ local function bodyOf(player: Player): (BasePart?, Humanoid?)
 	return hrp, hum
 end
 
--- Ready players that currently have a living character, with flat positions.
+-- Ready players that currently have a living character, with flat (trusted) positions.
 local function gather(): ({ Target }, number)
 	local ready = PlayerState.all()
 	local targets: { Target } = {}
 	for _, state in ready do
 		local hrp, hum = bodyOf(state.player)
-		if hrp ~= nil and hum ~= nil then
-			local p = hrp.Position
+		local p = if hrp ~= nil then MoveWatch.position(state.player) else nil
+		if hrp ~= nil and hum ~= nil and p ~= nil then
 			if BurpGlue.finite(p.X) and BurpGlue.finite(p.Z) then
 				table.insert(targets, { state = state, hrp = hrp, hum = hum, x = p.X, z = p.Z })
 			end
@@ -185,10 +195,29 @@ local function toastAll(text: string, kind: "info" | "good" | "warn" | "gold")
 end
 
 local function bounce(t: Target, vx: number, vy: number, vz: number)
-	-- Not a ragdoll: one velocity kick and the Humanoid is told it is airborne so it does not fight it.
+	-- Not a ragdoll: a short push. The character is simulated by its owner's client, so setting
+	-- its velocity from here may be ignored; a constraint made on the server replicates to that
+	-- client and its physics carries it out. Removed after BOUNCE_SECONDS, so it is never stuck.
+	MoveWatch.grace(t.state.player, BOUNCE_GRACE)
+	local velocity = Vector3.new(vx, vy, vz)
 	pcall(function()
-		t.hrp.AssemblyLinearVelocity = Vector3.new(vx, vy, vz)
-		t.hum:ChangeState(Enum.HumanoidStateType.Freefall)
+		local hrp = t.hrp
+		local att = Instance.new("Attachment")
+		att.Name = "VSBounceAttachment"
+		local push = Instance.new("LinearVelocity")
+		push.Name = "VSBounce"
+		push.Attachment0 = att
+		push.RelativeTo = Enum.ActuatorRelativeTo.World
+		push.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+		push.VectorVelocity = velocity
+		push.MaxForce = math.max(1, hrp.AssemblyMass) * 5000
+		att.Parent = hrp
+		push.Parent = hrp
+		Debris:AddItem(push, BOUNCE_SECONDS)
+		Debris:AddItem(att, BOUNCE_SECONDS)
+	end)
+	pcall(function()
+		t.hrp.AssemblyLinearVelocity = velocity -- also works whenever the server owns the body
 	end)
 end
 
@@ -234,19 +263,25 @@ local function finishRound()
 	end
 end
 
-local function unlockedZones(): { [number]: boolean }?
-	local out: { [number]: boolean } = {}
-	local found = false
-	for _, state in PlayerState.all() do
-		for key, owned in state.profile.zones do
-			local id = tonumber(key)
-			if owned == true and id ~= nil then
-				out[id] = true
-				found = true
+-- Golden cells: the count is shared out over the players, each share placed in that player's
+-- best unlocked zone. Returns every flagged cell.
+local function spawnGoldenShared(grid: any, count: number): { number }
+	local states = PlayerState.all()
+	local flagged: { number } = {}
+	if #states == 0 then
+		return grid:spawnGolden(rng, count, nil)
+	end
+	local each = BurpGlue.goldenShare(count, #states)
+	for i, state in states do
+		local best = BurpGlue.bestZone(state.profile.zones)
+		local n = each[i] or 0
+		if n > 0 then
+			for _, j in grid:spawnGolden(rng, n, { [best] = true }) do
+				table.insert(flagged, j)
 			end
 		end
 	end
-	return if found then out else nil
+	return flagged
 end
 
 local function bestBuffTime(): number
@@ -267,6 +302,7 @@ local function execute(cmd: BurpGlue.Command, now: number, targets: { Target })
 		Net.fireAll("Burp", info)
 		if info.phase == "rumble" then
 			BurpGlue.roundReset(round)
+			outsideThisEvent = false
 		elseif info.phase == "recover" or info.phase == "calm" then
 			finishRound()
 		end
@@ -285,6 +321,7 @@ local function execute(cmd: BurpGlue.Command, now: number, targets: { Target })
 		local present: { number } = {}
 		for _, t in targets do
 			if not BurpGlue.inHub(t.x, t.z) then
+				outsideThisEvent = true
 				table.insert(present, t.state.player.UserId)
 				if
 					director:hitTest(bomb, t.x, t.z)
@@ -298,13 +335,17 @@ local function execute(cmd: BurpGlue.Command, now: number, targets: { Target })
 	elseif kind == "rain" then
 		local ash = ashService()
 		if ash ~= nil then
-			ash.grid:rain(rng, cmd.fraction :: number)
+			-- more friends sweep more: the storm covers more of the island (BurpGlue.stormFraction)
+			ash.grid:rain(rng, BurpGlue.stormFraction(cmd.fraction :: number, #PlayerState.all()))
 		end
 	elseif kind == "golden" then
 		local untilAt = cmd.untilAt :: number
 		local ash = ashService()
 		if ash ~= nil then
-			local flagged = ash.grid:spawnGolden(rng, cmd.cells :: number, unlockedZones())
+			local flagged = spawnGoldenShared(ash.grid, cmd.cells :: number)
+			if type(ash.flushNow) == "function" then
+				pcall(ash.flushNow) -- levels first, so clients never see gold on a bare cell
+			end
 			goldenUntil = untilAt
 			Net.fireAll("Golden", { cells = flagged, endsAt = untilAt })
 		end
@@ -312,6 +353,9 @@ local function execute(cmd: BurpGlue.Command, now: number, targets: { Target })
 	elseif kind == "geysers" then
 		GeyserService.spawnWave(cmd.spots :: { BurpDirector.Spot })
 	elseif kind == "perfect" then
+		if not outsideThisEvent then
+			return -- everybody sat in the hub: nothing was dodged
+		end
 		local untilAt = BurpGlue.buffUntil(now, cmd.untilAt :: number, bestBuffTime())
 		PlayerState.setBuff("perfect", untilAt)
 		local pct = math.floor((Config.Economy.perfectMult - 1) * 100 + 0.5)

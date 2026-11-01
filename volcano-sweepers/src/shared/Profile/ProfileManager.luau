@@ -10,7 +10,16 @@
 --            by a newer game, unreadable). The player still plays with a fresh profile, but it is
 --            `locked`: it is NEVER written, so real progress in the DataStore is never overwritten.
 --   lost     Another server took this profile over. get() is nil and nothing more is written.
+--
+-- Getting the real profile back: when the load failed for a reason that can fix itself ("locked":
+-- the last server has not let go yet, "busy", "error": a DataStore hiccup), tick() tries the load
+-- again every offlineRetrySeconds, up to offlineRetryTries times (about 3-4 minutes in all, longer
+-- than lockStaleSeconds, so a crashed server's lock is always outlived). When it works, the real
+-- data is copied INTO the live table the game already holds (same table, so nobody keeps a stale
+-- reference), the status becomes "ready" and `Recovered` fires. The offline stand-in's own progress
+-- is dropped on purpose: it was never saved, and the real save is always worth more.
 
+local ProfileSchema = require("./ProfileSchema")
 local ProfileStore = require("./ProfileStore")
 local Types = require("../Types")
 
@@ -24,7 +33,15 @@ type Entry = {
 	profile: ProfileStore.Profile?,
 	reason: string?,
 	left: boolean,
+	retryAt: number?, -- next background load try while offline (nil = no more tries)
+	retriesLeft: number,
+	retrying: boolean, -- a try is running right now
 }
+
+-- Load failures that can fix themselves, so tick() tries again.
+ProfileManager.RETRY_REASONS = { locked = true, busy = true, error = true } :: { [string]: boolean }
+ProfileManager.OFFLINE_RETRY_SECONDS = 20
+ProfileManager.OFFLINE_RETRY_TRIES = 8
 
 export type Deps = {
 	store: ProfileStore.Store,
@@ -46,6 +63,7 @@ export type Manager = typeof(setmetatable(
 		Leaving: any, -- (userId, profile) just before the final save
 		Released: any, -- (userId) once per join, after the final save (or after a load for a player who left)
 		StatusChanged: any, -- (userId, status, reason?)
+		Recovered: any, -- (userId, profile) an offline player's real profile loaded after all
 	},
 	ProfileManager
 ))
@@ -60,6 +78,7 @@ function ProfileManager.new(deps: Deps): Manager
 		Leaving = deps.newSignal(),
 		Released = deps.newSignal(),
 		StatusChanged = deps.newSignal(),
+		Recovered = deps.newSignal(),
 	}, ProfileManager)
 end
 
@@ -93,6 +112,16 @@ local function setStatus(
 	self.StatusChanged:fire(userId, status, reason)
 end
 
+local function retrySeconds(self: Manager): number
+	local v = (self.deps.cfg :: any).offlineRetrySeconds
+	return if type(v) == "number" and v > 0 then v else ProfileManager.OFFLINE_RETRY_SECONDS
+end
+
+local function retryTries(self: Manager): number
+	local v = (self.deps.cfg :: any).offlineRetryTries
+	return if type(v) == "number" and v >= 0 then v else ProfileManager.OFFLINE_RETRY_TRIES
+end
+
 local function releaseProfile(self: Manager, userId: number, profile: ProfileStore.Profile)
 	self.deps.store:release(profile)
 	self.Released:fire(userId)
@@ -118,6 +147,10 @@ local function runLoad(self: Manager, userId: number, entry: Entry)
 		local why = reason or "error"
 		log(self, "load for " .. tostring(userId) .. " failed (" .. why .. "): playing offline")
 		entry.profile = self.deps.store:offline(userId, why)
+		if ProfileManager.RETRY_REASONS[why] and retryTries(self) > 0 then
+			entry.retriesLeft = retryTries(self)
+			entry.retryAt = self.deps.clock() + retrySeconds(self)
+		end
 		setStatus(self, userId, entry, "offline", why)
 		self.Loaded:fire(userId, entry.profile)
 	end
@@ -127,7 +160,15 @@ function ProfileManager.join(self: Manager, userId: number)
 	if self.closing then
 		return
 	end
-	local entry: Entry = { status = "loading", profile = nil, reason = nil, left = false }
+	local entry: Entry = {
+		status = "loading",
+		profile = nil,
+		reason = nil,
+		left = false,
+		retryAt = nil,
+		retriesLeft = 0,
+		retrying = false,
+	}
 	self.entries[userId] = entry
 	self.StatusChanged:fire(userId, "loading", nil)
 	background(self, function()
@@ -190,6 +231,48 @@ function ProfileManager.isOffline(self: Manager, userId: number): boolean
 	return entry ~= nil and entry.status == "offline"
 end
 
+-- true while an offline player's real profile is still being tried in the background.
+function ProfileManager.isRetrying(self: Manager, userId: number): boolean
+	local entry = self.entries[userId]
+	return entry ~= nil and entry.status == "offline" and (entry.retryAt ~= nil or entry.retrying)
+end
+
+-- One background try to load the real profile of an offline player.
+local function tryRecover(self: Manager, userId: number, entry: Entry)
+	local profile, reason = self.deps.store:load(userId)
+	entry.retrying = false
+	if entry.left or self.closing or self.entries[userId] ~= entry or entry.status ~= "offline" then
+		-- gone while we waited: never keep the lock we just took
+		if profile then
+			self.deps.store:release(profile)
+		end
+		return
+	end
+	local standIn = entry.profile
+	if profile and standIn then
+		-- keep the live table: copy the real data into it
+		local live = standIn.data
+		ProfileSchema.assign(live :: any, profile.data :: any)
+		profile.data = live
+		entry.profile = profile
+		entry.retryAt = nil
+		entry.retriesLeft = 0
+		log(self, "real profile for " .. tostring(userId) .. " loaded after all")
+		setStatus(self, userId, entry, "ready", nil)
+		self.Recovered:fire(userId, profile)
+		return
+	end
+	entry.retriesLeft -= 1
+	local why = reason or "error"
+	if entry.retriesLeft > 0 and ProfileManager.RETRY_REASONS[why] then
+		entry.retryAt = self.deps.clock() + retrySeconds(self)
+	else
+		entry.retryAt = nil
+		log(self, "gave up loading " .. tostring(userId) .. " (" .. why .. ")")
+		setStatus(self, userId, entry, "offline", why)
+	end
+end
+
 local function noticeLost(self: Manager, userId: number)
 	local entry = self.entries[userId]
 	if entry and entry.status == "ready" and entry.profile and entry.profile.status == "lost" then
@@ -250,7 +333,8 @@ function ProfileManager.saveNow(self: Manager, userId: number): boolean
 	return ok
 end
 
--- Called about once a second. Starts a background save for every profile that is due.
+-- Called about once a second. Starts a background save for every profile that is due, and a
+-- background load try for every offline player whose retry time came.
 function ProfileManager.tick(self: Manager)
 	local now = self.deps.clock()
 	for userId, entry in self.entries do
@@ -259,6 +343,18 @@ function ProfileManager.tick(self: Manager)
 			background(self, function()
 				self.deps.store:save(profile)
 				noticeLost(self, userId)
+			end)
+		elseif
+			entry.status == "offline"
+			and not entry.retrying
+			and entry.retryAt ~= nil
+			and now >= entry.retryAt
+			and not self.closing
+		then
+			entry.retrying = true
+			entry.retryAt = nil
+			background(self, function()
+				tryRecover(self, userId, entry)
 			end)
 		end
 	end

@@ -84,7 +84,7 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 		round = true,
 		icon = "🧹",
 		text = "SWEEP",
-		textSize = 15,
+		textSize = Theme.text.label,
 		stack = true,
 		silent = true,
 	})
@@ -146,7 +146,7 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 		setHeld(false)
 	end
 
-	ctx.connect(sweepBtn.face.InputBegan:Connect(function(input: InputObject)
+	ctx.connect(sweepBtn.hit.InputBegan:Connect(function(input: InputObject)
 		if destroyed or heldInput ~= nil or not isPress(input) then
 			return
 		end
@@ -248,7 +248,7 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 		round = true,
 		icon = "💰",
 		text = "SELL",
-		textSize = 13,
+		textSize = Theme.text.label,
 		stack = true,
 	})
 	sellBtn.onClick(function()

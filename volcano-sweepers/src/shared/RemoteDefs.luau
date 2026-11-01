@@ -48,7 +48,10 @@ local Defs: { Def } = {
 	ask("TutorialDone", {}, 1, 2),
 
 	-- server -> client
-	tell("State", "partial View: { [key]: value } merged into the client store"),
+	tell(
+		"State",
+		"partial View: { [key]: value } merged into the client store (offline = save not loaded, offlineRetrying = still trying to load it)"
+	),
 	tell(
 		"AshSnapshot",
 		"string: one char per cell, level = byte - 48 ('0'..'9'); sent on ClientReady"
@@ -73,7 +76,7 @@ local Defs: { Def } = {
 	),
 	tell(
 		"GeyserGems",
-		"{ {x:number,z:number,id:number} }: gem pickups appeared; touch to grab (server checks)"
+		"two shapes: { {x:number,z:number,id:number,rarity:string} } = gems appeared (touch to grab, server checks); { removed = id } = that gem is gone"
 	),
 }
 

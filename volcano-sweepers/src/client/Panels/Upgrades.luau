@@ -1,6 +1,7 @@
 --!strict
--- Upgrades panel: all ten upgrade lines as cards. Each card: picture, name, one sentence, level
--- pips, "now -> next" effect and a price button. A star marks the best next buy.
+-- Upgrades panel: all ten upgrade lines as cards. Each card: picture (level under it), name, one
+-- sentence, level pips, "now -> next" effect and a 48 px price button. A "⭐ Cheapest" tag marks the
+-- cheapest next step (the model says so honestly; it is not a "best value" promise).
 --
 -- The client NEVER spends anything: a tap only sends Buy("upgrade", id). The card pops when the
 -- SERVER's State update says the level went up. No hold-to-buy (no accidental spending).
@@ -21,18 +22,18 @@ local StoreBinding = require(script.Parent.Shared.StoreBinding)
 -- layout numbers (virtual px), kept in one place
 local L = {
 	cellH = 124,
-	cellHShort = 112,
+	cellHShort = 116, -- the 48 px BUY button needs this much under the 2-line text
 	icon = 36,
 	pad = 8,
 	textX = 52,
 	nameH = 22,
-	tagW = 88,
+	tagW = 96,
 	tagH = 18,
-	pipsW = 120,
 	pipsH = 8,
-	levelW = 60,
-	buttonW = 104,
-	buttonH = 42,
+	levelY = 48, -- "3/16" sits under the round picture, clear of the BUY button
+	levelH = 16,
+	buttonW = Theme.size.claimW,
+	buttonH = Theme.size.button,
 	-- {normal, short}
 	descY = { 30, 28 },
 	descH = { 30, 26 },
@@ -107,6 +108,7 @@ local function makeCard(
 		size = UDim2.new(1, -(L.textX + L.pad), 0, L.descH[1]),
 	})
 
+	-- pips stretch from the text column to just left of the BUY button
 	local pips = Components.Pips({
 		parent = card,
 		name = "Pips",
@@ -114,18 +116,17 @@ local function makeCard(
 		filled = 0,
 		color = Theme.color.lava,
 		position = UDim2.fromOffset(L.textX, L.pipsY[1]),
-		size = UDim2.fromOffset(L.pipsW, L.pipsH),
+		size = UDim2.new(1, -(L.textX + L.buttonW + L.pad + 8), 0, L.pipsH),
 	})
 
 	local levelText = Components.Label({
 		parent = card,
 		name = "LevelText",
 		textSize = Theme.text.tiny,
-		font = Theme.font.bold,
+		font = Theme.font.title,
 		color = Theme.color.charcoalSoft,
-		align = Enum.TextXAlignment.Left,
-		position = UDim2.fromOffset(L.textX + L.pipsW + 6, L.pipsY[1] - 5),
-		size = UDim2.fromOffset(L.levelW, 18),
+		position = UDim2.fromOffset(L.pad - 4, L.levelY),
+		size = UDim2.fromOffset(L.icon + 8, L.levelH),
 	})
 
 	local effect = Components.Label({
@@ -144,7 +145,7 @@ local function makeCard(
 	local tagPill = Components.Pill({
 		parent = card,
 		name = "BestTag",
-		text = "⭐ Best buy",
+		text = UpgradesModel.BEST_TAG,
 		fill = Theme.color.gold,
 		textColor = Theme.color.charcoal,
 		textSize = Theme.text.tiny,
@@ -225,7 +226,6 @@ local function applyShort(c: Card, short: boolean)
 	c.desc.Position = UDim2.fromOffset(L.textX, L.descY[i])
 	c.desc.Size = UDim2.new(1, -(L.textX + L.pad), 0, L.descH[i])
 	c.pips.root.Position = UDim2.fromOffset(L.textX, L.pipsY[i])
-	c.levelText.Position = UDim2.fromOffset(L.textX + L.pipsW + 6, L.pipsY[i] - 5)
 	c.effect.Position = UDim2.fromOffset(L.textX, L.effectY[i])
 	c.effect.Size = UDim2.new(1, -(L.textX + L.buttonW + L.pad + 8), 0, L.effectH[i])
 end

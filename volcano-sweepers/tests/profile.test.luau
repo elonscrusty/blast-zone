@@ -1091,7 +1091,7 @@ Harness.test("load: API access off (403) stops at once", function()
 	local store = newStore(fake, "A")
 	local p, reason = store:load(7)
 	eq(p, nil)
-	eq(reason, "error")
+	eq(reason, "noAccess", "a reason the manager never retries")
 	eq(fake.calls, 1)
 	eq(waited, 0)
 end)
@@ -1798,4 +1798,105 @@ Harness.test("flow: update and grantOnce refuse when there is no profile yet", f
 	eq(why2, "notLoaded")
 	m:markDirty(7) -- harmless
 	eq(m:saveNow(7), false)
+end)
+
+-- ===== getting the real profile back after an offline start =====
+
+Harness.test(
+	"recover: a crashed server's lock is outlived and the real profile comes back",
+	function()
+		reset()
+		local fake = Fake.new()
+		local crashed = newStore(fake, "B")
+		local pb = loadOk(crashed, 7)
+		setCoins(crashed, pb, 41)
+		crashed:save(pb) -- B then crashes: it never saves or releases again
+		local m = newManager(fake, "A")
+		local recovered = 0
+		m.Recovered:connect(function(userId: number)
+			eq(userId, 7)
+			recovered += 1
+		end)
+		m:join(7)
+		eq(m:status(7), "offline")
+		eq(m:failReason(7), "locked")
+		truthy(m:isRetrying(7), "keeps trying in the background")
+		local live = m:data(7) :: any
+		earn(m, 7, 5) -- a little offline play (never saved)
+		for _ = 1, 30 do
+			if m:status(7) == "ready" then
+				break
+			end
+			now += 20
+			m:tick()
+		end
+		eq(m:status(7), "ready")
+		eq(recovered, 1)
+		truthy(m:data(7) == live, "the same live table, now holding the real data")
+		eq(live.coins, 41, "real progress, not the offline stand-in's")
+		eq(m:isOffline(7), false)
+		eq(m:isRetrying(7), false)
+		earn(m, 7, 9)
+		eq(m:saveNow(7), true)
+		eq(fake:raw(KEY).data.coins, 50)
+		eq(fake:raw(KEY).lock.jobId, "A")
+	end
+)
+
+Harness.test(
+	"recover: a LIVE server keeps its lock; the tries end and nothing is written",
+	function()
+		reset()
+		local fake = Fake.new()
+		local other = newStore(fake, "B")
+		local po = loadOk(other, 7)
+		setCoins(other, po, 41)
+		other:save(po)
+		local m = newManager(fake, "A")
+		local changes: { string } = {}
+		m.StatusChanged:connect(function(_, s: string, why: string?)
+			table.insert(changes, s .. ":" .. tostring(why))
+		end)
+		m:join(7)
+		local writesBefore = fake.writes
+		for _ = 1, 40 do
+			now += 20
+			other:save(po) -- B is alive: its lock stays fresh
+			writesBefore = fake.writes
+			m:tick()
+			eq(fake.writes, writesBefore, "A never writes while it has no lock")
+		end
+		eq(m:status(7), "offline")
+		eq(m:isRetrying(7), false, "gave up after OFFLINE_RETRY_TRIES")
+		eq(fake:raw(KEY).lock.jobId, "B")
+		eq(fake:raw(KEY).data.coins, 41)
+		truthy(changes[#changes] == "offline:locked", "the give-up is announced")
+	end
+)
+
+Harness.test("recover: no DataStore access is never retried; leaving stops the tries", function()
+	reset()
+	local fake = Fake.new()
+	fake:failNext(99, "403: Studio access to APIs is not allowed")
+	local m = newManager(fake, "A")
+	m:join(7)
+	eq(m:failReason(7), "noAccess")
+	eq(m:isRetrying(7), false)
+	now += 100
+	m:tick()
+	eq(fake.calls, 1)
+
+	-- a player who leaves while offline is never loaded again
+	local fake2 = Fake.new()
+	local other = newStore(fake2, "B")
+	local po = loadOk(other, 8)
+	other:save(po)
+	local m2 = newManager(fake2, "A")
+	m2:join(8)
+	truthy(m2:isRetrying(8))
+	m2:leave(8)
+	local calls = fake2.calls
+	now += 500
+	m2:tick()
+	eq(fake2.calls, calls)
 end)

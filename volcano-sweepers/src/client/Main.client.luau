@@ -58,6 +58,8 @@ loadFrom("Core", "Controls")
 loadFrom("Ash", "AshRenderer")
 loadFrom("Vfx", "Vfx")
 loadFrom("Core", "CameraFx")
+loadFrom("Vfx", "HeldTool") -- the tool in every hand + the swing
+loadFrom("Vfx", "WorldFeel") -- "+N" per swing, FULL!, footstep dust
 
 -- 2. UI written by other pieces (all optional): the panel host first, then every panel (each one
 --    registers itself on require), then the HUD
@@ -103,10 +105,22 @@ task.spawn(function()
 	end
 end)
 
--- 5. everything is attached: ask for the full state and the ash snapshot, once
+-- 5. everything is attached: ask for the full state and the ash snapshot. A lost message would leave
+--    the player frozen (no sweep, no sell), so ask again every few seconds until the first State
+--    arrives (the server treats a repeat as a no-op and rate-limits it).
 local net = loadFrom("Core", "Net")
+local store = loadFrom("Core", "Store")
 if net ~= nil then
 	net.send("ClientReady")
+	task.spawn(function()
+		for _ = 1, 20 do
+			task.wait(3)
+			if store ~= nil and store.ready == true then
+				return
+			end
+			net.send("ClientReady")
+		end
+	end)
 else
 	warn("[Main] Net missing: cannot send ClientReady")
 end

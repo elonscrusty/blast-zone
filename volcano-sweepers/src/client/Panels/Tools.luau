@@ -3,6 +3,8 @@
 -- tapped: picture, name, what makes it special, five stat bars and one big button.
 --   * owned tool        -> EQUIP  (sends EquipTool)        * your tool -> EQUIPPED
 --   * not owned         -> price button (sends Buy "tool")  * the next tool up glows and says NEXT
+-- No padlocks: the server sells ANY tool you have the coins for, so a far tool just shows its
+-- price in grey (status "later") and "Need N more coins!".
 -- The client only asks. The server checks and sends the new State; the panel then follows it.
 -- The pictures are an emoji on a coloured disc (no asset ids). Texts come from ToolsModel (tested).
 
@@ -63,7 +65,7 @@ local STATE_TEXT: { [string]: string } = {
 	equipped = "USING",
 	owned = "OWNED",
 	buy = "BUY!",
-	locked = "🔒",
+	-- "short" and "later" show the price
 }
 
 local function corner(parent: Instance, radius: UDim)
@@ -383,7 +385,7 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): () -> ()
 					then Theme.color.white
 					else Theme.color.cream
 				tile.next.Visible = row.isNext
-				local dim = row.status == "locked"
+				local dim = row.status == "later"
 				tile.art.BackgroundTransparency = if dim then 0.55 else 0
 				tile.glyph.TextTransparency = if dim then 0.5 else 0
 				local text = STATE_TEXT[row.status] or Theme.fmt(row.price)
@@ -439,13 +441,13 @@ local function build(parent: Frame, ctx: PanelHost.Ctx): () -> ()
 		end
 		costButton.root.Visible = row.status == "buy"
 			or row.status == "short"
-			or row.status == "locked"
+			or row.status == "later"
 		equipButton.root.Visible = row.status == "owned"
 		equippedPill.root.Visible = row.status == "equipped"
 		if costButton.root.Visible then
 			costButton.set(row.price, row.affordable, nil)
 		end
-		needLabel.Text = if row.status == "short" or row.status == "locked"
+		needLabel.Text = if row.status == "short" or row.status == "later"
 			then (row.needText or "")
 			else ""
 	end
@@ -539,7 +541,7 @@ end
 local def: PanelHost.Def = {
 	id = "tools",
 	title = "Tools",
-	icon = "🧹",
+	icon = "🔧", -- not 🧹: that is the SWEEP button
 	order = 20,
 	build = build,
 }

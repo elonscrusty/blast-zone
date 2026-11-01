@@ -23,12 +23,12 @@ Harness.test("sweep rate: a burst of 2 passes, the 3rd is dropped, then it recov
 	Harness.eq(SweepRules.allowSwing(b, 50, 0.4), true)
 	Harness.eq(SweepRules.allowSwing(b, 50, 0.4), false)
 	Harness.eq(SweepRules.allowSwing(b, 50.1, 0.4), false)
-	-- one token needs interval x 0.8 = 0.32 s
-	Harness.eq(SweepRules.allowSwing(b, 50.33, 0.4), true)
-	Harness.eq(SweepRules.allowSwing(b, 50.34, 0.4), false)
+	-- one token needs interval x 0.95 = 0.38 s
+	Harness.eq(SweepRules.allowSwing(b, 50.39, 0.4), true)
+	Harness.eq(SweepRules.allowSwing(b, 50.40, 0.4), false)
 end)
 
-Harness.test("sweep rate: spamming cannot beat interval x 0.8 on average", function()
+Harness.test("sweep rate: spamming cannot beat interval x 0.95 on average", function()
 	local b = SweepRules.newBucket(0)
 	local accepted = 0
 	local now = 0
@@ -38,9 +38,9 @@ Harness.test("sweep rate: spamming cannot beat interval x 0.8 on average", funct
 			accepted += 1
 		end
 	end
-	-- burst 2 + 10 s / 0.304 s = about 34.9
-	Harness.truthy(accepted <= 36, `too many accepted: {accepted}`)
-	Harness.truthy(accepted >= 30, `too few accepted: {accepted}`)
+	-- burst 2 + 10 s / 0.361 s = about 29.7 (an honest client gets 26.3 + 2)
+	Harness.truthy(accepted <= 31, `too many accepted: {accepted}`)
+	Harness.truthy(accepted >= 27, `too few accepted: {accepted}`)
 end)
 
 Harness.test("sweep rate: rejected swings spend nothing and tokens never pass the burst", function()
@@ -54,11 +54,11 @@ end)
 
 Harness.test("sweep rate: interval is clamped and bad data is strict", function()
 	-- tiny interval cannot go below the global minimum
-	Harness.near(SweepRules.minGap(0.001), Config.Player.minInterval * 0.8)
-	Harness.near(SweepRules.minGap(0.4), 0.32)
-	Harness.near(SweepRules.minGap(0 / 0), 0.8)
-	Harness.near(SweepRules.minGap(-3), 0.8)
-	Harness.near(SweepRules.minGap(math.huge), 0.8)
+	Harness.near(SweepRules.minGap(0.001), Config.Player.minInterval * 0.95)
+	Harness.near(SweepRules.minGap(0.4), 0.38)
+	Harness.near(SweepRules.minGap(0 / 0), 0.95)
+	Harness.near(SweepRules.minGap(-3), 0.95)
+	Harness.near(SweepRules.minGap(math.huge), 0.95)
 end)
 
 Harness.test("sweep rate: a clock that goes backwards mints no tokens", function()
@@ -179,6 +179,17 @@ Harness.test("sell range: flat distance check and hub fallback from Config", fun
 	Harness.near(hx, Layout.hubX, 1e-9)
 	Harness.near(hz, Layout.hubZ, 1e-9)
 	Harness.near(math.sqrt(hx * hx + hz * hz), Config.World.hub.radius, 1e-6)
+end)
+
+Harness.test("sweep rate: honest swings with network jitter are never dropped", function()
+	local b = SweepRules.newBucket(0)
+	local sent = 0
+	for i = 1, 400 do
+		-- sent exactly every interval, arriving 0..120 ms late (worst case alternating)
+		sent += 0.3
+		local arrive = sent + (if i % 2 == 0 then 0.12 else 0)
+		Harness.truthy(SweepRules.allowSwing(b, arrive, 0.3), `swing {i} dropped`)
+	end
 end)
 
 return {}
