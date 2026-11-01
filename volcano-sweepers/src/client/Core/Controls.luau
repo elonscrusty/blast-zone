@@ -95,7 +95,7 @@ function Controls.requestSell()
 end
 
 function Controls.autoSweepActive(): boolean
-	return StoreLogic.setting(Store.view(), "autoSweep", false)
+	return StoreLogic.setting(Store.view(), "autoSweep", true)
 end
 
 function Controls.setAutoSweep(on: boolean)
@@ -178,16 +178,19 @@ local function feedback(
 	lookX: number,
 	lookZ: number,
 	reach: number,
-	ashNear: boolean
+	ashNear: boolean,
+	auto: boolean
 )
 	if Sfx ~= nil then
-		Sfx.play("sweep")
+		Sfx.play("sweep", if auto then 0.6 else nil)
 	end
-	if Haptics ~= nil then
+	if Haptics ~= nil and not auto then
 		Haptics.tap(0.3)
 	end
 	if CameraFx ~= nil then
-		CameraFx.nudge(0.45)
+		-- Auto-Sweep swings for as long as you walk through ash: a softer kick, so the camera does
+		-- not bob all the time; a held SWEEP gets the full one
+		CameraFx.nudge(if auto then 0.2 else 0.45)
 	end
 	if ashNear and Vfx ~= nil then
 		local ahead = math.min(reach * 0.6, 8)
@@ -216,7 +219,7 @@ local function onHeartbeat()
 	end
 	local view = Store.view()
 	local manual = anyHeld()
-	local auto = not manual and StoreLogic.setting(view, "autoSweep", false)
+	local auto = not manual and StoreLogic.setting(view, "autoSweep", true)
 	if not manual and not auto then
 		return
 	end
@@ -280,7 +283,7 @@ local function onHeartbeat()
 	else
 		nextSweepAt += interval
 	end
-	feedback(hrp, lx, lz, reach, ashNear)
+	feedback(hrp, lx, lz, reach, ashNear, auto)
 	Controls.swept:fire()
 end
 

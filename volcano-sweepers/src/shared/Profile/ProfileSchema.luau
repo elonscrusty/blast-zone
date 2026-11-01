@@ -211,7 +211,7 @@ function Schema.default(): Types.Profile
 		settings = {
 			music = true,
 			sfx = true,
-			autoSweep = false,
+			autoSweep = true, -- DESIGN: on by default, so a new player sweeps just by walking
 			shake = true,
 			vibrate = true,
 		},

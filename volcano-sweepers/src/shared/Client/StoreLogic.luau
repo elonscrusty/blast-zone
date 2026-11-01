@@ -96,16 +96,16 @@ function StoreLogic.new(): Store
 		get = function(key: string): any
 			return view[key]
 		end,
-		apply = function(patch: any): { Change }
+		apply = function(_patch: any): { Change }
 			return {}
 		end,
-		subscribe = function(key: string, fn: (value: any, old: any) -> ()): () -> ()
+		subscribe = function(_key: string, _fn: (value: any, old: any) -> ()): () -> ()
 			return function() end
 		end,
-		subscribeAll = function(fn: (key: string, value: any, old: any) -> ()): () -> ()
+		subscribeAll = function(_fn: (key: string, value: any, old: any) -> ()): () -> ()
 			return function() end
 		end,
-		onReady = function(fn: () -> ()) end,
+		onReady = function(_fn: () -> ()) end,
 	}
 
 	self.apply = function(patch: any): { Change }

@@ -8,5 +8,5 @@
 6. Golden cells: the `Golden` remote sends `{ cells, endsAt }` (after `AshService.flushNow`, so gold never sits on bare ground). The count is shared out per player (BurpGlue.goldenShare) into each player's best zone.
 7. Gems pay `coins x sellMult`; coins use the highest zone the player unlocked (<= the gem's zone), so locked zones cannot be cashed early.
 8. Sets: finishing a set toasts; `ClaimSet` marks `setsClaimed`, recomputes stats, `Profiles.saveSoon`.
-9. Not verifiable without Play tests: server-set `AssemblyLinearVelocity` on a client-owned character, `Humanoid:ChangeState` from the server, tween look. Carter should watch a bomb hit once.
+9. Not verifiable without Play tests: the server-made LinearVelocity bounce on a client-owned character, the tween look. Since the final audit the server only drops the lava ball; the ground ring and splash are the client's (`Vfx.lavaTelegraph`/`lavaImpact` at `bomb.radius`). Carter should watch a bomb hit once.
 10. Later (not v1): bomb scorch marks, ragdoll, per-bomb sounds.

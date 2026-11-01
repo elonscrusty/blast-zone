@@ -182,7 +182,9 @@ local function onSweep(player: Player)
 		return
 	end
 	state.lastSweepAt = now
-	if sweepingUntil[player] == nil then
+	-- compare with the character itself (not only our table): after a respawn mid-sweep the NEW body
+	-- must get the flag too, or other players never see this kid's tool swing again until a pause
+	if char:GetAttribute("VSSweeping") ~= true then
 		char:SetAttribute("VSSweeping", true)
 	end
 	sweepingUntil[player] = now + SWEEPING_SECONDS

@@ -1,10 +1,14 @@
 --!strict
--- Tiny, friendly note when this session cannot save: "Guest mode — not saving". The server may
--- send State key `offline` (boolean); without it the badge simply never shows.
+-- Tiny, friendly note when this session cannot save. The server sends State keys `offline` (the save
+-- is not loaded) and `offlineRetrying` (it is still trying in the background):
+--   offline + retrying   "⏳ Loading your save..."   (kind words: it usually comes back by itself)
+--   offline only         "👤 Guest mode — not saving"
+-- Without `offline` the badge never shows. Format.offlineBadge (pure, tested) picks the words.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Format = require(Shared.Ui.Format)
 local UiMath = require(Shared.Ui.UiMath)
 local Components = require(script.Parent.Parent.Ui.Components)
 local Theme = require(script.Parent.Parent.Ui.Theme)
@@ -19,23 +23,34 @@ function OfflineBadge.new(parent: Instance, ctx: Context.Context): Widget.Widget
 		name = "OfflineBadge",
 		size = UDim2.fromOffset(UiMath.K.offlineW, UiMath.K.offlineH),
 		icon = "👤",
-		text = "Guest mode — not saving",
+		text = "",
 		textSize = Theme.text.tiny,
 		align = Enum.TextXAlignment.Left,
 	})
 	pill.root.Visible = false
 
+	local shownText = ""
 	local function refresh()
-		local offline = ctx.view().offline == true
-		if offline == pill.root.Visible then
+		local view = ctx.view()
+		local note = Format.offlineBadge(view.offline, view.offlineRetrying)
+		if note ~= nil and note.text ~= shownText then
+			shownText = note.text
+			pill.setText(note.text)
+			local icon = pill.icon
+			if icon ~= nil and icon:IsA("TextLabel") then
+				icon.Text = note.icon
+			end
+		end
+		local on = note ~= nil
+		if on == pill.root.Visible then
 			return
 		end
-		pill.root.Visible = offline
-		if offline then
+		pill.root.Visible = on
+		if on then
 			Components.punch(pill.root, 0.1)
 		end
 	end
-	ctx.watch({ "offline" }, refresh)
+	ctx.watch({ "offline", "offlineRetrying" }, refresh)
 
 	return {
 		root = pill.root,

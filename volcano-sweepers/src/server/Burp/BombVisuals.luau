@@ -1,7 +1,8 @@
 --!strict
 -- Server-side lava bomb parts. A glowing orange ball falls from the sky and lands exactly when the
--- Burp Director says (landsAt); then it pops into a quick expanding ring that fades. The ground
--- circle (telegraph) is drawn by the client from the Bombs remote; these parts are only the fall + puff.
+-- Burp Director says (landsAt), then disappears. The ground circle (telegraph) and the splash are
+-- drawn by the client from the Bombs remote (Vfx.lavaTelegraph / lavaImpact); these parts are only
+-- the fall, so every player sees the same ball and only one ring.
 --
 --   BombVisuals.init()
 --   BombVisuals.spawn(bomb: Types.Bomb, now: number) -> boolean   false when 40 bombs are already live
@@ -22,7 +23,6 @@ local FOLDER_NAME = "VSBurp"
 local SKY_Y = 120
 local BALL_SIZE = 5
 local LAVA_COLOR = Color3.fromRGB(255, 120, 30)
-local RING_COLOR = Color3.fromRGB(255, 190, 70)
 
 type Entry = {
 	id: number,
@@ -30,7 +30,6 @@ type Entry = {
 	tween: Tween,
 	x: number,
 	z: number,
-	radius: number,
 	done: boolean,
 }
 
@@ -67,31 +66,8 @@ local function pop(entry: Entry)
 		liveN -= 1
 	end
 	entry.ball:Destroy()
-
-	-- flat expanding ring (a Cylinder's axis is its X axis, so lay it down with a 90 degree roll)
-	local ring = Instance.new("Part")
-	ring.Name = "LavaRing"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Material = Enum.Material.Neon
-	ring.Color = RING_COLOR
-	ring.Anchored = true
-	ring.CanCollide = false
-	ring.CanQuery = false
-	ring.CanTouch = false
-	ring.CastShadow = false
-	ring.Transparency = 0.15
-	ring.Size = Vector3.new(0.4, 2, 2)
-	ring.CFrame = CFrame.new(entry.x, Config.World.groundY + 0.3, entry.z)
-		* CFrame.Angles(0, 0, math.rad(90))
-	ring.Parent = getFolder()
-	local d = entry.radius * 2.4
-	local tween = TweenService:Create(
-		ring,
-		TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Size = Vector3.new(0.4, d, d), Transparency = 1 }
-	)
-	tween:Play()
-	Debris:AddItem(ring, 0.6)
+	-- the splash and the ground ring are the client's (Vfx.lavaImpact / lavaTelegraph at bomb.radius):
+	-- one ring on screen, drawn where the hit test really counts
 end
 
 function BombVisuals.init()
@@ -139,7 +115,6 @@ function BombVisuals.spawn(bomb: Types.Bomb, now: number): boolean
 		tween = tween,
 		x = bomb.x,
 		z = bomb.z,
-		radius = bomb.radius,
 		done = false,
 	}
 	live[bomb.id] = entry

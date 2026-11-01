@@ -61,17 +61,12 @@ local Sfx: any = softRequire(clientRoot, "Core", "Sfx")
 local Haptics: any = softRequire(clientRoot, "Core", "Haptics")
 local CameraFx: any = softRequire(clientRoot, "Core", "CameraFx")
 local AshRenderer: any = softRequire(clientRoot, "Ash", "AshRenderer")
-local Theme: any = softRequire(clientRoot, "Ui", "Theme")
+-- Screen-space colours, fonts and layers come from the one UI Theme (no raw colours on screen).
+local Theme = require(script.Parent.Parent.Ui.Theme)
 
--- Screen layers, from Theme.DisplayOrder when the UI kit is there.
-local ORDER = { hud = 10, overlay = 40 }
-if Theme ~= nil and type(Theme.DisplayOrder) == "table" then
-	ORDER.hud = tonumber(Theme.DisplayOrder.hud) or ORDER.hud
-	ORDER.overlay = tonumber(Theme.DisplayOrder.overlay) or ORDER.overlay
-end
-local ORDER_VIGNETTE = ORDER.hud - 1 -- under the HUD buttons
-local ORDER_TINT = ORDER.hud + 1 -- over the world and the HUD, under panels
-local ORDER_COINS = ORDER.overlay - 1 -- flying coins over everything but the splash
+local ORDER_VIGNETTE = Theme.DisplayOrder.hud - 1 -- under the HUD buttons
+local ORDER_TINT = Theme.DisplayOrder.hud + 1 -- over the world and the HUD, under panels
+local ORDER_COINS = Theme.DisplayOrder.overlay - 1 -- flying coins over everything but the splash
 
 -- A full-screen ScreenGui whose pixel (0, 0) is the screen's top-left (no inset, no safe area),
 -- so screen positions taken from other guis' AbsolutePosition can be used after subtracting ours.
@@ -365,15 +360,15 @@ local function makeFloater(): Floater
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBlack
+	label.Font = Theme.font.title
 	label.TextSize = 30
-	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextColor3 = Theme.color.white
 	label.Text = ""
 	label.Parent = gui
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 3
-	stroke.Color = Color3.fromRGB(40, 24, 24)
+	stroke.Color = Theme.color.ink
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 	stroke.Parent = label
 
@@ -529,7 +524,7 @@ function Vfx.coinBurst(count: number)
 		frame.Name = "Coin"
 		frame.AnchorPoint = Vector2.new(0.5, 0.5)
 		frame.Size = UDim2.fromOffset(px, px)
-		frame.BackgroundColor3 = Color3.fromRGB(255, 210, 63)
+		frame.BackgroundColor3 = Theme.color.gold
 		frame.BorderSizePixel = 0
 		frame.Visible = false
 		local corner = Instance.new("UICorner")
@@ -537,13 +532,13 @@ function Vfx.coinBurst(count: number)
 		corner.Parent = frame
 		local stroke = Instance.new("UIStroke")
 		stroke.Thickness = 2.5
-		stroke.Color = Color3.fromRGB(184, 120, 20)
+		stroke.Color = Theme.color.goldDark
 		stroke.Parent = frame
 		local shine = Instance.new("Frame")
 		shine.AnchorPoint = Vector2.new(0.5, 0.5)
 		shine.Position = UDim2.fromScale(0.42, 0.4)
 		shine.Size = UDim2.fromScale(0.34, 0.34)
-		shine.BackgroundColor3 = Color3.fromRGB(255, 244, 190)
+		shine.BackgroundColor3 = Theme.color.goldLight
 		shine.BorderSizePixel = 0
 		local shineCorner = Instance.new("UICorner")
 		shineCorner.CornerRadius = UDim.new(0.5, 0)
@@ -767,7 +762,7 @@ local function ensureVignette(): boolean
 		frame.Name = "Edge"
 		frame.Size = spec.size
 		frame.Position = spec.pos
-		frame.BackgroundColor3 = Color3.fromRGB(255, 50, 20)
+		frame.BackgroundColor3 = Theme.color.red
 		frame.BackgroundTransparency = 1
 		frame.BorderSizePixel = 0
 		frame.Active = false

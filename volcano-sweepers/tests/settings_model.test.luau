@@ -57,6 +57,8 @@ Harness.test("settings: guest note only when offline", function()
 	local off = SettingsModel.build({ offline = true })
 	Harness.eq(off.offline, true)
 	Harness.truthy(string.find(off.offlineText, "not being saved", 1, true) ~= nil)
+	local loading = SettingsModel.build({ offline = true, offlineRetrying = true })
+	Harness.truthy(string.find(loading.offlineText, "still loading", 1, true) ~= nil)
 end)
 
 Harness.test("settings: the vibrate row is honest about controllers", function()

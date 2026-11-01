@@ -103,7 +103,13 @@ Harness.test(
 		h = TutorialLogic.step(s, facts({ now = 17, canBuy = false }))
 		Harness.eq(h.text, nil, "nothing affordable: stay quiet")
 		h = TutorialLogic.step(s, facts({ now = 18, canBuy = true }))
-		Harness.eq(h.point, "upgrades")
+		Harness.eq(h.point, "menu", "first the one MENU button on the HUD")
+		h = TutorialLogic.step(
+			s,
+			facts({ now = 18.5, canBuy = true, panelOpen = true, menuOpen = true })
+		)
+		Harness.eq(h.point, "upgrades", "then the Upgrades tile inside the open menu")
+		Harness.eq(h.text, "Tap Upgrades!")
 		h = TutorialLogic.step(s, facts({ now = 19, canBuy = true, panelOpen = true }))
 		Harness.eq(h.point, nil, "no finger over an open panel")
 		TutorialLogic.onBought(s, 20)

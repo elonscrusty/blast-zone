@@ -149,7 +149,7 @@ Harness.test("schema: default() is a valid profile with every field and sane val
 	eq(p.tutorialDone, false)
 	eq(p.settings.music, true)
 	eq(p.settings.sfx, true)
-	eq(p.settings.autoSweep, false)
+	eq(p.settings.autoSweep, true, "Auto-Sweep is on for new players")
 	eq(p.settings.shake, true)
 	eq(p.settings.vibrate, true)
 	for _, k in ProfileSchema.STAT_KEYS do
@@ -288,7 +288,7 @@ Harness.test("schema: sanitize leaves a valid profile exactly as it was", functi
 	p.daily.streak = 3
 	p.stats.ashSwept = 123456
 	p.stats.playSeconds = 7200.25
-	p.settings.autoSweep = true
+	p.settings.autoSweep = false -- not the default, so the round trip is really checked
 	p.settings.music = false
 	p.tutorialDone = true
 	local clean = ProfileSchema.sanitize(p)
@@ -365,7 +365,7 @@ Harness.test("schema: sanitize fixes wrong types, NaN, inf, negatives and huge n
 	eq(clean.stats.playSeconds, 0)
 	eq(clean.settings.music, true, "wrong type -> default")
 	eq(clean.settings.sfx, false)
-	eq(clean.settings.autoSweep, false)
+	eq(clean.settings.autoSweep, true, "wrong type -> default (on)")
 	eq(clean.tutorialDone, false)
 	eq((clean :: any).hacked, nil, "unknown key dropped")
 end)

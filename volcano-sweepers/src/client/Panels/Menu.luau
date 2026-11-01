@@ -90,7 +90,10 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): () -> ()
 	end
 
 	local stopSize = PanelKit.watchSize(parent, function(size: Vector2)
-		local cols = if size.X >= PanelKit.WIDE_FROM then L.colsWide else L.colsTall
+		-- a wide, short body (any landscape phone, even a 568 x 320 one) gets 5 tiles a row so the
+		-- whole menu fits without scrolling; a tall body (portrait) gets 3
+		local wide = size.X >= PanelKit.WIDE_FROM or size.X >= size.Y * 1.6
+		local cols = if wide then L.colsWide else L.colsTall
 		local rows = math.max(1, math.ceil(#tiles / cols))
 		local fitH = (size.Y - 8 - (rows - 1) * Theme.size.gap) / rows
 		PanelKit.setGrid(grid, cols, math.floor(math.clamp(fitH, L.tileMinH, L.tileMaxH)))

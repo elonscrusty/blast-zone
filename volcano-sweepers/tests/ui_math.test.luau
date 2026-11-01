@@ -349,3 +349,34 @@ Harness.test("UiMath.panelRect stays on screen, under the top bar", function()
 		Harness.truthy(r.w >= 280 and r.h >= 240, `{vp.name}: panel too small`)
 	end
 end)
+
+Harness.test(
+	"UiMath.layout: SWEEP, AUTO and SELL stay clear of Roblox's own jump button",
+	function()
+		-- Roblox TouchJump: short side <= 500 px -> 70 px at (W - 95, H - 90); else 120 px at (W - 170, H - 210)
+		local screens = {
+			{ 800, 360 },
+			{ 844, 390 },
+			{ 640, 360 },
+			{ 568, 320 },
+			{ 1024, 768 },
+			{ 1366, 1024 },
+		}
+		for _, sc in screens do
+			local w, h = sc[1], sc[2]
+			local s = UiMath.scaleFor(w, h)
+			local big = math.min(w, h) > 500
+			local size = if big then 120 else 70
+			local jx = w - (size * 1.5 - 10)
+			local jy = if big then h - size * 1.75 else h - size - 20
+			local jump = { x = jx / s, y = jy / s, w = size / s, h = size / s }
+			local l = UiMath.layout(w / s, h / s, { top = 58 / s, touch = true, bigJump = big })
+			for _, key in { "sweep", "auto", "sell" } do
+				Harness.truthy(
+					not UiMath.intersects((l :: any)[key], jump),
+					`{w}x{h}: {key} overlaps Roblox's jump button`
+				)
+			end
+		end
+	end
+)

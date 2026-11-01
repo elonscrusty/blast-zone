@@ -661,6 +661,8 @@ Harness.test("adaptive: pace feeds big tools, more with friends, never past the 
 	end
 	Harness.eq(ProgressRules.paceShare(0), 0)
 	Harness.eq(ProgressRules.paceShare(0 / 0), 0)
+	-- two friends are fed like a full server (they split the starting ash, so co-op never feels worse)
+	Harness.near(ProgressRules.paceShare(2), ProgressRules.PACE_SHARE_MAX, 1e-9)
 	-- a dirty island ignores pace; an emptied zone gets it
 	local base = ProgressRules.regrowRate(1)
 	Harness.near(ProgressRules.adaptiveRate(1, 0.05, 0.05, 0, 20), base, 1e-9)

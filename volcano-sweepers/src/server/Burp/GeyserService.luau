@@ -306,6 +306,11 @@ end
 
 local function poll()
 	if next(gems) == nil then
+		if #order > 0 then
+			-- nothing lying around: forget the old ids so the list never grows over a long server life
+			table.clear(order)
+			orderHead = 1
+		end
 		return
 	end
 	local t = os.clock()

@@ -84,6 +84,8 @@ local function relayout(s: State)
 		top = Theme.topInset() / screen.scale,
 		touch = UserInputService.TouchEnabled,
 		offline = s.ctx.view().offline == true,
+		-- Roblox draws a bigger jump button when the real screen's short side is over 500 px
+		bigJump = math.min(screen.size.X, screen.size.Y) * screen.scale > 500,
 	})
 
 	local function put(w: Widget.Widget?, r: UiMath.Rect)

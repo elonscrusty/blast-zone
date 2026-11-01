@@ -777,13 +777,14 @@ function Components.Badge(props: BadgeProps): Badge
 				scale.Scale = 0
 				Components.tween(scale, { Scale = 1 }, Theme.ease.pop).Completed:Connect(function()
 					if shown then
+						stopPulse() -- a quick off/on must never leave two pulses running
 						local t = TweenService:Create(
 							scale,
 							TweenInfo.new(
 								0.7,
 								Enum.EasingStyle.Sine,
 								Enum.EasingDirection.InOut,
-								-1,
+								BADGE_PULSES, -- a few pulses, then the dot stays still
 								true
 							),
 							{ Scale = 1.18 }

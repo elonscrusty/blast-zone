@@ -3,7 +3,7 @@
 --   SettingsModel.build(source) -> View
 --   SettingsModel.isKey(key) -> boolean           only these five keys may be sent with SetSetting
 --   SettingsModel.valueOf(settings, key) -> boolean
--- `source` is the store view: it needs `settings` and may have `offline`.
+-- `source` is the store view: it needs `settings` and may have `offline` / `offlineRetrying`.
 
 local Config = require("../Config")
 
@@ -96,7 +96,9 @@ function SettingsModel.build(source: Source): View
 	return {
 		rows = rows,
 		offline = source.offline == true,
-		offlineText = "Guest mode: your game is not being saved this time.",
+		offlineText = if source.offlineRetrying == true
+			then "Your save is still loading. It usually comes back in a minute."
+			else "Guest mode: your game is not being saved this time.",
 		steps = STEPS,
 		credits = `Thanks for playing {Config.Game.Name}!`,
 	}

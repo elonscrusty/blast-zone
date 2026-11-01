@@ -11,7 +11,8 @@
 -- then runs for the rest of this visit. Skipped completely when Store.tutorialDone is already true.
 --
 -- The finger finds HUD buttons by name (Hud/Actions: SweepButton, AutoButton, SellButton; Hud/MenuBar:
--- Menu_upgrades, or a single Menu_menu launcher). A missing button just means no finger.
+-- the MENU launcher Menu_menu; Panels/Menu: the Upgrades tile Menu_upgrades, only while the tile menu
+-- is open). A missing button just means no finger.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -24,6 +25,7 @@ local Config = require(Shared.Config)
 local Layout = require(Shared.Ash.Layout)
 local StoreLogic = require(Shared.Client.StoreLogic)
 local TutorialLogic = require(Shared.Client.TutorialLogic)
+local Theme = require(script.Parent.Parent.Ui.Theme)
 local Net = require(script.Parent.Net)
 local Store = require(script.Parent.Store)
 
@@ -52,16 +54,17 @@ local POINT_NAMES: { [string]: { string } } = {
 	sweep = { "SweepButton" },
 	auto = { "AutoButton" },
 	sell = { "SellButton" },
-	upgrades = { "Menu_upgrades", "Menu_menu", "MenuButton" },
+	menu = { "Menu_menu" }, -- the HUD's MENU launcher
+	upgrades = { "Menu_upgrades" }, -- the Upgrades tile inside the open tile menu
 }
 
--- Colours: from the UI Theme when it is there (one palette for the whole game).
-local TEXT_COLOR = Color3.fromRGB(255, 233, 120)
-local STROKE_COLOR = Color3.fromRGB(60, 30, 20)
-local BEAM_A = Color3.fromRGB(255, 210, 63)
-local BEAM_B = Color3.fromRGB(255, 122, 89)
-local FONT = Enum.Font.GothamBlack
-local ORDER_POINTER = 39
+-- Colours and font: the one UI Theme (one palette for the whole game).
+local TEXT_COLOR: Color3 = Theme.color.goldLight
+local STROKE_COLOR: Color3 = Theme.color.ink
+local BEAM_A: Color3 = Theme.color.gold
+local BEAM_B: Color3 = Theme.color.lava
+local FONT: Enum.Font = Theme.font.title
+local ORDER_POINTER: number = Theme.DisplayOrder.overlay - 1 -- over panels, under the splash
 
 local stage = "idle"
 local logic: TutorialLogic.State? = nil
@@ -79,26 +82,10 @@ local pointSearchAt: { [string]: number } = {}
 local conns: { RBXScriptConnection } = {}
 local signalConns: { any } = {} -- Shared/Signal connections (disconnect, lowercase)
 local polled = 0
-local panelOpen = false
+local openPanelId: string? = nil
+local lastPoint: string? = nil -- what the finger points at (refreshed every frame while shown)
 local lastAshCell: number? = nil
 local lastAshSearch = -10
-
-local function loadTheme()
-	local Theme: any = softRequire("Ui", "Theme")
-	if Theme == nil or type(Theme.color) ~= "table" then
-		return
-	end
-	TEXT_COLOR = Theme.color.goldLight or TEXT_COLOR
-	STROKE_COLOR = Theme.color.ink or STROKE_COLOR
-	BEAM_A = Theme.color.gold or BEAM_A
-	BEAM_B = Theme.color.lava or BEAM_B
-	if type(Theme.font) == "table" and Theme.font.title ~= nil then
-		FONT = Theme.font.title
-	end
-	if type(Theme.DisplayOrder) == "table" and type(Theme.DisplayOrder.overlay) == "number" then
-		ORDER_POINTER = Theme.DisplayOrder.overlay - 1
-	end
-end
 
 local function myRoot(): BasePart?
 	local character = Players.LocalPlayer.Character
@@ -329,7 +316,7 @@ local function findButton(kind: string): GuiObject?
 	end
 	pointCache[kind] = nil
 	local now = os.clock()
-	if now - (pointSearchAt[kind] or -10) < 1 then
+	if now - (pointSearchAt[kind] or -10) < 0.5 then
 		return nil
 	end
 	pointSearchAt[kind] = now
@@ -519,8 +506,9 @@ local function poll()
 		ashInReach = ashInReach(hrp, view),
 		nearHut = flatHut <= SELL_RANGE,
 		canBuy = s.stage == "buy" and canBuy(view),
-		panelOpen = panelOpen,
-		autoOn = StoreLogic.setting(view, "autoSweep", false),
+		panelOpen = openPanelId ~= nil,
+		menuOpen = openPanelId == "menu",
+		autoOn = StoreLogic.setting(view, "autoSweep", true),
 		touch = isTouch(),
 	}
 	local hint = TutorialLogic.step(s, facts)
@@ -548,6 +536,7 @@ local function poll()
 		hideBeam()
 	end
 
+	lastPoint = hint.point
 	if hint.point ~= nil then
 		showPointer(hint.point)
 	else
@@ -560,7 +549,6 @@ function Tutorial.init()
 		return
 	end
 	started = true
-	loadTheme()
 	Store.onReady(function()
 		if Store.get("tutorialDone") == true then
 			stage = "done"
@@ -600,7 +588,8 @@ function Tutorial.init()
 			table.insert(
 				signalConns,
 				PanelHost.stateChanged:connect(function(openId: any)
-					panelOpen = openId ~= nil
+					openPanelId = if type(openId) == "string" then openId else nil
+					polled = POLL -- re-point at once (MENU -> the Upgrades tile)
 				end)
 			)
 		end
@@ -610,20 +599,13 @@ function Tutorial.init()
 			RunService.Heartbeat:Connect(function(dt: number)
 				polled += dt
 				-- the finger bounces smoothly between polls
-				if pointerGui ~= nil and pointerGui.Enabled and s.stage ~= "done" then
-					local hint = nil
-					if s.stage == "sweep" then
-						hint = "sweep"
-					elseif s.stage == "fill" then
-						hint = "auto"
-					elseif s.stage == "sell" then
-						hint = "sell"
-					elseif s.stage == "buy" then
-						hint = "upgrades"
-					end
-					if hint ~= nil then
-						showPointer(hint)
-					end
+				if
+					pointerGui ~= nil
+					and pointerGui.Enabled
+					and s.stage ~= "done"
+					and lastPoint ~= nil
+				then
+					showPointer(lastPoint)
 				end
 				if polled < POLL then
 					return

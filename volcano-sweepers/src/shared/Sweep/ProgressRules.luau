@@ -23,7 +23,8 @@
 --   demand  = share(worked) x measured sweep rate (units/s, smoothed), share 0.35 -> 0.85
 --             as worked goes from 50% to 95% clean
 --   fed     = ramp(worked, 0.1, 0.8) x paceShare(n) x summed pace   (pace = what each kid COULD
---             sweep with their stats, trips counted; paceShare 0.5 solo, +0.12 a friend, max 0.95)
+--             sweep with their stats, trips counted; paceShare 0.5 solo, 0.95 with 2+ kids: two
+--             friends already split the island's starting ash, so they get the full feed)
 --   rate    = min(totalCap(n), max(base x boost, demand, fed)),  totalCap = 30 u/s a player, <= 480
 -- The shares stay below 1, so a group that sweeps hard still makes net progress, and the cap grows
 -- with the server so each kid's supply holds up as friends join. Regrowth comes in small piles
@@ -337,10 +338,11 @@ function ProgressRules.pace(d: {
 end
 
 -- Share of the players' summed pace the island can feed back. Solo it is half (the whole island's
--- starting ash is theirs too); every friend adds a bit because a crowd shares that starting ash, so
--- each kid's supply holds up as the server fills. Always below 1: sweeping hard still wins zones.
+-- starting ash is theirs too). With a friend it is already the most: the pair splits that starting
+-- ash, and at +0.12 a friend a duo earned about a third of a solo kid's coins in the first 40 minutes
+-- (pacing.test), which made playing together feel worse. Always below 1: sweeping hard still wins.
 ProgressRules.PACE_SHARE = 0.5
-ProgressRules.PACE_SHARE_PER_EXTRA = 0.12
+ProgressRules.PACE_SHARE_PER_EXTRA = 0.45
 ProgressRules.PACE_SHARE_MAX = 0.95
 -- ... fed from when the worked zone is this clean, fully once it is this clean (a half-swept zone is
 -- already thin: walking from pile to pile, not sweeping, is what slows kids down)

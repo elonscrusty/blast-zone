@@ -15,6 +15,7 @@ export type LayoutOpts = {
 	top: number, -- virtual px reserved at the top for the Roblox top bar
 	touch: boolean, -- true on touch devices (leave room for the default jump button)
 	offline: boolean?, -- true when the "Guest mode" badge shows (only then is room kept for it)
+	bigJump: boolean?, -- tablet-size touch screen (short side > 500 real px): Roblox's jump is bigger
 	menuCount: number?, -- ignored (kept so old callers still work): the menu is ONE launcher button
 }
 
@@ -70,7 +71,11 @@ UiMath.K = {
 	sellSize = 76,
 	autoH = 48,
 	bottomPad = 12,
+	-- Roblox's jump button: phones (short side <= 500 real px) 70 px at 25..95 px from the right edge;
+	-- tablets 120 px at 50..170 px from the right and 90..210 px from the bottom, which is up to 113 x
+	-- 140 virtual px at UI scale 1.5 (opts.bigJump).
 	jumpReserve = 100,
+	jumpReserveBig = 116,
 	menuSize = 48,
 	centerMaxW = 300,
 	textMin = 11, -- the smallest any text may shrink to (at UI scale 1)
@@ -324,7 +329,8 @@ function UiMath.layout(vw: number, vh: number, opts: LayoutOpts): Layout
 	local menu = rect(m, pack.y + pack.h + 6, k.menuSize, k.menuSize)
 
 	-- Bottom right: SWEEP (the thumb button) next to where Roblox puts its jump button.
-	local rightEdge = vw - (if opts.touch then k.jumpReserve + 8 else m)
+	local reserve = if opts.bigJump == true then k.jumpReserveBig else k.jumpReserve
+	local rightEdge = vw - (if opts.touch then reserve + 8 else m)
 	local sweep =
 		rect(rightEdge - k.sweepSize, vh - k.bottomPad - k.sweepSize, k.sweepSize, k.sweepSize)
 	local auto = rect(sweep.x, sweep.y - 6 - k.autoH, k.sweepSize, k.autoH)
@@ -336,7 +342,7 @@ function UiMath.layout(vw: number, vh: number, opts: LayoutOpts): Layout
 		sell = rect(sweep.x + sweep.w - k.sellSize, auto.y - 6 - k.sellSize, k.sellSize, k.sellSize)
 	end
 	local jump = if opts.touch
-		then rect(vw - k.jumpReserve, vh - k.jumpReserve, k.jumpReserve, k.jumpReserve)
+		then rect(vw - reserve, vh - reserve, reserve, reserve)
 		else rect(vw, vh, 0, 0)
 	local play = UiMath.playRect(vw, vh)
 

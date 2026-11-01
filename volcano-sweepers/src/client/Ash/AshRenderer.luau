@@ -72,6 +72,7 @@ local goldLook: { [number]: boolean } = {} -- the Part currently wears the gold 
 local pool: { Part } = {}
 local liveParts = 0
 local starved: { number } = {} -- cells that wanted a Part while over PART_CAP
+local isStarved: { [number]: boolean } = {} -- each cell waits in `starved` at most once
 
 local zoneAsh: { [number]: string } = {}
 for _, zone in Zones.list do
@@ -128,7 +129,7 @@ local function applyLook(i: number, part: Part)
 	end
 end
 
-local function acquire(i: number): Part
+local function acquire(): Part
 	local part = table.remove(pool)
 	if part == nil then
 		part = newPart()
@@ -171,9 +172,14 @@ local function release(i: number)
 			part:Destroy()
 		end
 		-- a Part is free again: give it to a cell that was waiting (if it still wants one)
-		local waiting = table.remove(starved)
-		if waiting ~= nil and range.active[waiting] and levels[waiting] > 0 then
-			queue.push(waiting)
+		-- (skip ones that left the range or emptied while they waited)
+		while #starved > 0 do
+			local waiting = table.remove(starved) :: number
+			isStarved[waiting] = nil
+			if range.active[waiting] and levels[waiting] > 0 and partOf[waiting] == nil then
+				queue.push(waiting)
+				break
+			end
 		end
 	end
 end
@@ -225,10 +231,13 @@ local function refresh(i: number)
 	if part == nil then
 		if liveParts >= PART_CAP then
 			-- over budget: this (far) cell waits until another Part is given up
-			table.insert(starved, i)
+			if not isStarved[i] then
+				isStarved[i] = true
+				table.insert(starved, i)
+			end
 			return
 		end
-		local fresh = acquire(i)
+		local fresh = acquire()
 		applyLook(i, fresh)
 		partOf[i] = fresh
 		heightOf[i] = h

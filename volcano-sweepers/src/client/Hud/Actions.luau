@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local StoreLogic = require(Shared.Client.StoreLogic)
 local UiMath = require(Shared.Ui.UiMath)
 local Bridge = require(script.Parent.Parent.Ui.Bridge)
 local Components = require(script.Parent.Parent.Ui.Components)
@@ -30,6 +31,7 @@ export type ActionsWidget = {
 
 local SELL_PAD_TAG = "VSSellPad"
 local SELL_VALUE_H = 18
+local AUTO_SETTLE = 1.5 -- seconds after a tap before the store's value wins again (snap back)
 
 local function isPress(input: InputObject): boolean
 	local t = input.UserInputType
@@ -195,12 +197,14 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 		textSize = Theme.text.small,
 	})
 	local autoOn = false
+	local autoTappedAt = -10
 	local function paintAuto()
 		autoBtn.setVariant(if autoOn then "good" else "dark")
 		autoBtn.setText(if autoOn then "AUTO ON" else "AUTO OFF")
 	end
 	autoBtn.onClick(function()
 		autoOn = not autoOn -- shows at once; the server's State confirms it
+		autoTappedAt = os.clock()
 		paintAuto()
 		Bridge.send("SetSetting", "autoSweep", autoOn)
 	end)
@@ -347,13 +351,21 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 	end
 
 	-- ===== settings (AUTO) =====
+	-- The store (the server's word) wins, except right after a tap while the answer is on its way.
+	-- If the server never agreed (a dropped or rate-limited request), the chip snaps back.
 	local function refreshAuto()
-		local settings = ctx.view().settings
-		if type(settings) == "table" and type(settings.autoSweep) == "boolean" then
-			if settings.autoSweep ~= autoOn then
-				autoOn = settings.autoSweep
-				paintAuto()
-			end
+		if os.clock() - autoTappedAt < AUTO_SETTLE then
+			return
+		end
+		-- missing = ON, the same default as Controls, Tutorial and the Settings panel (DESIGN)
+		local view = ctx.view()
+		if type(view.settings) ~= "table" then
+			return -- nothing from the server yet
+		end
+		local on = StoreLogic.setting(view, "autoSweep", true)
+		if on ~= autoOn then
+			autoOn = on
+			paintAuto()
 		end
 	end
 
@@ -361,6 +373,7 @@ function Actions.new(parent: Instance, ctx: Context.Context): ActionsWidget
 	ctx.every(0.25, pollPads)
 	ctx.watch({ "carried", "carriedValue", "derived" }, refreshSell)
 	ctx.watch({ "settings" }, refreshAuto)
+	ctx.every(0.5, refreshAuto)
 
 	return {
 		sweep = sweepRoot,

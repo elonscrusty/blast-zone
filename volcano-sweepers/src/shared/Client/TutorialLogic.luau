@@ -11,7 +11,8 @@
 --   fill   ash went in the backpack    "Fill your backpack!"     (+ finger on AUTO once, touch only)
 --   sell   backpack half full          "Walk to the Trade Hut!"  + line to the hut
 --                                      "Tap SELL!" / "Press F to SELL!" at the hut
---   buy    first sale done             "Tap 🛠 to get stronger!" + finger on the Upgrades button
+--   buy    first sale done             "Tap MENU to get stronger!" + finger on the MENU button,
+--                                      then (menu open) "Tap Upgrades!" + finger on the Upgrades tile
 --   done
 --
 --   TutorialLogic.new(now) -> State
@@ -37,13 +38,14 @@ export type Facts = {
 	ashInReach: boolean,
 	nearHut: boolean,
 	canBuy: boolean, -- some upgrade is affordable right now
-	panelOpen: boolean,
+	panelOpen: boolean, -- any panel is open (the tile menu counts)
+	menuOpen: boolean?, -- the tile menu (panel "menu") is the open panel
 	autoOn: boolean,
 	touch: boolean, -- phone / tablet without a keyboard
 }
 
 export type Beam = "ash" | "hut"
-export type Point = "sweep" | "auto" | "sell" | "upgrades"
+export type Point = "sweep" | "auto" | "sell" | "menu" | "upgrades"
 
 export type Hint = {
 	text: string?,
@@ -176,10 +178,13 @@ function TutorialLogic.step(state: State, f: Facts): Hint
 		if not f.canBuy then
 			return NONE -- keep sweeping; the hint comes back once something is affordable
 		end
+		if f.menuOpen == true then
+			return { text = "Tap Upgrades!", point = "upgrades" } -- the tile inside the menu
+		end
 		if f.panelOpen then
 			return { text = nil } -- the shop is open: let them look (no finger over the cards)
 		end
-		return { text = "Tap 🛠 to get stronger!", point = "upgrades" }
+		return { text = "Tap MENU to get stronger!", point = "menu" }
 	elseif stage == "cheer" then
 		if now - state.stageAt >= TutorialLogic.CHEER_SECONDS then
 			go(state, "done", now)

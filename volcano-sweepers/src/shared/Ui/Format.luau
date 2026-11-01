@@ -123,4 +123,17 @@ function Format.clip(text: string, maxChars: number): string
 	return head .. "…"
 end
 
+-- The HUD's small save note. `offline` = this visit's save is not loaded; `retrying` = the server is
+-- still trying to load it in the background (it usually comes back on its own, so the words stay
+-- calm). nil = no note at all.
+function Format.offlineBadge(offline: any, retrying: any): { icon: string, text: string }?
+	if offline ~= true then
+		return nil
+	end
+	if retrying == true then
+		return { icon = "⏳", text = "Loading your save..." }
+	end
+	return { icon = "👤", text = "Guest mode — not saving" }
+end
+
 return Format

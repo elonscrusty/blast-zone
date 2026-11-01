@@ -44,7 +44,7 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): (() -> ())?
 		layoutOrder = 1,
 		size = UDim2.new(1, 0, 0, OFFLINE_H),
 	})
-	Components.Label({
+	local offlineLabel = Components.Label({
 		parent = offlineCard,
 		name = "OfflineText",
 		text = `👤 {view.offlineText}`,
@@ -193,6 +193,7 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): (() -> ())?
 		dirty = false
 		view = SettingsModel.build(Bridge.view())
 		offlineCard.Visible = view.offline
+		offlineLabel.Text = if view.offline then `👤 {view.offlineText}` else ""
 		local now = os.clock()
 		for _, row in view.rows do
 			local toggle = toggles[row.key]
@@ -205,7 +206,7 @@ local function build(parent: Frame, _ctx: PanelHost.Ctx): (() -> ())?
 	end
 
 	render()
-	live.watch({ "settings", "offline" }, function()
+	live.watch({ "settings", "offline", "offlineRetrying" }, function()
 		dirty = true
 	end)
 	-- also look again every half second: if the server said no, the switch snaps back

@@ -202,6 +202,15 @@ local function rescuePlayers()
 				if fromCentre < plan.coneRadius + 4 or p.Y < -20 then
 					local spot = World.spawnPositions[player.UserId % count + 1]
 					character:PivotTo(CFrame.new(spot + Vector3.new(0, 4, 0)))
+					-- the server moved this body itself: the movement check must trust the new spot
+					-- (otherwise a ready player could be snapped straight back into the volcano)
+					local mw = script.Parent.Parent:FindFirstChild("Core")
+					local mod = if mw ~= nil then mw:FindFirstChild("MoveWatch") else nil
+					if mod ~= nil and mod:IsA("ModuleScript") then
+						pcall(function()
+							(require(mod) :: any).teleported(player)
+						end)
+					end
 				end
 			end
 		end
