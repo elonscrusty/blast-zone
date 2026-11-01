@@ -31,6 +31,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local CullLogic = require(Shared.Client.CullLogic)
+local AshShape = require(Shared.Client.AshShape)
 local Layout = require(Shared.Ash.Layout)
 local StoreLogic = require(Shared.Client.StoreLogic)
 local Tools = require(Shared.Catalog.Tools)
@@ -90,6 +91,7 @@ local Vfx = {}
 
 local LocalPlayer = Players.LocalPlayer
 local GROUND_Y: number = Config.World.groundY
+local LAYER_TOP: number = AshShape.T_FULL -- studs: top of a full ash layer (sweep dust starts here)
 local BODY_RADIUS: number = tonumber((BurpTuning :: any).bodyRadius) or 0.5
 
 -- ===== tiny helpers =====
@@ -181,7 +183,15 @@ local folder = Instance.new("Folder")
 folder.Name = "VSFxClient"
 folder.Parent = workspace
 
+-- The ash layer's own colour there (the renderer blends zone tints and adds soft noise), so dust
+-- matches the ground it comes from.
 local function ashHexAt(x: number, z: number): string
+	if AshRenderer ~= nil and AshRenderer.layerHex ~= nil then
+		local hex = AshRenderer.layerHex(x, z)
+		if type(hex) == "string" then
+			return hex
+		end
+	end
 	local zone = Layout.zoneAt(x, z)
 	if zone ~= nil and Zones.byId[zone] ~= nil then
 		return Zones.byId[zone].ash
@@ -846,13 +856,18 @@ local function placeDisc(
 	p.CFrame = CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90))
 end
 
--- Height of the tallest ash slab under a disc, so the disc is not buried in the ash.
+-- Height of the ash layer's top under a disc (tallest cell), so the disc sits on the layer: not
+-- buried in it, not floating over it.
 local function discHeight(x: number, z: number, radius: number): number
 	local top = 0
 	if AshRenderer ~= nil then
+		local maxLevel = Config.World.maxUnitsPerCell
 		for _, i in Layout.cellsInRadius(x, z, radius) do
-			top = math.max(top, CullLogic.slabHeight(AshRenderer.levelAt(i)))
+			top = math.max(top, AshShape.thickness(AshRenderer.levelAt(i), maxLevel))
 		end
+	end
+	if top > 0 then
+		top += AshShape.PARITY + AshShape.GOLD_LIFT
 	end
 	return GROUND_Y + math.min(top, 3) + 0.12
 end
@@ -1171,11 +1186,8 @@ Net.on("SweepFx", function(info: any)
 	local reach = if tool ~= nil then tool.reach else 7
 	local ahead = math.min(reach * 0.6, 8)
 	local px, pz = x + dx / len * ahead, z + dz / len * ahead
-	local hex = ashHexAt(px, pz)
-	if tool ~= nil then
-		hex = CullLogic.mixHex(hex, tool.color, 0.3)
-	end
-	Vfx.puff(Vector3.new(px, GROUND_Y + 0.6, pz), hex, 4)
+	-- the cloud is the layer itself being kicked up: same colour, from its top
+	Vfx.puff(Vector3.new(px, GROUND_Y + LAYER_TOP, pz), ashHexAt(px, pz), 4)
 end)
 
 Players.PlayerRemoving:Connect(function(player: Player)
@@ -1446,6 +1458,8 @@ if AshRenderer ~= nil and AshRenderer.cleared ~= nil then
 		local z1 = Zones.byId[zone]
 		local r, g, b = CullLogic.shade(if z1 ~= nil then z1.ground else "#F2D9A0", 0.3)
 		emit("glitter", Vector3.new(x, GROUND_Y + 0.8, z), Color3.fromRGB(r, g, b), 5)
+		-- a little low dust off the fresh trench, in the layer's colour
+		emit("dust", Vector3.new(x, GROUND_Y + 0.4, z), color3(ashHexAt(x, z)), 3)
 	end)
 end
 

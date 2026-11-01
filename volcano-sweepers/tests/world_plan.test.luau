@@ -1,6 +1,7 @@
 --!strict
 local Harness = require("./harness")
 local Config = require("../src/shared/Config")
+local Layout = require("../src/shared/Ash/Layout")
 local WorldPlan = require("../src/shared/WorldPlan")
 
 local W = Config.World
@@ -44,7 +45,8 @@ Harness.test("world plan: same seed gives identical lists, other seed differs", 
 end)
 
 Harness.test("world plan: decor counts and part budget", function()
-	Harness.truthy(#plan.decor >= 340, `too little decor: {#plan.decor}`)
+	-- the big island has sparse, bigger landmarks drawn with the picked Toy models
+	Harness.truthy(#plan.decor >= 250, `too little decor: {#plan.decor}`)
 	Harness.truthy(#plan.decor <= 900, `too much decor: {#plan.decor}`)
 	for kind in WorldPlan.partCost do
 		Harness.truthy(
@@ -53,8 +55,25 @@ Harness.test("world plan: decor counts and part budget", function()
 		)
 	end
 	local total = WorldPlan.estimateParts(plan)
-	Harness.truthy(total <= 2500, `estimated parts {total} over budget`)
+	print(`       (about {total} world parts, {#plan.decor} decor items)`)
+	Harness.truthy(total <= 3600, `estimated parts {total} over budget`)
 	Harness.truthy(total >= 800, `estimated parts {total} suspiciously low`)
+	local decorParts = 0
+	for _, it in plan.decor do
+		decorParts += WorldPlan.partCost[it.kind] or 1
+	end
+	print(`       (decor alone {decorParts} parts)`)
+	Harness.truthy(decorParts <= 1900, `decor alone is {decorParts} parts`)
+end)
+
+Harness.test("world plan: landmarks are drawn bigger on the big island", function()
+	local big: { [string]: boolean } =
+		{ palm = true, trunk = true, spire = true, pool = true, pinkrock = true, rock = true }
+	for _, it in plan.decor do
+		if big[it.kind] then
+			Harness.truthy(it.scale >= 1.2, `{it.kind} at scale {it.scale}`)
+		end
+	end
 end)
 
 Harness.test("world plan: decor stays out of the hub circle and the volcano cone", function()
@@ -93,8 +112,62 @@ Harness.test("world plan: decor keeps away from gates and vents", function()
 		for _, v in plan.vents do
 			Harness.truthy(dist(it.x, it.z, v.x, v.z) >= 4, `item {i} {it.kind} on a vent`)
 		end
+		for _, p in plan.posts do
+			Harness.truthy(
+				dist(it.x, it.z, p.x, p.z) >= p.clearRadius + 2,
+				`item {i} {it.kind} in trade post {p.zoneId}`
+			)
+		end
 	end
 end)
+
+Harness.test(
+	"world plan: one Trade Post per zone 2..5, at its outer edge beside the gate",
+	function()
+		Harness.eq(#plan.posts, 4)
+		local tp = W.tradePost
+		for k, p in plan.posts do
+			Harness.eq(p.zoneId, k + 1, "posts in zone order 2..5")
+			local zone = W.zones[p.zoneId]
+			local r = math.sqrt(p.x * p.x + p.z * p.z)
+			Harness.near(r, zone.outer - tp.inset, 1e-6, "inset from the outer edge")
+			Harness.eq(Layout.zoneAt(p.x, p.z), p.zoneId, "inside its own zone")
+			-- the whole clear circle stays inside the zone (off the boundary line)
+			Harness.truthy(r + p.clearRadius < zone.outer - 1, "clear of the boundary")
+			Harness.truthy(r - p.clearRadius > zone.inner + 1, "clear of the inner boundary")
+			Harness.near(p.ux * p.ux + p.uz * p.uz, 1, 1e-9)
+			-- beside the gate, not in its way
+			for _, g in plan.gates do
+				local d = dist(p.x, p.z, g.x, g.z)
+				Harness.truthy(
+					d >= p.clearRadius + 14,
+					`post {p.zoneId} blocks gate {g.zoneId} ({d})`
+				)
+				if g.zoneId == p.zoneId then
+					Harness.truthy(d <= 40, `post {p.zoneId} is {d} studs from its gate`)
+				end
+			end
+			Harness.truthy(
+				dist(p.x, p.z, plan.hub.x, plan.hub.z) > plan.hub.clearRadius + p.clearRadius,
+				"post overlaps the hub"
+			)
+			for _, v in plan.vents do
+				Harness.truthy(dist(p.x, p.z, v.x, v.z) >= p.clearRadius + 4, "vent in a post")
+			end
+			-- the counter (where the prompt is) stands within selling range of the pad
+			Harness.truthy(
+				p.counterA + 10 < W.sellRange + 4,
+				"counter prompt reaches the pad range"
+			)
+		end
+		-- the same spots every time (Ash/Layout calls this too)
+		local again = WorldPlan.postSpots(W)
+		for k, p in again do
+			Harness.eq(p.x, plan.posts[k].x)
+			Harness.eq(p.z, plan.posts[k].z)
+		end
+	end
+)
 
 Harness.test("world plan: gates sit exactly on the ring boundaries, one per zone 2..5", function()
 	Harness.eq(#plan.gates, 4)
@@ -118,7 +191,15 @@ Harness.test("world plan: gates sit exactly on the ring boundaries, one per zone
 end)
 
 Harness.test("world plan: vents are inside zones 3..5", function()
-	Harness.truthy(#plan.vents >= 8 and #plan.vents <= 12, `vent count {#plan.vents}`)
+	-- about one vent per VENT_SPACING studs around each ring, at least 3 a zone
+	Harness.truthy(#plan.vents >= 12 and #plan.vents <= 24, `vent count {#plan.vents}`)
+	local perZone: { [number]: number } = {}
+	for _, v in plan.vents do
+		perZone[v.zone] = (perZone[v.zone] or 0) + 1
+	end
+	for z = 3, 5 do
+		Harness.truthy((perZone[z] or 0) >= 3, `zone {z} vents {perZone[z]}`)
+	end
 	for i, v in plan.vents do
 		local r = math.sqrt(v.x * v.x + v.z * v.z)
 		Harness.truthy(v.zone >= 3 and v.zone <= 5, "vent zone")
@@ -127,7 +208,7 @@ Harness.test("world plan: vents are inside zones 3..5", function()
 			Harness.truthy(math.abs(r - rb) >= 3, `vent {i} too close to boundary {rb}`)
 		end
 		for _, g in plan.gates do
-			Harness.truthy(dist(v.x, v.z, g.x, g.z) >= 14, "vent next to a gate")
+			Harness.truthy(dist(v.x, v.z, g.x, g.z) >= 14 * g.scale, "vent next to a gate")
 		end
 	end
 end)
@@ -179,10 +260,21 @@ end)
 Harness.test("world plan: gates stay clear of the hub", function()
 	for _, g in plan.gates do
 		Harness.truthy(
-			dist(g.x, g.z, plan.hub.x, plan.hub.z) >= plan.hub.clearRadius + 9,
+			dist(g.x, g.z, plan.hub.x, plan.hub.z) >= plan.hub.clearRadius + 9 * g.scale,
 			"gate too near hub"
 		)
+		Harness.truthy(g.scale >= 1, "gates are never smaller than the first island's")
 	end
+end)
+
+Harness.test("world plan: the hub sits on the beach with room around it", function()
+	local beach = W.zones[1]
+	local r = math.sqrt(plan.hub.x ^ 2 + plan.hub.z ^ 2)
+	Harness.truthy(r - plan.hub.clearRadius > beach.inner + 10, "hub clear of the forest line")
+	Harness.truthy(r + plan.hub.clearRadius < beach.outer - 10, "hub clear of the sea")
+	-- the sea and the walls follow the island size
+	Harness.truthy(plan.wallRadius > plan.outerRadius, "wall outside the beach")
+	Harness.near(plan.outerRadius, beach.outer, 1e-9)
 end)
 
 Harness.test("world plan: toWorld matches stored hub points", function()
@@ -232,7 +324,8 @@ Harness.test("world plan: volcano fits inside zone 5 and tapers", function()
 		prev = t.r
 	end
 	Harness.truthy(v.lavaR < v.rimR and v.rimR < v.tiers[1].r, "crater smaller than the base")
-	Harness.truthy(v.topY > 30 and v.topY < 80, "volcano height")
+	Harness.truthy(v.scale > 0, "volcano scale")
+	Harness.truthy(v.topY > 30 * v.scale and v.topY < 80 * v.scale, "volcano height")
 	Harness.truthy(#v.streaks >= 10 and #v.streaks <= 60, "lava streak count")
 	for _, s in v.streaks do
 		Harness.truthy(s.tier >= 1 and s.tier <= #v.tiers, "streak tier")

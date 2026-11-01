@@ -8,6 +8,7 @@
 
 local BurpDirector = require("./BurpDirector")
 local Config = require("../Config")
+local Layout = require("../Ash/Layout")
 local Rng = require("../Rng")
 local Types = require("../Types")
 local Zones = require("../Catalog/Zones")
@@ -25,7 +26,7 @@ BurpGlue.knockOut = 32 -- studs/s away from the blast centre
 BurpGlue.knockUp = 48 -- studs/s up (about 6 studs of air under normal gravity)
 BurpGlue.maxKnock = 90 -- no velocity we hand to the physics engine is longer than this
 BurpGlue.maxLiveBombs = 40 -- hard cap on server-side lava bomb parts
-BurpGlue.maxGoldenCells = 100
+BurpGlue.maxGoldenCells = 400 -- BurpTuning.goldenMaxCells (380) fits under this
 BurpGlue.maxGeyserSpots = 12
 BurpGlue.maxBuffMult = 4 -- Spark "long buffs" can stretch the perfect buff at most this much
 BurpGlue.pickupRadius = 6 -- studs, flat distance
@@ -350,7 +351,13 @@ end
 -- ===== sharing events between players =====
 
 BurpGlue.stormPerPlayer = 0.02 -- each extra player adds this to the storm's share of cells ...
-BurpGlue.stormMaxFraction = 0.6 -- ... up to this
+BurpGlue.stormMaxFraction = 0.6 -- ... up to this (before the island-size scale below)
+-- The storm numbers were tuned on the first island (3004 cells). The island now has about 4x the
+-- cells: the same share of cells would bring 4x the ash per player. sqrt(3004 / N) (about 0.5)
+-- is the middle: a storm still dusts the whole island visibly, but brings about 2x the ash it
+-- used to (kids are spread over 4x the ground), not 4x.
+BurpGlue.STORM_REF_CELLS = 3004
+BurpGlue.stormCellScale = math.min(1, math.sqrt(BurpGlue.STORM_REF_CELLS / math.max(1, Layout.N)))
 
 -- Share of cells an Ash Storm pulse covers with `players` in the server: more friends sweep more,
 -- so the storm brings more (the ash per player does not collapse as the server fills up).
@@ -359,7 +366,9 @@ function BurpGlue.stormFraction(base: number, players: number): number
 	local n = if finite(players)
 		then math.clamp(math.floor(players), 1, Config.Game.MaxPlayers)
 		else 1
-	return math.min(math.max(b, BurpGlue.stormMaxFraction), b + BurpGlue.stormPerPlayer * (n - 1))
+	local share =
+		math.min(math.max(b, BurpGlue.stormMaxFraction), b + BurpGlue.stormPerPlayer * (n - 1))
+	return share * BurpGlue.stormCellScale
 end
 
 -- Highest zone id a profile has unlocked (zone 1 is always open).

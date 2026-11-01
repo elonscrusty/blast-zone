@@ -8,7 +8,7 @@ seamless phone-first UI, target 8/10 across the whole game.
 Working title: **Volcano Sweepers**. Placeholder name only; keep it in `Config.Game.Name`.
 
 ## One line
-A friendly cartoon volcano island is buried in glowing ash. You and up to 15 friends sweep it clean,
+A friendly cartoon volcano island is buried in glowing ash. You and up to 23 friends sweep it clean,
 sell the ash, upgrade your gear, dodge the volcano's silly burps, and find hidden treasure.
 
 ## Why it will be fun (the three loops)
@@ -24,6 +24,20 @@ sell the ash, upgrade your gear, dodge the volcano's silly burps, and find hidde
 Round island, volcano in the middle. Flat walkable ground (no terrain editing; all built from Parts at
 runtime by the server). Five zones in rings from the outside in. Each zone has its own ground colour,
 decor, and ash value. A gate (sign + ProximityPrompt) sits at each ring edge.
+
+**Size (big island, Nov 2026):** 1000 studs across for a server of up to 24 (Players.MaxPlayers).
+Ring radii (outer/inner): Sunny Beach 500/380, Fern Forest 380/280, Hot Springs 280/196, Crater Rim
+196/124, Lava Heart 124/60 (volcano cone radius 60, about 80 studs tall). Cells stay 8 studs, so the
+island has about 12,000 ash cells (4x the first build; the snapshot is a 12 KB string). The hub
+(spawn + Trade Hut) is on the beach at radius 444 on the gate line. A small **Trade Post** (sell
+stall: VSSellPad + VSSellPrompt, same as the hut) stands just inside the outer edge of each zone 2..5,
+beside its gate, so a kid deep in the island sells without walking back to the hut (typical walk to
+the nearest pad ~50-75 studs). Scenery is sparse, bigger landmarks drawn with carter's picked Toy models (huts, gates, palms, spires,
+pools, a big volcano and a lighthouse off the beach; about 3,050 Parts in the world, budget 3,600).
+Volcano events happen around the players: bombs and decoys land within 30 studs of a kid, geysers pop
+from the vent nearest a kid (about one vent per 190 studs of ring), gold is 20 cells per kid in their
+best zone (same density as before), storms dust about half the share of cells they used to. Half of
+the regrow drifts down 32-90 studs around the players (never under their feet), the rest anywhere.
 
 | # | Zone | Ash value per unit | Look |
 |---|------|-------------------|------|

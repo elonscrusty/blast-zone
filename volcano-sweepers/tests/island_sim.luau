@@ -7,7 +7,8 @@
 --   * sweeps non-stop at the tool interval where they stand (the swing goes through AshGrid:sweep);
 --   * when nothing is left in reach, walks to the nearest ash of the zone they work in (walking
 --     time = distance / walk speed);
---   * when the backpack is full, walks to the Trade Hut, sells, buys, and starts again from the hut;
+--   * when the backpack is full, walks to the NEAREST sell pad (the Trade Hut, or the Trade Post at
+--     the outer edge of zones 2..5), sells, buys, and starts again from there;
 --   * works in the richest zone they own that still has a fair amount of ash;
 --   * buys whatever raises income the most per coin (same policy the old sim used);
 --   * dodges most lava bombs (HIT_CHANCE per bomb that lands near them), grabs one gem per geyser
@@ -29,6 +30,7 @@ local StatsCalc = require("../src/shared/Rules/StatsCalc")
 local Tools = require("../src/shared/Catalog/Tools")
 local Types = require("../src/shared/Types")
 local Upgrades = require("../src/shared/Catalog/Upgrades")
+local WorldPlan = require("../src/shared/WorldPlan")
 local Zones = require("../src/shared/Catalog/Zones")
 
 local Sim = {}
@@ -43,7 +45,24 @@ Sim.PARTY_SECONDS = 60
 
 local L = AshGrid.new("empty").layout
 local HUB_X, HUB_Z = L.hubX, L.hubZ
-local HUB_ANGLE = math.atan2(HUB_Z, HUB_X)
+
+-- Every place a kid can sell: the hut's middle pad and each Trade Post's pad.
+local SELL_SPOTS: { { x: number, z: number } } = { { x = HUB_X, z = HUB_Z } }
+for _, post in WorldPlan.postSpots(Config.World) do
+	table.insert(SELL_SPOTS, { x = post.x, z = post.z })
+end
+Sim.SELL_SPOTS = SELL_SPOTS
+
+local function nearestSell(x: number, z: number): (number, number, number)
+	local bx, bz, bd = HUB_X, HUB_Z, math.huge
+	for _, s in SELL_SPOTS do
+		local d = math.sqrt((s.x - x) ^ 2 + (s.z - z) ^ 2)
+		if d < bd then
+			bx, bz, bd = s.x, s.z, d
+		end
+	end
+	return bx, bz, bd
+end
 
 export type SimPlayer = {
 	id: number,
@@ -111,8 +130,9 @@ function Sim.coneCells(reach: number, arcDeg: number): number
 	local g = AshGrid.new("full")
 	local rng = Rng.new(17)
 	local total, n = 0, 300
+	local beach = Config.World.zones[1]
 	for _ = 1, n do
-		local r = rng:range(196, 244)
+		local r = rng:range(beach.inner + 6, beach.outer - 6)
 		local a = rng:range(0, math.pi * 2)
 		local f = rng:range(0, math.pi * 2)
 		total += #g:queryCone(
@@ -166,10 +186,28 @@ local function bestZoneValue(p: Types.Profile): number
 	return Zones.valueOf(BurpGlue.bestZone(p.zones))
 end
 
+-- Typical one-way walk (studs) from where a kid sweeps in a zone to the nearest sell pad: the mean
+-- over the PATCH_CELLS cells of that zone closest to a sell pad (the patch a kid works, next to the
+-- hut or that zone's Trade Post). Measured on the real layout.
+Sim.PATCH_CELLS = 250
+Sim.tripDistance = {} :: { [number]: number }
+for _, id in L.zoneIds do
+	local ds: { number } = {}
+	for _, j in L.zoneCells[id] do
+		local _, _, d = nearestSell(L.cx[j], L.cz[j])
+		table.insert(ds, d)
+	end
+	table.sort(ds)
+	local keep = math.min(#ds, Sim.PATCH_CELLS)
+	local sum = 0
+	for k = 1, keep do
+		sum += ds[k]
+	end
+	Sim.tripDistance[id] = sum / keep
+end
+
 local function tripFor(p: Types.Profile, d: StatsCalc.Full): number
-	-- the hut is about 170 studs from the Lava Heart, 40 from the beach ash
-	local best = BurpGlue.bestZone(p.zones)
-	local dist = ({ 40, 70, 110, 140, 170 })[best] or 40
+	local dist = Sim.tripDistance[BurpGlue.bestZone(p.zones)] or 40
 	return 2 * dist / d.walkSpeed + Sim.SELL_SECONDS
 end
 
@@ -439,10 +477,12 @@ local function walkToAsh(w: World, sp: SimPlayer, d: StatsCalc.Full, fromHut: bo
 	local target = 0
 	local ox, oz = sp.x, sp.z
 	if fromHut and #w.players > 1 then
-		-- patches fan out over about 80 degrees on the hut's side of the ring
-		local spread = (sp.id - 1) / (#w.players - 1) - 0.5
-		local angle = HUB_ANGLE + 1.4 * spread + w.rng:range(-0.15, 0.15)
+		-- patches fan out along the ring around the sell pad they just used: about 40 studs of
+		-- ring per friend, 360 at most (and never more than 80 degrees on the small inner rings)
 		local r = zoneRadius[sp.zone] or 0
+		local spread = (sp.id - 1) / (#w.players - 1) - 0.5
+		local width = math.min(1.4, math.min(360, 40 * (#w.players - 1)) / math.max(r, 1))
+		local angle = math.atan2(sp.z, sp.x) + width * spread + w.rng:range(-0.1, 0.1) * width
 		ox, oz = r * math.cos(angle), r * math.sin(angle)
 	end
 	for _, radius in { 20, 48, 110 } do
@@ -489,12 +529,11 @@ local function walkToAsh(w: World, sp: SimPlayer, d: StatsCalc.Full, fromHut: bo
 end
 
 local function startTrip(w: World, sp: SimPlayer, d: StatsCalc.Full)
-	local ddx, ddz = HUB_X - sp.x, HUB_Z - sp.z
-	local dist = math.sqrt(ddx * ddx + ddz * ddz)
+	local tx, tz, dist = nearestSell(sp.x, sp.z)
 	sp.busyUntil = w.t + dist / d.walkSpeed + Sim.SELL_SECONDS
 	sp.spent.trip += dist / d.walkSpeed + Sim.SELL_SECONDS
 	sp.selling = true
-	sp.x, sp.z = HUB_X, HUB_Z
+	sp.x, sp.z = tx, tz
 end
 
 local function finishSale(w: World, sp: SimPlayer, stopWhen: ((Types.Profile) -> boolean)?)
@@ -727,6 +766,10 @@ local function worldStep(w: World)
 		for _, sp in w.players do
 			pace += ProgressRules.pace(derivedOf(w, sp))
 		end
+		local spots: { ProgressRules.NearSpot } = {}
+		for _, sp in w.players do
+			table.insert(spots, { x = sp.x, z = sp.z, allowed = allowedOf(sp.p) })
+		end
 		local whole
 		whole, w.regrowCarry = ProgressRules.regrowBudget(
 			#w.players,
@@ -735,7 +778,8 @@ local function worldStep(w: World)
 			grid:totalClean(),
 			cleanest,
 			w.sweepRate,
-			pace
+			pace,
+			ProgressRules.nearClean(grid, spots)
 		)
 		if whole > 0 then
 			local bias: { [number]: number } = {}
@@ -749,7 +793,15 @@ local function worldStep(w: World)
 					end
 				end
 			end
-			w.regrowUnits += grid:regrow(w.rng, whole, bias)
+			-- half drifts down around the kids (ProgressRules.regrowNear), the rest by zone
+			local near = ProgressRules.regrowNear(
+				grid,
+				w.rng,
+				math.floor(whole * ProgressRules.NEAR_SHARE),
+				spots,
+				AshGrid.REGROW_PILE
+			)
+			w.regrowUnits += near + grid:regrow(w.rng, whole - near, bias)
 		end
 	end
 	-- parties

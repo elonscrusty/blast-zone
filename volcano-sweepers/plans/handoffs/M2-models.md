@@ -1,4 +1,4 @@
-# M1 handoff: sweeper tool, helper bot and cart models
+# M2 handoff: sweeper tool, helper bot and cart models
 
 1. Files (all new): `src/server/World/Models/{ModelKit,ToolSpecs,BotSpecs,CartSpecs,ModelBuilder,SweeperTools,HelperBots,SweeperCart}.luau`, `tests/models.test.luau`. No existing file was changed except one line in `tests/run.luau` and `plans/NEXT-PIECES.md`.
 2. Pure part lists (`*Specs`, `ModelKit`) have no Roblox types, so Lune tests them. `ModelBuilder` turns a list into a Model (non-colliding, welded to a see-through `Root` PrimaryPart).

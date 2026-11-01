@@ -1,8 +1,10 @@
 --!strict
--- Builds the scenery listed in WorldPlan.decor, a few hundred parts at a time with a task.wait()
--- between chunks so the server never stalls. Each chunk is assembled in a loose Folder and
--- attached to its zone folder in one go (one replication burst instead of hundreds). One bad item
--- never stops the rest: every builder runs under pcall and the first error per kind is logged.
+-- Builds the scenery: the lighthouse off the beach, the items listed in WorldPlan.decor (plain
+-- DecorKinds plus carter's picked models, DecorKinds/Models), the zone signs and the geyser vents.
+-- It goes a chunk of about CHUNK_PARTS parts at a time with a task.wait() between chunks so the
+-- server never stalls. Each chunk is assembled in a loose Folder and attached to its zone folder in
+-- one go (one replication burst instead of hundreds). One bad item never stops the rest: every
+-- builder runs under pcall and the first error per kind is logged.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,10 +12,14 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local WorldPlan = require(Shared.WorldPlan)
 
+local Build = require(script.Parent.Models.Build)
+local Landmarks = require(script.Parent.Models.Landmarks)
+local Wiring = require(script.Parent.Models.Wiring)
 local WorldUtil = require(script.Parent.WorldUtil)
 local Beach = require(script.Parent.DecorKinds.Beach)
 local Forest = require(script.Parent.DecorKinds.Forest)
 local Heart = require(script.Parent.DecorKinds.Heart)
+local Models = require(script.Parent.DecorKinds.Models)
 local Rim = require(script.Parent.DecorKinds.Rim)
 local Springs = require(script.Parent.DecorKinds.Springs)
 
@@ -24,7 +30,7 @@ type Builder = (parent: Instance, it: WorldPlan.Item) -> ()
 local CHUNK_PARTS = 150
 
 local builders: { [string]: Builder } = {}
-for _, module in { Beach, Forest, Springs, Rim, Heart } do
+for _, module in { Beach, Forest, Springs, Rim, Heart, Models } do
 	for kind, fn in module do
 		builders[kind] = fn
 	end
@@ -69,8 +75,72 @@ local function buildVents(parent: Instance, plan: WorldPlan.Plan)
 	folder.Parent = parent
 end
 
--- `alive()` turns false when the world was rebuilt or destroyed: stop quietly.
-function Decor.build(root: Instance, plan: WorldPlan.Plan, alive: () -> boolean)
+-- The lighthouse (look A) on its own little sand island just off the beach, near the hub.
+-- Returns the beam Model (the world may turn it) or nil.
+local function buildLighthouse(root: Instance, plan: WorldPlan.Plan): Model?
+	local spot = Wiring.lighthouseSpot(plan.hub.angleDeg, plan.outerRadius)
+	local folder = Instance.new("Folder")
+	folder.Name = "Lighthouse"
+	local gy = Config.World.groundY
+	local isletH = 7
+	WorldUtil.disc(
+		folder,
+		"Islet",
+		spot.x,
+		gy + spot.y,
+		spot.z,
+		spot.isletRadius,
+		isletH,
+		"#F2D9A0",
+		{ material = Enum.Material.Sand }
+	)
+	local origin = Vector3.new(spot.x, gy + spot.y, spot.z)
+	-- the door (front, -Z) looks back at the island
+	local frame = CFrame.lookAt(origin, origin - Vector3.new(spot.ux, 0, spot.uz))
+	local refs = Landmarks.build("lighthouse", folder, frame, { variant = Wiring.LOOK, scale = 1 })
+	folder.Parent = root
+	return if refs ~= nil then refs.beam else nil
+end
+
+-- A Toy Pop sign with the zone's name just inside each gate, facing kids walking in.
+local function buildSigns(root: Instance, plan: WorldPlan.Plan)
+	local folder = Instance.new("Folder")
+	folder.Name = "ZoneSigns"
+	local gy = Config.World.groundY
+	for _, s in plan.signs do
+		local ok, err = pcall(function()
+			local origin = Vector3.new(s.x, gy, s.z)
+			local frame = CFrame.lookAt(origin, origin + Vector3.new(s.ux, 0, s.uz))
+			local sign =
+				Build.into(folder, Wiring.kitSpec("Sign", s.zoneId, s.text), frame, 1.4, false)
+			sign.Name = `ZoneSign{s.zoneId}`
+		end)
+		if not ok then
+			warn(`[World] zone sign {s.zoneId} failed: {err}`)
+		end
+	end
+	folder.Parent = root
+end
+
+-- `alive()` turns false when the world was rebuilt or destroyed: stop quietly. `onBeam` gets the
+-- lighthouse beam once it stands.
+function Decor.build(
+	root: Instance,
+	plan: WorldPlan.Plan,
+	alive: () -> boolean,
+	onBeam: ((Model) -> ())?
+)
+	local okLight, lightResult = pcall(buildLighthouse, root, plan)
+	if not okLight then
+		warn(`[World] lighthouse failed: {lightResult}`)
+	elseif lightResult ~= nil and onBeam ~= nil then
+		onBeam(lightResult)
+	end
+	task.wait()
+	if not alive() then
+		return
+	end
+
 	local zoneFolders: { [number]: Folder } = {}
 	for _, z in Config.World.zones do
 		local folder = Instance.new("Folder")
@@ -122,6 +192,10 @@ function Decor.build(root: Instance, plan: WorldPlan.Plan, alive: () -> boolean)
 	flush()
 
 	if alive() then
+		local okSigns, errSigns = pcall(buildSigns, root, plan)
+		if not okSigns then
+			warn(`[World] zone signs failed: {errSigns}`)
+		end
 		local ok, err = pcall(buildVents, root, plan)
 		if not ok then
 			warn(`[World] vents failed: {err}`)

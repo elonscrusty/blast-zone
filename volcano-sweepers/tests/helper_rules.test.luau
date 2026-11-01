@@ -10,9 +10,10 @@ local HelperRules = require("../src/shared/Player/HelperRules")
 
 local MAX = Config.World.maxUnitsPerCell
 
--- spots: the middle of Sunny Beach and Fern Forest, far from the hub (hub is at z = +222)
-local BEACH_X, BEACH_Z = 0, -215
-local FOREST_X, FOREST_Z = 0, -165
+-- spots: the middle of Sunny Beach and Fern Forest, far from the hub (the hub is at +z)
+local ZONES = Config.World.zones
+local BEACH_X, BEACH_Z = 0, -(ZONES[1].inner + ZONES[1].outer) / 2
+local FOREST_X, FOREST_Z = 0, -(ZONES[2].inner + ZONES[2].outer) / 2
 
 local function sum(grid: AshGrid.AshGrid): number
 	return grid.totalUnits
@@ -128,7 +129,7 @@ Harness.test("helper: cells in zones the owner hasn't opened are skipped", funct
 	Harness.eq(sum(grid), before)
 
 	-- on the border of zones 1 and 2: only the open zone's cells lose ash
-	local r2 = HelperRules.sweepAround(grid, 0, -190, 60, { [1] = true }, Rng.new(2))
+	local r2 = HelperRules.sweepAround(grid, 0, -ZONES[2].outer, 60, { [1] = true }, Rng.new(2))
 	Harness.truthy(r2.units > 0)
 	Harness.eq(r2.valueUnits, r2.units * Zones.valueOf(1))
 	local flat = grid:takeDirty()
