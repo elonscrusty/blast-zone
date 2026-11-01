@@ -140,15 +140,29 @@ local function chooseKind(self: BurpDirector): Types.BurpKind
 	return KINDS[#KINDS]
 end
 
--- Random point in a zone's ring (uniform by area), kept off the ring edges.
-local function ringPoint(self: BurpDirector, zoneId: number): (number?, number?)
+-- Random point in a zone's ring (uniform by area), kept off the ring edges. With `nearX/nearZ` the
+-- angle stays within `spread` studs (measured along the ring) of that point's angle: the island is
+-- big, so events happen around the players, not on the far side of the volcano.
+local function ringPoint(
+	self: BurpDirector,
+	zoneId: number,
+	nearX: number?,
+	nearZ: number?,
+	spread: number?
+): (number?, number?)
 	local inner, outer = zoneRing(zoneId)
 	if inner == nil or outer == nil then
 		return nil, nil
 	end
 	local lo, hi = inner + 3, outer - 3
 	local r = math.sqrt(self.rng:range(lo * lo, hi * hi))
-	local a = self.rng:range(0, TWO_PI)
+	local a: number
+	if nearX ~= nil and nearZ ~= nil and spread ~= nil and (nearX ~= 0 or nearZ ~= 0) then
+		local half = math.min(math.pi, spread / math.max(r, 1))
+		a = math.atan2(nearZ, nearX) + self.rng:range(-half, half)
+	else
+		a = self.rng:range(0, TWO_PI)
+	end
 	return r * math.cos(a), r * math.sin(a)
 end
 
@@ -171,22 +185,20 @@ local function clampToIsland(self: BurpDirector, x: number, z: number): (number,
 	return x * target / r, z * target / r
 end
 
--- A spot near a random occupied zone's player or a random point in an occupied zone ring.
+-- A spot near a random player: most bombs within aimOffsetMax of them, decoys a little further
+-- out (decoyOffsetMin..decoyOffsetMax) so the ground around a kid is busy but dodgeable. Never
+-- anywhere far away: on a big island a bomb nobody sees is wasted.
 local function aimBomb(self: BurpDirector, players: { PlayerPos }): (number?, number?)
 	for _ = 1, 6 do
-		local rx, rz
+		local p = self.rng:pick(players)
+		local a = self.rng:range(0, TWO_PI)
+		local off: number
 		if self.rng:chance(self.tun.decoyFraction) then
-			rx, rz = ringPoint(self, self.rng:pick(players).zone)
-		end
-		local x: number, z: number
-		if rx ~= nil and rz ~= nil then
-			x, z = rx, rz
+			off = self.rng:range(self.tun.decoyOffsetMin, self.tun.decoyOffsetMax)
 		else
-			local p = self.rng:pick(players)
-			local a = self.rng:range(0, TWO_PI)
-			local off = self.rng:range(0, self.tun.aimOffsetMax)
-			x, z = p.x + math.cos(a) * off, p.z + math.sin(a) * off
+			off = self.rng:range(0, self.tun.aimOffsetMax)
 		end
+		local x, z = p.x + math.cos(a) * off, p.z + math.sin(a) * off
 		x, z = clampToIsland(self, x, z)
 		if not nearHub(self, x, z) then
 			return x, z
@@ -246,7 +258,18 @@ local function geyserSpots(self: BurpDirector, ctx: Ctx): { Spot }
 	local spots: { Spot } = {}
 	for _ = 1, count do
 		for _ = 1, 6 do
-			local x, z = ringPoint(self, self.rng:pick(zones))
+			-- around a player in their own ring (the server then moves it onto the nearest vent)
+			local x: number?, z: number?
+			local players = ctx.playerPositions
+			if #players > 0 then
+				local p = self.rng:pick(players)
+				if (zoneRing(p.zone)) ~= nil then
+					x, z = ringPoint(self, p.zone, p.x, p.z, tun.geyserSpread)
+				end
+			end
+			if x == nil or z == nil then
+				x, z = ringPoint(self, self.rng:pick(zones))
+			end
 			if x ~= nil and z ~= nil and not nearHub(self, x, z) then
 				table.insert(spots, { x = x, z = z })
 				break

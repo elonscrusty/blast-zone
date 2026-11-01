@@ -6,11 +6,15 @@
 -- most per coin. The milestone times (median of three islands) must land within +-30% of the
 -- PACING targets in plans/CONTRACTS.md. Tune the catalogs, not the tolerances.
 --
--- It also checks that a full server stays fun: with 4 and 16 kids on one island, each kid's ash
--- supply and income must stay a fair share of a solo kid's (regrow and storms scale with players).
+-- It also checks that a full server stays fun: with 2, 4, 16 and 24 (a full server) kids on one
+-- island, each kid's ash supply and income must stay a fair share of a solo kid's (regrow and storms
+-- scale with players; part of the regrow drifts down around the kids, see ProgressRules.regrowNear).
+-- The island is big (12,000 cells): kids sell at the nearest pad, the Trade Hut or the Trade Post at
+-- the outer edge of each zone 2..5 (island_sim models the walk from the real layout).
 -- PACING_LOG=1 lune run tests/run   prints every purchase of the first island.
 
 local process = require("@lune/process")
+local Config = require("../src/shared/Config")
 local Harness = require("./harness")
 local Sim = require("./island_sim")
 local Types = require("../src/shared/Types")
@@ -295,10 +299,15 @@ local function crowd(n: number): Crowd
 	}
 end
 
-Harness.test("pacing: 2, 4 and 16 friends on one island each still get a fair share", function()
+Harness.test("pacing: 2, 4, 16 and 24 friends on one island each still get a fair share", function()
 	local solo = crowd(1)
-	for _, n in { 2, 4, 16 } do
+	for _, n in { 2, 4, 16, Config.Game.MaxPlayers } do
 		local c = crowd(n)
+		-- honest supply: regrow + storms per kid stay near what each kid sweeps (never a flood)
+		Harness.truthy(
+			c.supply <= c.hand * 1.6 + 1,
+			`{n} kids: {c.supply} u/s supply each for {c.hand} u/s swept`
+		)
 		print(
 			string.format(
 				"       %2d kids, first 40 min, per kid: %.1f ash/s swept (solo %.1f), %.0f coins/s (solo %.0f), regrow+storms %.1f u/s (solo %.1f), median Hot Springs %s (solo %s)",

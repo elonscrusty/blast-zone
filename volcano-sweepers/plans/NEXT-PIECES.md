@@ -21,3 +21,4 @@ Status values: todo / building / done (tests green) / audited.
 J-fix server + shared (src/server, src/shared except Ui/Client): done (tests green). Handoff: plans/handoffs/J-fix-server-shared.md
 FINAL audit, server + shared (src/server, src/shared except Ui/Client): done (tests green). Report: plans/audit/FINAL-server.md, handoff: plans/handoffs/FINAL-server.md
 FINAL audit, client + UI (src/client, src/shared/Ui, src/shared/Client): done (tests green). Report: plans/audit/FINAL-client.md, handoff: plans/handoffs/FINAL-client.md
+A big island (4x area, Trade Posts in zones 2..5, re-balance, MaxPlayers 24): done (tests green). Handoff: plans/handoffs/A-big-island.md

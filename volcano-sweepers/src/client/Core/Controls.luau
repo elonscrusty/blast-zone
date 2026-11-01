@@ -23,11 +23,9 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
-local CullLogic = require(Shared.Client.CullLogic)
 local Layout = require(Shared.Ash.Layout)
 local Signal = require(Shared.Signal)
 local StoreLogic = require(Shared.Client.StoreLogic)
-local Tools = require(Shared.Catalog.Tools)
 local Zones = require(Shared.Catalog.Zones)
 local Net = require(script.Parent.Net)
 local Store = require(script.Parent.Store)
@@ -201,11 +199,7 @@ local function feedback(
 		if zone ~= nil and Zones.byId[zone] ~= nil then
 			ashHex = Zones.byId[zone].ash
 		end
-		local tool = Tools.byId[tostring(Store.get("tool"))]
-		if tool ~= nil then
-			ashHex = CullLogic.mixHex(ashHex, tool.color, 0.3)
-		end
-		Vfx.puff(Vector3.new(x, GROUND_Y + 0.6, z), ashHex, 6)
+		Vfx.puff(Vector3.new(x, GROUND_Y + 1.6, z), ashHex, 6)
 	end
 end
 

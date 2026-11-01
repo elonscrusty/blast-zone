@@ -6,7 +6,7 @@ local Layout = require("../src/shared/Ash/Layout")
 local SweepRules = require("../src/shared/Sweep/SweepRules")
 
 -- a spot in the middle of Fern Forest (zone 2), away from the hub
-local PX, PZ = 0, -165
+local PX, PZ = 0, -(Config.World.zones[2].inner + Config.World.zones[2].outer) / 2
 
 Harness.test("sweep rate: swings at the tool interval are always accepted", function()
 	local b = SweepRules.newBucket(100)

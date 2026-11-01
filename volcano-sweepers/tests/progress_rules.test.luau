@@ -272,7 +272,7 @@ Harness.test("regrow: rate scales with players and is capped", function()
 	Harness.near(ProgressRules.regrowRate(16), 17.4)
 	Harness.near(
 		ProgressRules.regrowRate(200),
-		ProgressRules.regrowRate(16),
+		ProgressRules.regrowRate(Config.Game.MaxPlayers),
 		1e-9,
 		"no more than a full server"
 	)
@@ -287,13 +287,15 @@ local function soloSweepRate(): number
 	local allowed: { [number]: boolean } =
 		{ [1] = true, [2] = true, [3] = true, [4] = true, [5] = true }
 	local scratch = { reach = tool.reach, arcDeg = tool.arcDeg, power = tool.power }
-	-- walk along the ring of zone 2 (radius 165), a swing every 4 studs, always facing forward
+	-- walk along the middle of zone 2, a swing every 4 studs, always facing forward
+	local fern = Config.World.zones[2]
+	local R = (fern.inner + fern.outer) / 2
 	local steps = 120
 	local removed = 0
 	local swings = 0
 	for s = 0, steps - 1 do
-		local a = math.rad(200 + s * 1.4)
-		local px, pz = 165 * math.cos(a), 165 * math.sin(a)
+		local a = math.rad(200) + s * 4 / R
+		local px, pz = R * math.cos(a), R * math.sin(a)
 		local dx, dz = -math.sin(a), math.cos(a)
 		local r = g:sweep(px, pz, dx, dz, scratch, allowed, 1e9, rng, 0, nil)
 		removed += r.removedUnits
@@ -396,8 +398,9 @@ Harness.test(
 			Harness.truthy(r <= ProgressRules.totalCap(n) + 1e-9, "cap")
 			prev = r
 		end
-		Harness.eq(ProgressRules.adaptiveRate(16, 1, 1, 1e9), ProgressRules.TOTAL_CAP)
-		Harness.eq(ProgressRules.adaptiveRate(16, 1, 1, 0, 1e9), ProgressRules.TOTAL_CAP)
+		local full = Config.Game.MaxPlayers
+		Harness.eq(ProgressRules.adaptiveRate(full, 1, 1, 1e9), ProgressRules.TOTAL_CAP)
+		Harness.eq(ProgressRules.adaptiveRate(full, 1, 1, 0, 1e9), ProgressRules.TOTAL_CAP)
 	end
 )
 
@@ -511,6 +514,9 @@ end
 Harness.test(
 	"adaptive: milestones stay reachable from a lone Leaf Blower to a full server",
 	function()
+		-- times were set on the first island (3004 cells); the island now has SIZE x the ash, so
+		-- the whole-island milestones take SIZE x as long at the same sweeping speed
+		local SIZE = AshGrid.new("empty").N / 3004
 		local cases = {
 			{ n = 1, per = 5.2, target = 0.75, within = 150 },
 			{ n = 1, per = 10, target = 0.75, within = 90 },
@@ -518,10 +524,11 @@ Harness.test(
 			{ n = 4, per = 10, target = 0.95, within = 60 },
 			{ n = 16, per = 4, target = 0.95, within = 60 },
 			{ n = 16, per = 10, target = 0.95, within = 30 },
+			{ n = 24, per = 6, target = 0.95, within = 45 },
 			{ n = 1, per = 58, target = 0.95, within = 30 },
 		}
 		for _, c in cases do
-			local m = minutesToClean(c.n, c.per, c.target, c.within)
+			local m = minutesToClean(c.n, c.per, c.target, c.within * SIZE)
 			print(
 				`       {c.n} player(s) at {c.per} u/s each reach {c.target * 100}% clean in {m and string.format(
 					"%.1f",
@@ -651,10 +658,11 @@ Harness.test("adaptive: pace feeds big tools, more with friends, never past the 
 	junk({ reach = 0 / 0, arcDeg = 90, power = 1, interval = 0.3, capacity = 30 })
 	junk({ reach = 7, arcDeg = 90, power = 1, interval = 0, capacity = 30 })
 	junk({ reach = 7, arcDeg = 90, power = 1, interval = 0.3, capacity = -5 })
-	-- share: half solo, grows with friends, always below 1
-	Harness.near(ProgressRules.paceShare(1), 0.5, 1e-9)
+	-- share: under half solo, grows with friends, always below 1
+	Harness.near(ProgressRules.paceShare(1), ProgressRules.PACE_SHARE, 1e-9)
+	Harness.truthy(ProgressRules.PACE_SHARE <= 0.5)
 	local prev = 0
-	for n = 1, 16 do
+	for n = 1, Config.Game.MaxPlayers do
 		local sh = ProgressRules.paceShare(n)
 		Harness.truthy(sh >= prev and sh < 1, `share {sh} for {n}`)
 		prev = sh
@@ -666,7 +674,11 @@ Harness.test("adaptive: pace feeds big tools, more with friends, never past the 
 	-- a dirty island ignores pace; an emptied zone gets it
 	local base = ProgressRules.regrowRate(1)
 	Harness.near(ProgressRules.adaptiveRate(1, 0.05, 0.05, 0, 20), base, 1e-9)
-	Harness.near(ProgressRules.adaptiveRate(1, 0.1, 0.9, 0, 20), 0.5 * 20, 1e-9)
+	Harness.near(
+		ProgressRules.adaptiveRate(1, 0.1, 0.9, 0, 20),
+		ProgressRules.PACE_SHARE * 20,
+		1e-9
+	)
 	Harness.near(ProgressRules.adaptiveRate(1, 0.1, 0.9, 0, 1e6), ProgressRules.totalCap(1), 1e-9)
 	Harness.near(
 		ProgressRules.adaptiveRate(1, 0.1, 0.95, 0, 0 / 0),
@@ -677,7 +689,72 @@ Harness.test("adaptive: pace feeds big tools, more with friends, never past the 
 	Harness.eq(ProgressRules.totalCap(1), ProgressRules.TOTAL_CAP_PER_PLAYER)
 	Harness.eq(ProgressRules.totalCap(0), 0)
 	Harness.truthy(ProgressRules.totalCap(16) <= ProgressRules.TOTAL_CAP)
+	Harness.eq(
+		ProgressRules.totalCap(Config.Game.MaxPlayers),
+		ProgressRules.TOTAL_CAP,
+		"a full server of 24 reaches the cap"
+	)
 	Harness.truthy(ProgressRules.totalCap(8) > ProgressRules.totalCap(4))
+end)
+
+Harness.test("regrow near: lands around the players, only where they may sweep", function()
+	local g = AshGrid.new(0)
+	local L = g.layout
+	local fern = Config.World.zones[2]
+	local mid = (fern.inner + fern.outer) / 2
+	local spots: { ProgressRules.NearSpot } = {
+		{ x = 0, z = -mid, allowed = { [2] = true } },
+		{ x = mid, z = 0, allowed = { [2] = true } },
+	}
+	local placed = ProgressRules.regrowNear(g, Rng.new(3), 300, spots, AshGrid.REGROW_PILE)
+	Harness.eq(placed, 300, "exactly the budget when there is room")
+	Harness.eq(g.totalUnits, 300)
+	local slack = L.cellSize -- a cell centre may sit up to a cell from the point that picked it
+	for j = 1, g.N do
+		if g.levels[j] > 0 then
+			Harness.eq(L.zone[j], 2, "only zones the player may sweep")
+			Harness.truthy(g.levels[j] <= g.max)
+			local best = math.huge
+			for _, sp in spots do
+				best = math.min(best, math.sqrt((L.cx[j] - sp.x) ^ 2 + (L.cz[j] - sp.z) ^ 2))
+			end
+			Harness.truthy(
+				best >= ProgressRules.NEAR_MIN - slack and best <= ProgressRules.NEAR_MAX + slack,
+				`pile {best} studs from the nearest player`
+			)
+		end
+	end
+	-- nobody there, or everything full: nothing placed, and it always stops
+	Harness.eq(ProgressRules.regrowNear(g, Rng.new(4), 50, {}, 3), 0)
+	local full = AshGrid.new("full")
+	Harness.eq(ProgressRules.regrowNear(full, Rng.new(5), 500, spots, 3), 0)
+	Harness.eq(ProgressRules.regrowNear(g, Rng.new(6), 0 / 0, spots, 3), 0)
+	-- a player off the island (in the sea) gets nothing and breaks nothing
+	local sea = { { x = 0, z = Config.World.zones[1].outer + 300, allowed = { [1] = true } } }
+	Harness.eq(ProgressRules.regrowNear(AshGrid.new(0), Rng.new(7), 20, sea, 3), 0)
+end)
+
+Harness.test("regrow near: the patch around the players counts as worked ground", function()
+	local fern = Config.World.zones[2]
+	local mid = (fern.inner + fern.outer) / 2
+	local spots: { ProgressRules.NearSpot } = { { x = 0, z = -mid, allowed = { [2] = true } } }
+	Harness.near(ProgressRules.nearClean(AshGrid.new("full"), spots), 0, 1e-9)
+	Harness.near(ProgressRules.nearClean(AshGrid.new(0), spots), 1, 1e-9)
+	Harness.eq(ProgressRules.nearClean(AshGrid.new(0), {}), 0)
+	Harness.eq(
+		ProgressRules.nearClean(AshGrid.new(0), { { x = 0, z = -mid, allowed = {} } }),
+		0,
+		"no zone the player may sweep: nothing to measure"
+	)
+	-- a bare patch feeds the island like a bare zone would (scaled by PATCH_WEIGHT), within the cap
+	local dirty = ProgressRules.adaptiveRate(2, 0.05, 0.05, 0, 40)
+	local bare = ProgressRules.adaptiveRate(2, 0.05, 0.05, 0, 40, 1)
+	Harness.truthy(bare > dirty, "a swept-out patch is fed")
+	Harness.truthy(bare <= ProgressRules.totalCap(2) + 1e-9, "cap")
+	Harness.truthy(bare < 40, "always less than the players could sweep")
+	Harness.near(ProgressRules.adaptiveRate(2, 0.05, 0.05, 0, 40, 0 / 0), dirty, 1e-9)
+	local budget = ProgressRules.regrowBudget(2, 2, 0, 0.05, 0.05, 0, 40, 1)
+	Harness.eq(budget, math.floor(bare * 2))
 end)
 
 Harness.test("regrow: lands in small piles, never over the cell max, exactly the budget", function()

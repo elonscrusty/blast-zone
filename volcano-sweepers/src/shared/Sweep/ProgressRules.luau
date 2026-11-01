@@ -4,8 +4,8 @@
 -- and spreading dropped backpack ash over nearby cells. Tested in tests/progress_rules.test.luau.
 --
 -- REGROW NUMBERS (units of ash per second for the whole island):
---   rate(n) = min(18, 0.9 + 1.1 x (n - 1))       n = players in the server, 0 players = 0
---   solo 0.9 u/s, 4 players 4.2 u/s, 16 players 17.4 u/s (cap 18).
+--   rate(n) = min(27, 0.9 + 1.1 x (n - 1))       n = players in the server, 0 players = 0
+--   solo 0.9 u/s, 4 players 4.2 u/s, 16 players 17.4 u/s, a full server of 24 26.2 u/s.
 -- Why: the test measures a lone player with the starter Twig Broom: about 9 units/s while swinging
 -- through fresh ash, but only about 2 units/s once the backpack (30) and the 12 s trips to the hut
 -- are counted. 5 x 0.9 = 4.5 >= 2, so one player can never strip the island faster than it grows
@@ -16,16 +16,21 @@
 -- wanted.
 --
 -- ADAPTIVE PART (so fast sweepers are never starved and a full server never runs dry; balanced by
--- tests/pacing.test.luau, which runs the real rules with 1, 2, 4 and 16 sweepers):
+-- tests/pacing.test.luau, which runs the real rules with 1, 2, 4, 16 and 24 sweepers):
 --   worked  = max(total clean, cleanest zone)   (kids empty their best zone and leave cheap ones full)
+--   patch   = PATCH_WEIGHT (0.7) x clean share of the ground around the players (nearClean): the
+--             island is big, a crowd empties its own patch long before a zone looks clean
 --   boost   = 1 + (BOOST_MULT - 1) x pressure, BOOST_MULT = 3
 --   pressure= max(ramp(total clean, 0.70, 0.95), ramp(cleanest zone, 0.60, 0.95))
 --   demand  = share(worked) x measured sweep rate (units/s, smoothed), share 0.35 -> 0.85
 --             as worked goes from 50% to 95% clean
---   fed     = ramp(worked, 0.1, 0.8) x paceShare(n) x summed pace   (pace = what each kid COULD
---             sweep with their stats, trips counted; paceShare 0.5 solo, 0.95 with 2+ kids: two
---             friends already split the island's starting ash, so they get the full feed)
---   rate    = min(totalCap(n), max(base x boost, demand, fed)),  totalCap = 30 u/s a player, <= 480
+--   fed     = ramp(max(worked, patch), 0.1, 0.8) x paceShare(n) x summed pace   (pace = what each
+--             kid COULD sweep with their stats, trips counted; paceShare 0.42 solo, 0.95 with 2+
+--             kids: two friends already split the island's starting ash, so they get the full feed)
+--   rate    = min(totalCap(n), max(base x boost, demand, fed)),  totalCap = 30 u/s a player, <= 720
+-- Per kid this stays about what each kid sweeps (pacing.test checks supply <= 1.6 x swept + 1 for
+-- 2..24 kids), so a full server is fed but never flooded. Half of each step lands around the
+-- players (regrowNear), the rest by zone.
 -- The shares stay below 1, so a group that sweeps hard still makes net progress, and the cap grows
 -- with the server so each kid's supply holds up as friends join. Regrowth comes in small piles
 -- (AshGrid.REGROW_PILE) so a swing through regrown ash still feels full.
@@ -216,7 +221,7 @@ end
 
 ProgressRules.REGROW_BASE = 0.9 -- units per second for one player
 ProgressRules.REGROW_PER_EXTRA = 1.1 -- each further player
-ProgressRules.REGROW_CAP = 18
+ProgressRules.REGROW_CAP = 27 -- above 0.9 + 1.1 x 23: every player up to a full server of 24 counts
 
 -- Units of ash per second the island regrows with this many players.
 function ProgressRules.regrowRate(players: number): number
@@ -237,7 +242,7 @@ ProgressRules.BOOST_FULL_AT = 0.95 -- both ramps reach full boost here
 ProgressRules.DEMAND_SHARE_LOW = 0.35 -- share of the measured sweep rate fed back at <= 50% clean
 ProgressRules.DEMAND_SHARE_HIGH = 0.85 -- ... and at >= 95% clean (always below 1)
 ProgressRules.TOTAL_CAP_PER_PLAYER = 30 -- the cap grows with the server, so friends never starve ...
-ProgressRules.TOTAL_CAP = 480 -- ... and no regrow rate is above this, whatever happens
+ProgressRules.TOTAL_CAP = 720 -- ... and no regrow rate is above this (30 x 24), whatever happens
 ProgressRules.SMOOTH_ALPHA = 0.3 -- sweep-rate smoothing per regrow step
 
 -- The most the island regrows per second with this many players.
@@ -268,17 +273,25 @@ end
 --   cleanTotal     0..1 whole-island clean fraction
 --   cleanestZone   0..1 clean fraction of the cleanest zone (the one closest to running dry)
 --   sweepRate      smoothed units per second the players are removing
+--   pace           summed ProgressRules.pace of the players (optional)
+--   nearClean      0..1 clean fraction of the ground around the players (ProgressRules.nearClean,
+--                  optional): on the big island the kids empty their own patch long before a whole
+--                  zone looks clean, so the patch counts as "worked" too
 function ProgressRules.adaptiveRate(
 	players: number,
 	cleanTotal: number,
 	cleanestZone: number,
 	sweepRate: number,
-	pace: number?
+	pace: number?,
+	nearClean: number?
 ): number
 	local base = ProgressRules.regrowRate(players)
 	if base <= 0 then
 		return 0
 	end
+	local patch = if nearClean ~= nil and nearClean == nearClean
+		then math.clamp(nearClean, 0, 1) * ProgressRules.PATCH_WEIGHT
+		else 0
 	local pressure = math.max(
 		ramp(cleanTotal, ProgressRules.BOOST_TOTAL_FROM, ProgressRules.BOOST_FULL_AT),
 		ramp(cleanestZone, ProgressRules.BOOST_ZONE_FROM, ProgressRules.BOOST_FULL_AT)
@@ -288,20 +301,14 @@ function ProgressRules.adaptiveRate(
 	if sweepRate == sweepRate and sweepRate > 0 and sweepRate < math.huge then
 		-- players work their best zone and leave the cheap ones full, so the island-wide fraction
 		-- alone would say "dirty" forever: the zone they are emptying counts too
-		local worked = cleanTotal
-		if cleanestZone > worked then
-			worked = cleanestZone
-		end
+		local worked = math.max(cleanTotal, cleanestZone)
 		demand = ProgressRules.demandShare(worked) * sweepRate
 	end
 	-- the island also answers what the players COULD sweep, not only what they found: a big
 	-- vacuum in an emptied zone gets fed, up to paceShare of the summed pace when the zone is bare
 	local want = pace or 0
 	if want == want and want > 0 and want < math.huge then
-		local worked = cleanTotal
-		if cleanestZone > worked then
-			worked = cleanestZone
-		end
+		local worked = math.max(cleanTotal, cleanestZone, patch)
 		local fed = ProgressRules.paceShare(players) * want
 		local need = ramp(worked, ProgressRules.PACE_RAMP_FROM, ProgressRules.PACE_RAMP_FULL)
 		demand = math.max(demand, need * fed)
@@ -337,16 +344,18 @@ function ProgressRules.pace(d: {
 	return cap / (cap / raw + Config.Player.tripSeconds)
 end
 
--- Share of the players' summed pace the island can feed back. Solo it is half (the whole island's
--- starting ash is theirs too). With a friend it is already the most: the pair splits that starting
+-- Share of the players' summed pace the island can feed back. Solo it is under half (the whole
+-- island's starting ash is theirs too, and the big island has 4x of it). With a friend it is already the most: the pair splits that starting
 -- ash, and at +0.12 a friend a duo earned about a third of a solo kid's coins in the first 40 minutes
 -- (pacing.test), which made playing together feel worse. Always below 1: sweeping hard still wins.
-ProgressRules.PACE_SHARE = 0.5
-ProgressRules.PACE_SHARE_PER_EXTRA = 0.45
+ProgressRules.PACE_SHARE = 0.42
+ProgressRules.PACE_SHARE_PER_EXTRA = 0.53
 ProgressRules.PACE_SHARE_MAX = 0.95
 -- ... fed from when the worked zone is this clean, fully once it is this clean (a half-swept zone is
 -- already thin: walking from pile to pile, not sweeping, is what slows kids down)
 ProgressRules.PACE_RAMP_FROM = 0.1
+-- the players' own patch (nearClean) counts this much towards "worked" for the pace feed
+ProgressRules.PATCH_WEIGHT = 0.7
 ProgressRules.PACE_RAMP_FULL = 0.8
 
 function ProgressRules.paceShare(players: number): number
@@ -378,7 +387,8 @@ function ProgressRules.regrowBudget(
 	cleanTotal: number?,
 	cleanestZone: number?,
 	sweepRate: number?,
-	pace: number?
+	pace: number?,
+	nearClean: number?
 ): (number, number)
 	local step = math.clamp(dt, 0, 5)
 	local rate = ProgressRules.adaptiveRate(
@@ -386,11 +396,102 @@ function ProgressRules.regrowBudget(
 		cleanTotal or 0,
 		cleanestZone or 0,
 		sweepRate or 0,
-		pace
+		pace,
+		nearClean
 	)
 	local total = carry + rate * step
 	local whole = math.floor(total)
 	return whole, total - whole
+end
+
+-- ===== regrow near the players =====
+-- The island is big (12,000 cells): spread evenly, regrowth is thin wherever kids actually are,
+-- and a crowd that emptied the ground near the hut or a Trade Post would only walk. So a share of
+-- every regrow step drifts down AROUND the players instead: a ring NEAR_MIN..NEAR_MAX studs from a
+-- random player (never under their feet, so a fresh trench is not refilled at once), only on cells
+-- of zones that player can sweep. Same number of units as before, just where they are wanted.
+ProgressRules.NEAR_SHARE = 0.5
+ProgressRules.NEAR_MIN = 32
+ProgressRules.NEAR_MAX = 90
+ProgressRules.PATCH_RADIUS = 60 -- nearClean looks this far around each player
+
+export type NearSpot = { x: number, z: number, allowed: { [number]: boolean } }
+
+-- Clean fraction (0..1) of the ground around the players: every cell within PATCH_RADIUS studs of a
+-- spot, in a zone that player can sweep (a cell near two players counts twice). 0 with no such
+-- cells. About 180 cells per player: fine every regrow step (2 s), never per frame.
+function ProgressRules.nearClean(
+	grid: {
+		layout: {
+			cellsInRadius: (number, number, number) -> { number },
+			zone: { number },
+		},
+		levels: { number },
+		max: number,
+	},
+	spots: { NearSpot }
+): number
+	local L = grid.layout
+	local cells, units = 0, 0
+	for _, s in spots do
+		if s.x == s.x and s.z == s.z then
+			for _, j in L.cellsInRadius(s.x, s.z, ProgressRules.PATCH_RADIUS) do
+				if s.allowed[L.zone[j]] then
+					cells += 1
+					units += grid.levels[j]
+				end
+			end
+		end
+	end
+	if cells == 0 then
+		return 0
+	end
+	return math.clamp(1 - units / (cells * grid.max), 0, 1)
+end
+
+-- Puts up to `count` units on cells around `spots` (small piles of 1..pile units). Returns how many
+-- units were placed (less when the ground around everybody is full: the caller regrows the rest the
+-- usual way). `grid` is an AshGrid (only its layout, levels, max and add are used).
+function ProgressRules.regrowNear(
+	grid: {
+		layout: { cellOf: (number, number) -> number?, zone: { number } },
+		levels: { number },
+		max: number,
+		add: (any, number, number) -> number,
+	},
+	rng: { next: (any) -> number, int: (any, number, number) -> number },
+	count: number,
+	spots: { NearSpot },
+	pile: number
+): number
+	local left = if count == count then math.floor(math.max(0, count)) else 0
+	if left <= 0 or #spots == 0 then
+		return 0
+	end
+	local L = grid.layout
+	local added = 0
+	local misses = 0
+	local lo2, hi2 = ProgressRules.NEAR_MIN ^ 2, ProgressRules.NEAR_MAX ^ 2
+	local maxPile = math.max(1, math.floor(pile))
+	-- a miss is a spot off the island, in a locked zone or on a full cell: give up after a while
+	local maxMisses = 40 + 2 * left
+	while left > 0 and misses < maxMisses do
+		local s = spots[rng:int(1, #spots)]
+		local r = math.sqrt(lo2 + (hi2 - lo2) * rng:next())
+		local a = rng:next() * math.pi * 2
+		local j = L.cellOf(s.x + r * math.cos(a), s.z + r * math.sin(a))
+		local put = 0
+		if j ~= nil and s.allowed[L.zone[j]] and grid.levels[j] < grid.max then
+			put = grid:add(j, math.min(left, rng:int(1, maxPile)))
+		end
+		if put > 0 then
+			added += put
+			left -= put
+		else
+			misses += 1
+		end
+	end
+	return added
 end
 
 -- ===== starting fill =====

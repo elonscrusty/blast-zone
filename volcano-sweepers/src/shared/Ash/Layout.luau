@@ -4,13 +4,15 @@
 --
 -- Cells are cellSize x cellSize squares on a regular grid centred on world (0, 0). A cell exists when
 -- its centre lies between the inner edge of the innermost zone and the outer edge of the outermost
--- zone, and outside the hub clear circle. Existing cells get a compact index 1..N, row-major over the
--- bounding square (z rows first, x columns inside a row).
+-- zone, and outside the hub clear circle and the Trade Post circles (WorldPlan.postSpots). Existing
+-- cells get a compact index 1..N, row-major over the bounding square (z rows first, x columns inside
+-- a row).
 --
 -- Spatial hash: `lookup` buckets every grid coordinate (ix, iz) to its cell index (0 = no cell), so
 -- cellOf / neighbour / radius queries are O(cells touched), never O(N).
 
 local Config = require("../Config")
+local WorldPlan = require("../WorldPlan")
 
 export type World = typeof(Config.World)
 
@@ -60,6 +62,20 @@ function Layout.build(world: World): LayoutData
 	local z0 = -half * cs
 	local hubX, hubZ = hubPoint(world)
 	local clear2 = world.hub.clearRadius * world.hub.clearRadius
+	-- the hub and the Trade Posts stay bare: { x, z, radius^2 } triples
+	local clearings: { { number } } = { { hubX, hubZ, clear2 } }
+	for _, p in WorldPlan.postSpots(world) do
+		table.insert(clearings, { p.x, p.z, p.clearRadius * p.clearRadius })
+	end
+	local function cleared(x: number, z: number): boolean
+		for _, c in clearings do
+			local dx, dz = x - c[1], z - c[2]
+			if dx * dx + dz * dz <= c[3] then
+				return true
+			end
+		end
+		return false
+	end
 
 	local function zoneAt(x: number, z: number): number?
 		local r = math.sqrt(x * x + z * z)
@@ -91,8 +107,7 @@ function Layout.build(world: World): LayoutData
 			local x = x0 + (ix + 0.5) * cs
 			local zid = zoneAt(x, z)
 			if zid ~= nil then
-				local hx, hz = x - hubX, z - hubZ
-				if hx * hx + hz * hz > clear2 then
+				if not cleared(x, z) then
 					n += 1
 					cx[n], cz[n], zone[n] = x, z, zid
 					lookup[iz * cols + ix + 1] = n

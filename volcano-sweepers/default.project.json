@@ -6,7 +6,7 @@
       "$className": "Players",
       "$ignoreUnknownInstances": true,
       "$properties": {
-        "MaxPlayers": 16
+        "MaxPlayers": 24
       }
     },
     "Workspace": {

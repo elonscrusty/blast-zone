@@ -450,3 +450,42 @@ Harness.test("glue: find and set texts", function()
 	Harness.eq(BurpGlue.setClaimText(0.1), "Set complete! +10% coins forever")
 	Harness.eq(BurpGlue.setClaimText(NAN), "Set complete! +0% coins forever")
 end)
+
+Harness.test("glue: storms and gold follow the island size and the player count", function()
+	local BurpTuning = require("../src/shared/Burp/BurpTuning")
+	local Layout = require("../src/shared/Ash/Layout")
+	local ref = BurpGlue.STORM_REF_CELLS
+	-- the storm's share of cells shrinks with sqrt(island size): about 2x the old ash, not 4x
+	local scale = BurpGlue.stormCellScale
+	Harness.near(scale, math.min(1, math.sqrt(ref / Layout.N)), 1e-9)
+	local solo = BurpGlue.stormFraction(BurpTuning.stormFraction, 1)
+	Harness.near(solo, BurpTuning.stormFraction * scale, 1e-9)
+	local unitsNow = solo * Layout.N
+	local unitsThen = BurpTuning.stormFraction * ref
+	Harness.truthy(unitsNow >= unitsThen and unitsNow <= unitsThen * 2.5, "storm ash per pulse")
+	-- more friends, bigger storm, never past the cap; junk is safe
+	local prev = 0
+	for n = 1, Config.Game.MaxPlayers do
+		local f = BurpGlue.stormFraction(BurpTuning.stormFraction, n)
+		Harness.truthy(f >= prev and f <= BurpGlue.stormMaxFraction * scale + 1e-9, `storm {n}`)
+		prev = f
+	end
+	local junk = BurpGlue.stormFraction(NAN, NAN)
+	Harness.truthy(junk == junk and junk >= 0 and junk <= 1, "junk in, a sane share out")
+	-- gold: about as many golden cells per stretch of ground as on the first island, for every
+	-- server size, and the director's biggest burst fits the glue's cap
+	local function cells(n: number): number
+		return math.min(
+			BurpTuning.goldenMaxCells,
+			BurpTuning.goldenBaseCells + BurpTuning.goldenPerPlayer * n
+		)
+	end
+	Harness.truthy(BurpTuning.goldenMaxCells <= BurpGlue.maxGoldenCells, "cap fits")
+	local per = cells(1) / Layout.N
+	local old = (10 + 5) / ref -- the first island: 10 + 5 per player on 3004 cells
+	Harness.truthy(per >= old * 0.8 and per <= old * 1.25, `gold density {per} vs {old}`)
+	local share = BurpGlue.goldenShare(cells(Config.Game.MaxPlayers), Config.Game.MaxPlayers)
+	for _, c in share do
+		Harness.truthy(c >= 10, "every kid of a full server gets real gold")
+	end
+end)

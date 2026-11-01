@@ -1,19 +1,20 @@
 --!strict
 -- The island. World.init() builds everything under ONE folder, workspace.VSWorld (ground, sea,
--- volcano, hub, Trade Hut, gates, decor) and sets the lighting. The layout comes from the pure
+-- volcano, hub, Trade Hut, gates, Trade Posts, decor) and sets the lighting. The layout comes from the pure
 -- Shared/WorldPlan, so it is deterministic from Config.World.seed.
 --
 --   World.init()                    build (safe to call again: the old VSWorld is removed first)
 --   World.applyLighting()           bright afternoon look (also called by init)
 --   World.hubPosition: Vector3      centre of the hub, on the ground
 --   World.spawnPositions            { Vector3 } the 8 spawn pads (pad centres)
---   World.sellPadPositions()        { Vector3 } centres of the glowing sell pads
+--   World.sellPadPositions()        { Vector3 } centres of the glowing sell pads (the hut's AND
+--                                   one per Trade Post in zones 2..5)
 --   World.gatePosition(zoneId)      Vector3? on the ring boundary (nil for zone 1 / unknown)
 --   World.ventPositions             { Vector3 } geyser vents in zones 3..5 (for gem geysers)
 --   World.decorReady()              true once the scenery finished building (it builds in a task)
 --   World.partCount()               number of parts under VSWorld right now (debug / tests in Studio)
 --
--- Tags: VSSellPad (pad parts), VSSellPrompt (the ProximityPrompt on the counter), VSGate (gate floor
+-- Tags: VSSellPad (pad parts), VSSellPrompt (the ProximityPrompt on each counter), VSGate (gate floor
 -- plate, attribute ZoneId, child ProximityPrompt "GatePrompt"), VSSpawn (SpawnLocations).
 -- The folder carries a number attribute "Glow" (0..1, pulses about every 7 s) that the client may
 -- read to match the crater glow. Lava here is decor only: nothing in this folder hurts anyone.
@@ -33,6 +34,7 @@ local Decor = require(script.Parent.Decor)
 local Gates = require(script.Parent.Gates)
 local Ground = require(script.Parent.Ground)
 local Hub = require(script.Parent.Hub)
+local TradePosts = require(script.Parent.TradePosts)
 local Volcano = require(script.Parent.Volcano)
 
 local World = {}
@@ -55,6 +57,9 @@ end
 local padPositions: { Vector3 } = {}
 for _, p in plan.hub.pads do
 	table.insert(padPositions, Vector3.new(p.x, GY, p.z))
+end
+for _, post in plan.posts do
+	table.insert(padPositions, Vector3.new(post.x, GY, post.z))
 end
 
 local gatePositions: { [number]: Vector3 } = {}
@@ -276,6 +281,9 @@ function World.init()
 	end)
 	run("gates", function()
 		Gates.build(root, plan)
+	end)
+	run("trade posts", function()
+		TradePosts.build(root, plan)
 	end)
 	run("spawn fallback", function()
 		ensureSpawn(root)

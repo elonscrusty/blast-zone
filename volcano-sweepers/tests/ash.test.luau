@@ -4,15 +4,21 @@ local AshGrid = require("../src/shared/Ash/AshGrid")
 local Config = require("../src/shared/Config")
 local Layout = require("../src/shared/Ash/Layout")
 local Rng = require("../src/shared/Rng")
+local WorldPlan = require("../src/shared/WorldPlan")
 
 local W = Config.World
+-- island radii from Config (the island grew 2x: never hard-code them here)
+local OUTER = W.zones[1].outer -- beach edge
+local INNER = W.zones[5].inner -- volcano cone edge
+local FERN_OUTER = W.zones[2].outer -- the Sunny Beach / Fern Forest border
+local FERN_MID = (W.zones[2].inner + W.zones[2].outer) / 2
 local MAX = W.maxUnitsPerCell
 local ALL_ZONES: { [number]: boolean } =
 	{ [1] = true, [2] = true, [3] = true, [4] = true, [5] = true }
 local ZONE_VALUES: { [number]: number } = { [1] = 1, [2] = 3, [3] = 8, [4] = 22, [5] = 60 }
 
 -- a spot in the middle of Fern Forest on the far side from the hub
-local PX, PZ = 0, -165
+local PX, PZ = 0, -FERN_MID
 
 local function sumLevels(g: AshGrid.AshGrid): number
 	local s = 0
@@ -34,10 +40,14 @@ Harness.test("layout: same result every build, cell count in range", function()
 		Harness.eq(a.cz[i], b.cz[i])
 		Harness.eq(a.zone[i], b.zone[i])
 	end
-	-- annulus area / cell area, minus the hub circle that is cleared
-	local ring = math.pi * (250 ^ 2 - 30 ^ 2) / (W.cellSize ^ 2)
+	-- annulus area / cell area, minus the hub circle and the Trade Post circles that are cleared
+	local ring = math.pi * (OUTER ^ 2 - INNER ^ 2) / (W.cellSize ^ 2)
 	local hub = math.pi * W.hub.clearRadius ^ 2 / (W.cellSize ^ 2)
-	Harness.near(Layout.N, ring - hub, ring * 0.02, "N vs area")
+	local posts = 0
+	for _, p in WorldPlan.postSpots(W) do
+		posts += math.pi * p.clearRadius ^ 2 / (W.cellSize ^ 2)
+	end
+	Harness.near(Layout.N, ring - hub - posts, ring * 0.02, "N vs area")
 	print(`       (island has {Layout.N} ash cells)`)
 end)
 
@@ -51,7 +61,7 @@ Harness.test("layout: row-major compact order, cellOf round trip", function()
 		Harness.eq(Layout.cellOf(x + 3.9, z - 3.9), i, "cellOf inside cell")
 	end
 	Harness.eq(Layout.cellOf(0, 0), nil, "volcano centre has no ash")
-	Harness.eq(Layout.cellOf(400, 0), nil, "outside the island")
+	Harness.eq(Layout.cellOf(OUTER + 150, 0), nil, "outside the island")
 	Harness.eq(Layout.cellOf(0 / 0, 1), nil, "nan")
 end)
 
@@ -60,12 +70,16 @@ Harness.test("layout: cells sit in rings, hub circle is clear, zones match radiu
 	for i = 1, Layout.N do
 		local x, z = Layout.cx[i], Layout.cz[i]
 		local r = math.sqrt(x * x + z * z)
-		Harness.truthy(r >= 30 and r <= 250, "inside rings")
+		Harness.truthy(r >= INNER and r <= OUTER, "inside rings")
 		local zone = Layout.zone[i]
 		local def = W.zones[zone]
 		Harness.truthy(r >= def.inner and r <= def.outer, `zone {zone} radius {r}`)
 		local hx, hz = x - Layout.hubX, z - Layout.hubZ
 		Harness.truthy(math.sqrt(hx * hx + hz * hz) > W.hub.clearRadius, "hub clear")
+		for _, p in WorldPlan.postSpots(W) do
+			local px, pz = x - p.x, z - p.z
+			Harness.truthy(math.sqrt(px * px + pz * pz) > p.clearRadius, "trade post clear")
+		end
 		counts[zone] += 1
 	end
 	for z = 1, 5 do
@@ -78,6 +92,9 @@ Harness.test("layout: cells sit in rings, hub circle is clear, zones match radiu
 	-- cells close to the hub (but outside the circle) still exist
 	Harness.truthy(Layout.cellOf(Layout.hubX, Layout.hubZ - W.hub.clearRadius - 6) ~= nil)
 	Harness.eq(Layout.cellOf(Layout.hubX, Layout.hubZ), nil, "hub centre cleared")
+	for _, p in WorldPlan.postSpots(W) do
+		Harness.eq(Layout.cellOf(p.x, p.z), nil, `trade post {p.zoneId} centre cleared`)
+	end
 end)
 
 Harness.test("layout: neighbours and radius queries", function()
@@ -400,7 +417,7 @@ Harness.test("sweep: locked zones are untouched", function()
 	-- stand on the zone 1/2 border; only zone 2 may be swept
 	local res = g:sweep(
 		0,
-		-190,
+		-FERN_OUTER,
 		0,
 		-1,
 		{ reach = 20, arcDeg = 360, power = 2 },
@@ -415,7 +432,7 @@ Harness.test("sweep: locked zones are untouched", function()
 	end
 	local none = g:sweep(
 		0,
-		-190,
+		-FERN_OUTER,
 		0,
 		-1,
 		{ reach = 20, arcDeg = 360, power = 2 },
@@ -658,7 +675,7 @@ Harness.test("perf: 100000 sweeps", function()
 	local removed = 0
 	for n = 1, 100000 do
 		local ang = rng:range(0, 2 * math.pi)
-		local r = rng:range(35, 245)
+		local r = rng:range(INNER + 5, OUTER - 5)
 		local res = g:sweep(
 			r * math.cos(ang),
 			r * math.sin(ang),

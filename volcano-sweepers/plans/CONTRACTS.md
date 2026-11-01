@@ -20,7 +20,7 @@
 - Rarities: `common`, `uncommon`, `rare`, `legendary`
 
 ## Ash model (shared/Ash)
-- Grid of square cells (Config.World.cellSize) over the island rings, only cells whose centre lies inside zone 5 inner..zone 1 outer, and outside the hub clear circle, exist. Compact index 1..N (row-major over the bounding square, skipping non-island cells) — deterministic from Config, so server and client compute the identical layout; only LEVELS travel the network.
+- Grid of square cells (Config.World.cellSize) over the island rings, only cells whose centre lies inside zone 5 inner..zone 1 outer, and outside the hub clear circle and the Trade Post clear circles (`WorldPlan.postSpots`, radius `Config.World.tradePost.clearRadius`), exist. About 12,000 cells on the big island. Compact index 1..N (row-major over the bounding square, skipping non-island cells) — deterministic from Config, so server and client compute the identical layout; only LEVELS travel the network.
 - Level per cell 0..9 (units). Snapshot = string of N chars ('0'..'9'). Delta = flat `{idx, level, idx, level, ...}`.
 - Server is the only writer. Client mirrors levels and renders.
 
@@ -39,7 +39,11 @@ Wave 2 (Roblox glue, parallel, read the real wave 1 code):
 S1 world, S2 ash/sweep/sell services, S3 burp/finds, S4 player/purchases/helpers/daily/goals/cooldown/bootstrap, C1 client core, C2 UI kit + HUD, C3/C4 panels.
 
 ## PACING targets (R1 must tune numbers so a simulated player meets these; tests enforce +-30%)
-Simulated player: sweeps continuously, walks 12 s round trip per sell, buys the best affordable upgrade.
+Simulated player: sweeps continuously, walks to the NEAREST sell pad (Trade Hut or the zone's Trade Post) and back
+(tests/island_sim measures the walk on the real layout: about 50-75 studs one way), buys the best affordable upgrade.
+Big island (Nov 2026) results, median of 3 islands: Push Broom 2:02, zone 2 5:42, Leaf Blower 9:05, zone 3 12:19,
+zone 4 28:25, zone 5 52:34, Cool Down 1h22m (now offered at 7M run coins, was 3M), Volcano Vacuum 3h15m.
+Crowds (first 40 min, ash swept per kid vs solo): 2 kids 1.1x, 4 kids 0.9x, 16 kids 0.76x, 24 kids 0.78x.
 - First sale before 25 s of play. First upgrade bought before 45 s.
 - Push Broom owned by ~2:30. Zone 2 gate by ~6:00. Leaf Blower by ~9:00. Zone 3 by ~16:00.
 - Zone 4 by ~35:00. Zone 5 by ~70:00. Volcano Vacuum is a 3 h+ goal. First Cool Down offered at ~90 min.
@@ -68,9 +72,9 @@ Each service module exports `init()` and is wrapped in pcall by Main so one brok
 
 | Module (owner) | Exports others may call |
 |---|---|
-| `World/World.luau` (S1) | `World.init()` builds EVERYTHING in workspace under folder `VSWorld` (ground rings, volcano, hub, Trade Hut, gates, decor, lava, spawn, invisible bounds) and sets Lighting/Atmosphere/Sky/Bloom/ColorCorrection. `World.hubPosition: Vector3`, `World.spawnPositions`, `World.sellPadPositions(): {Vector3}`, `World.gatePosition(zoneId)`, `World.ventPositions` |
-| tags set by S1 | CollectionService tags: `VSSellPad` (parts, near the hut), `VSSellPrompt` (ProximityPrompt on the hut counter: SELL), `VSGate` (part, attribute `ZoneId` number, child ProximityPrompt `GatePrompt`), `VSSpawn` (SpawnLocation) |
-| `Ash/AshService.luau` (S2) | `AshService.grid` (the shared AshGrid), `AshService.init()`, `AshService.dropAround(x,z,units)` (lost backpack ash back on the ground), `AshService.zoneAt(x,z)`; replicates AshSnapshot on ClientReady and AshDelta batches (~10 Hz, chunks <= 400 pairs, only to ready players); slow regrow loop scaled by player count; Progress remote (changed fractions, <= 1/s); milestone parties: at 25/50/75/100% of each zone and whole island fires `Party`, sets buff `party` via PlayerState.setBuff for 60 s x buffTime, gifts coins, tracks "already celebrated" so one zone does not repeat until it dips below the previous milestone by 10%; PlayerState.setClean(total). |
+| `World/World.luau` (S1) | `World.init()` builds EVERYTHING in workspace under folder `VSWorld` (ground rings, volcano, hub, Trade Hut, gates, decor, lava, spawn, invisible bounds) and sets Lighting/Atmosphere/Sky/Bloom/ColorCorrection. `World.hubPosition: Vector3`, `World.spawnPositions`, `World.sellPadPositions(): {Vector3}` (hut pads + Trade Post pads), `World.gatePosition(zoneId)`, `World.ventPositions` |
+| tags set by S1 | CollectionService tags: `VSSellPad` (parts, near the hut AND one on each Trade Post in zones 2..5), `VSSellPrompt` (ProximityPrompt on the hut counter and on each Trade Post counter: SELL), `VSGate` (part, attribute `ZoneId` number, child ProximityPrompt `GatePrompt`), `VSSpawn` (SpawnLocation) |
+| `Ash/AshService.luau` (S2) | `AshService.grid` (the shared AshGrid), `AshService.init()`, `AshService.dropAround(x,z,units)` (lost backpack ash back on the ground), `AshService.zoneAt(x,z)`; replicates AshSnapshot on ClientReady and AshDelta batches (~10 Hz, chunks <= 400 pairs, only to ready players); slow regrow loop scaled by player count (half of it lands 32-90 studs around the players, `ProgressRules.regrowNear`; the bare ground around the players also feeds the adaptive budget, `ProgressRules.nearClean`); Progress remote (changed fractions, <= 1/s); milestone parties: at 25/50/75/100% of each zone and whole island fires `Party`, sets buff `party` via PlayerState.setBuff for 60 s x buffTime, gifts coins, tracks "already celebrated" so one zone does not repeat until it dips below the previous milestone by 10%; PlayerState.setClean(total). |
 | `Sweep/SweepService.luau` (S2) | `Sweep` remote handler (server-only facts: HRP position + LookVector flattened, rate limit by derived.interval x 0.8, alive, ready, allowed zones from profile.zones, capacity), calls `grid:sweep`, `PlayerState.addCarried`, stats (ashSwept, cleared), calls `FindsService.onCleared(player, zoneId, clearedCount)`, fires `SweepFx` to other ready players within 160 studs, Toast throttled when backpack full. Golden cells x5 handled by the grid. |
 | `Sweep/SellService.luau` (S2) | `Sell` remote + `VSSellPrompt`: must be within Config.World.sellRange of any `World.sellPadPositions()`; `Economy.sellValue`, `PlayerState.takeCarried/addCoins/addStat(unitsSold,sellCount)`, fires `Sold`; stat `sellCount`. |
 | `Finds/FindsService.luau` (S3) | `FindsService.onCleared(player, zoneId, clearedCount)` (rolls FindRoller per cleared cell, pays coins via PlayerState.addCoins, updates profile.finds, stat findsTotal, `FindFound` remote, claim-able sets), `FindsService.grantGeyserGem(player, coins)`. Also the `ClaimSet` remote (set complete → set reward flagged in profile.setsClaimed, PlayerState.recompute). |

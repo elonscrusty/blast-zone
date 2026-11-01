@@ -22,6 +22,7 @@ local P = WorldUtil.Palette
 
 function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 	local v = plan.volcano
+	local k = v.scale -- 1 = the first, small island's volcano
 	local folder = Instance.new("Folder")
 	folder.Name = "Volcano"
 
@@ -48,7 +49,7 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 				folder,
 				"LavaStreak",
 				CFrame.lookAt(pos, pos + dir),
-				Vector3.new(1.3, tier.h - 0.4, 0.4),
+				Vector3.new(1.3 * k, tier.h - 0.4, 0.4),
 				P.lava,
 				{ material = Enum.Material.Neon }
 			)
@@ -80,8 +81,8 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 			WorldUtil.ball(
 				folder,
 				`LavaBubble{i}`,
-				off + Vector3.new(0, v.topY + 0.5, 0),
-				2 + i * 0.4,
+				off * k + Vector3.new(0, v.topY + 0.5, 0),
+				(2 + i * 0.4) * k,
 				P.ember,
 				{
 					material = Enum.Material.Neon,
@@ -93,7 +94,7 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromHex(P.orange)
 	light.Brightness = 3
-	light.Range = 60
+	light.Range = 60 -- the most a PointLight reaches
 	light.Shadows = false
 	light.Parent = glow
 
@@ -112,8 +113,8 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 		lifeMax = 10,
 		speedMin = 5,
 		speedMax = 9,
-		sizeA = 9,
-		sizeB = 24,
+		sizeA = 9 * k,
+		sizeB = 24 * k,
 		spread = 14,
 		accel = Vector3.new(1.2, 0.8, 0),
 		alpha = 0.45,
@@ -137,12 +138,13 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 	})
 
 	-- solid core: nobody walks into the volcano (radius = zone 5 inner edge)
+	local coreH = math.max(90, v.topY + 10)
 	WorldUtil.cylinder(
 		folder,
 		"ConeCollision",
-		Vector3.new(0, 45, 0),
+		Vector3.new(0, coreH / 2, 0),
 		(v.baseRadius - 0.2) * 2,
-		90,
+		coreH,
 		"#FFFFFF",
 		{ collide = true, transparency = 1 }
 	)

@@ -50,14 +50,16 @@ function Ground.build(root: Instance, plan: WorldPlan.Plan): Refs
 	local islandRadius = plan.outerRadius
 
 	-- ===== sea =====
-	WorldUtil.disc(sea, "SeaFloor", 0, gy - 7, 0, 760, 2, "#58C7D6", { collide = true })
+	-- about 520 studs of sea past the beach (a Part can be at most 2048 studs across)
+	local seaR = math.min(1016, islandRadius + 520)
+	WorldUtil.disc(sea, "SeaFloor", 0, gy - 7, 0, seaR + 4, 2, "#58C7D6", { collide = true })
 	WorldUtil.disc(
 		sea,
 		"Water",
 		0,
 		gy - 1.2,
 		0,
-		740,
+		seaR,
 		0.5,
 		"#3FB6F2",
 		{ transparency = 0.4, reflectance = 0.12 }

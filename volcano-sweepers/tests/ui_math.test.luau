@@ -73,12 +73,15 @@ Harness.test(
 
 Harness.test("UiMath.zoneAt follows the rings", function()
 	local zones = Config.World.zones
-	Harness.eq(UiMath.zoneAt(0, 222, zones), 1) -- the hub on the beach
-	Harness.eq(UiMath.zoneAt(0, 300, zones), 1) -- beyond the beach edge
-	Harness.eq(UiMath.zoneAt(160, 0, zones), 2)
-	Harness.eq(UiMath.zoneAt(0, -120, zones), 3)
-	Harness.eq(UiMath.zoneAt(80, 0, zones), 4)
-	Harness.eq(UiMath.zoneAt(45, 0, zones), 5)
+	local function mid(id: number): number
+		return (zones[id].inner + zones[id].outer) / 2
+	end
+	Harness.eq(UiMath.zoneAt(0, Config.World.hub.radius, zones), 1) -- the hub on the beach
+	Harness.eq(UiMath.zoneAt(0, zones[1].outer + 50, zones), 1) -- beyond the beach edge
+	Harness.eq(UiMath.zoneAt(mid(2), 0, zones), 2)
+	Harness.eq(UiMath.zoneAt(0, -mid(3), zones), 3)
+	Harness.eq(UiMath.zoneAt(mid(4), 0, zones), 4)
+	Harness.eq(UiMath.zoneAt(mid(5), 0, zones), 5)
 	Harness.eq(UiMath.zoneAt(0, 0, zones), 5) -- inside the volcano
 	Harness.eq(UiMath.zoneAt(0 / 0, 0, zones), 1)
 end)

@@ -13,7 +13,11 @@
 --   10 Hz  AshDelta   dirty cells -> every ready player, chunks of <= 400 pairs, nothing when empty
 --   2 s    regrow     units back on the ground (in small piles): scaled by player count, boosted when
 --                     a zone is nearly clean, fed by how fast players sweep AND by what their tools
---                     could sweep, capped per player (numbers: ProgressRules, balanced by pacing.test)
+--                     could sweep (more when the ground around the players is bare), capped per
+--                     player (numbers: ProgressRules, balanced by pacing.test). Half of it drifts
+--                     down 32..90 studs around the players (ProgressRules.regrowNear: the island is
+--                     big, so the ash comes back where kids are), the rest anywhere in the zones
+--                     somebody can sweep. Cost: about 180 cells read per player every 2 s.
 --   1 s    Progress   clean fractions when any moved >= 0.005, PlayerState.setClean, and milestone
 --                     parties (25/50/75/100% of a zone or of the whole island; at most one party per
 --                     ProgressRules.PARTY_COOLDOWN). A party: x2 coins for EVERY ready player for
@@ -34,6 +38,7 @@ local SweepRules = require(Shared.Sweep.SweepRules)
 local Types = require(Shared.Types)
 local Zones = require(Shared.Catalog.Zones)
 
+local MoveWatch = require(script.Parent.Parent.Core.MoveWatch)
 local Net = require(script.Parent.Parent.Core.Net)
 local PlayerState = require(script.Parent.Parent.Player.PlayerState)
 
@@ -136,6 +141,16 @@ local function regrowStep(elapsed: number)
 			pace += p
 		end
 	end
+	-- where the kids are (trusted positions) and what each may sweep there
+	local spots: { ProgressRules.NearSpot } = {}
+	for _, s in states do
+		local ok, pos = pcall(MoveWatch.position, s.player)
+		if ok and pos ~= nil and pos.X == pos.X and pos.Z == pos.Z then
+			local allowed: { [number]: boolean } = {}
+			SweepRules.buildAllowed(s.profile.zones, allowed)
+			table.insert(spots, { x = pos.X, z = pos.Z, allowed = allowed })
+		end
+	end
 	local whole
 	whole, regrowCarry = ProgressRules.regrowBudget(
 		#states,
@@ -144,7 +159,8 @@ local function regrowStep(elapsed: number)
 		grid:totalClean(),
 		cleanest,
 		sweepRate,
-		pace
+		pace,
+		ProgressRules.nearClean(grid, spots)
 	)
 	if whole <= 0 then
 		return
@@ -161,7 +177,14 @@ local function regrowStep(elapsed: number)
 			end
 		end
 	end
-	grid:regrow(rng, whole, biasScratch)
+	local near = ProgressRules.regrowNear(
+		grid,
+		rng,
+		math.floor(whole * ProgressRules.NEAR_SHARE),
+		spots,
+		AshGrid.REGROW_PILE
+	)
+	grid:regrow(rng, whole - near, biasScratch)
 end
 
 -- The longest party any ready player's Spark "Long Buffs" allows (1 .. BurpGlue.maxBuffMult).

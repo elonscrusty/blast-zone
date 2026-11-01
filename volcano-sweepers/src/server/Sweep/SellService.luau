@@ -112,7 +112,7 @@ local function sell(player: Player)
 	end
 	if not nearSellSpot(pos.X, pos.Z) then
 		if SweepRules.allowEvery(farToastAt, player, now, FAR_TOAST_GAP) then
-			toast(player, "Walk to the Trade Hut to sell!", "info")
+			toast(player, "Walk to a Trade Hut or Trade Post to sell!", "info")
 		end
 		return
 	end

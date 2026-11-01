@@ -300,7 +300,12 @@ Harness.test("burp: bombs are fair, aimed and on the island", function()
 		Harness.truthy(b.landsAt - rec.t >= 1.5 - 1e-9, `telegraph {b.landsAt - rec.t}`)
 		Harness.near(b.radius, BurpTuning.bombRadius)
 		local r = math.sqrt(b.x * b.x + b.z * b.z)
-		Harness.truthy(r >= 30 and r <= 250, "on the island")
+		Harness.truthy(r >= Layout.innerRadius and r <= Layout.outerRadius, "on the island")
+		-- the island is big: every bomb (decoys too) lands near somebody
+		Harness.truthy(
+			rec.nearest <= BurpTuning.decoyOffsetMax + 2,
+			`bomb {rec.nearest} studs from the nearest player`
+		)
 		Harness.truthy(
 			math.sqrt((b.x - hubX) ^ 2 + (b.z - hubZ) ^ 2) > HUB_SAFE,
 			"never at the hub"
@@ -487,7 +492,7 @@ Harness.test("burp: event contents (storm pulses, golden, geysers)", function()
 			Harness.truthy(#spots >= 1 and #spots <= BurpTuning.geyserSpotsMax)
 			for _, s in spots do
 				local r = math.sqrt(s.x * s.x + s.z * s.z)
-				Harness.truthy(r >= 30 and r <= 250)
+				Harness.truthy(r >= Layout.innerRadius and r <= Layout.outerRadius)
 				Harness.truthy(
 					math.sqrt((s.x - Layout.hubX) ^ 2 + (s.z - Layout.hubZ) ^ 2) > HUB_SAFE
 				)

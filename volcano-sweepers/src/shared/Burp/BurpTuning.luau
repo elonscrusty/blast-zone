@@ -32,7 +32,9 @@ export type Tuning = {
 	bombsPerWaveMax: number,
 	maxActiveBombs: number,
 	aimOffsetMax: number, -- bombs land within this many studs of the player they chase
-	decoyFraction: number, -- share of bombs aimed at a random spot in a player-occupied zone
+	decoyFraction: number, -- share of bombs that land a bit further from the player they chase ...
+	decoyOffsetMin: number, -- ... this many studs away at least
+	decoyOffsetMax: number, -- ... and at most
 	hubSafeMargin: number, -- bombs never land closer than clearRadius + this to the hub
 	perfectGrace: number, -- seconds after the last bomb lands before "nobody hit" is decided
 
@@ -54,6 +56,7 @@ export type Tuning = {
 	geyserPlayersPerExtraSpot: number,
 	geyserSpotsMax: number,
 	geyserGemsPerSpot: number, -- pickups per vent (server decides coin value)
+	geyserSpread: number, -- geysers pop within about this many studs (along the ring) of a player
 
 	-- perfect dodge
 	perfectBuffSeconds: number,
@@ -80,12 +83,16 @@ local BurpTuning: Tuning = {
 	minTelegraph = 1.5,
 	bombRadius = 7,
 	bodyRadius = 0.5, -- the client draws the ring at bombRadius: a hit is what the eye sees
+	-- 1 bomb a wave + 1 per 4 players, up to 6 (a full server of 24 is spread over a big island,
+	-- so each wave still visits several groups of kids)
 	bombsPerWaveBase = 1,
 	playersPerExtraBomb = 4,
-	bombsPerWaveMax = 4,
-	maxActiveBombs = 12,
+	bombsPerWaveMax = 6,
+	maxActiveBombs = 16,
 	aimOffsetMax = 4,
 	decoyFraction = 0.25,
+	decoyOffsetMin = 10,
+	decoyOffsetMax = 30,
 	hubSafeMargin = 4,
 	perfectGrace = 0.75,
 
@@ -94,9 +101,12 @@ local BurpTuning: Tuning = {
 	stormFraction = 0.3,
 
 	goldenDuration = 45,
-	goldenBaseCells = 10, -- 10 + 5 per player: every player gets about 5 gold cells in their
-	goldenPerPlayer = 5, -- own best zone (BurpService shares them out), so gold scales with
-	goldenMaxCells = 90, -- friends AND with progress
+	-- 40 + 20 per player, shared out per player into their own best zone (BurpService). The island
+	-- has 4x the cells of the first build, so 4x the gold keeps the same gold per patch of ground
+	-- a kid can reach in 45 s (gold scales with friends AND with progress).
+	goldenBaseCells = 40,
+	goldenPerPlayer = 20,
+	goldenMaxCells = 380,
 
 	geyserDuration = 20,
 	geyserWaveEvery = 10,
@@ -104,6 +114,7 @@ local BurpTuning: Tuning = {
 	geyserPlayersPerExtraSpot = 2,
 	geyserSpotsMax = 10,
 	geyserGemsPerSpot = 3,
+	geyserSpread = 80,
 
 	perfectBuffSeconds = 120,
 	perfectKinds = { pops = true },
