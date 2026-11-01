@@ -7,14 +7,17 @@
 -- Phone-light: at most MAX_HAND parts in the hand and MAX_BACK on the back.
 
 local ModelKit = require("./ModelKit")
+local ToolDetails = require("./ToolDetails")
 
 export type PartSpec = ModelKit.PartSpec
 export type ToolParts = { id: string, look: string, hand: { PartSpec }, back: { PartSpec } }
 
 local ToolSpecs = {}
 
-ToolSpecs.MAX_HAND = 26
-ToolSpecs.MAX_BACK = 10
+ToolSpecs.MAX_LITE_HAND = 26 -- the basic shape (far away players)
+ToolSpecs.MAX_LITE_BACK = 10
+ToolSpecs.MAX_HAND = 44 -- with all the detail
+ToolSpecs.MAX_BACK = 22
 
 local box, cyl, ball, rod = ModelKit.box, ModelKit.cyl, ModelKit.ball, ModelKit.rod
 
@@ -408,19 +411,20 @@ function ToolSpecs.has(id: string): boolean
 	return builders[id] ~= nil
 end
 
--- Parts of tool `id` in look `look` ("A" | "B" | "C"; anything else is "A").
-function ToolSpecs.build(id: string, look: string?): ToolParts
+-- Parts of tool `id` in look `look` ("A" | "B" | "C"; anything else is "A"). `lite` = only the basic
+-- shape (for players far away); otherwise every detail is added too.
+function ToolSpecs.build(id: string, look: string?, lite: boolean?): ToolParts
 	local S = ModelKit.style(look)
-	local builder = builders[id] or builders.twig_broom
+	local known = builders[id] ~= nil
+	local realId = if known then id else "twig_broom"
+	local builder = builders[realId]
 	local hand: { PartSpec } = {}
 	local back: { PartSpec } = {}
 	builder(S, hand, back)
-	return {
-		id = if builders[id] ~= nil then id else "twig_broom",
-		look = S.id,
-		hand = hand,
-		back = back,
-	}
+	if lite ~= true then
+		ToolDetails.add(realId, S, toolColor(realId), hand, back)
+	end
+	return { id = realId, look = S.id, hand = hand, back = back }
 end
 
 return ToolSpecs

@@ -8,6 +8,7 @@
 -- where the rider sits (0, 1.7, 0.3); the main thread decides whether it becomes a real Seat.
 
 local ModelKit = require("./ModelKit")
+local CartDetails = require("./CartDetails")
 
 export type PartSpec = ModelKit.PartSpec
 type Wheel = { name: string, x: number, z: number, d: number }
@@ -15,7 +16,8 @@ export type CartParts = { look: string, parts: { PartSpec } }
 
 local CartSpecs = {}
 
-CartSpecs.MAX_PARTS = 52
+CartSpecs.MAX_LITE_PARTS = 52 -- the basic shape (carts far away)
+CartSpecs.MAX_PARTS = 90 -- with all the detail
 CartSpecs.seatSpot = { 0, 1.7, 0.3 } :: { number }
 CartSpecs.binFloorTop = 1.36 -- top face of the bin floor
 
@@ -36,7 +38,8 @@ function CartSpecs.heap(fill: number): ({ number }, number)
 	return { dia, h, dia }, CartSpecs.binFloorTop + h / 2
 end
 
-function CartSpecs.build(look: string?): CartParts
+-- `lite` = only the basic shape; otherwise every detail is added too.
+function CartSpecs.build(look: string?, lite: boolean?): CartParts
 	local S = ModelKit.style(look)
 	local body = S.main("#FF7A59")
 	local deep = ModelKit.darken(body, 0.25)
@@ -120,6 +123,9 @@ function CartSpecs.build(look: string?): CartParts
 		cyl("Exhaust", 0.22, 0.9, { 0.9, 1.9, 2.95 }, S.trim, "Metal"),
 		ball("ExhaustPuff", 0.5, { 0.9, 2.55, 3.0 }, "#C4BCBE", "SmoothPlastic", 0.55)
 	)
+	if lite ~= true then
+		CartDetails.add(S, body, parts)
+	end
 	return { look = S.id, parts = parts }
 end
 

@@ -11,13 +11,15 @@
 -- Parts whose name starts with "Bob" can bob up and down (crater bubbles, antenna bulb).
 
 local ModelKit = require("./ModelKit")
+local BotDetails = require("./BotDetails")
 
 export type PartSpec = ModelKit.PartSpec
 export type BotParts = { look: string, level: number, parts: { PartSpec } }
 
 local BotSpecs = {}
 
-BotSpecs.MAX_PARTS = 34
+BotSpecs.MAX_LITE_PARTS = 34 -- the basic shape (bots far away)
+BotSpecs.MAX_PARTS = 54 -- with all the detail
 BotSpecs.maxLevel = 15
 BotSpecs.looks = { "A", "B", "C" } :: { string }
 BotSpecs.names = { A = "Bumble Bot", B = "Roller Bot", C = "Ember Bot" } :: { [string]: string }
@@ -47,21 +49,6 @@ local function add(list: { PartSpec }, ...: PartSpec)
 	end
 end
 
--- Body colours per look. The bots do not come from the tool catalog, so each look has its own.
-local function palette(look: string): (string, string, string, string)
-	-- returns body, belly, dark, glow
-	if look == "B" then
-		return "#7A859C", "#B4BCCB", "#222836", "#7DF0FF"
-	elseif look == "C" then
-		return "#FF9BCB", "#FFE0F0", "#8A4FB0", "#FF5FB4"
-	end
-	return "#4FB3E8", "#F4F0E6", "#2B2430", "#7DF0FF"
-end
-
-local function bodyMat(look: string): ModelKit.Mat
-	return if look == "B" then "Metal" else "SmoothPlastic"
-end
-
 -- A little face on the front (-Z) of something at (0, y, z): dark visor, two glowing eyes.
 local function face(list: { PartSpec }, y: number, z: number, w: number, dark: string, glow: string)
 	add(
@@ -76,7 +63,7 @@ local builders: { [string]: (look: string, trim: string, parts: { PartSpec }) ->
 
 -- ===== A: Bumble Bot (hovering) =====
 builders.A = function(look, trim, parts)
-	local body, belly, dark, glow = palette(look)
+	local body, belly, dark, glow = ModelKit.botPalette(look)
 	add(
 		parts,
 		-- soft shadow on the ground
@@ -85,8 +72,8 @@ builders.A = function(look, trim, parts)
 		cyl("HoverPad", 1.2, 0.2, { 0, 0.95, 0 }, dark, "Metal"),
 		cyl("HoverGlow", 0.9, 0.08, { 0, 0.8, 0 }, glow, "Neon", nil, 0.15),
 		-- round body
-		ball("Body", 2.0, { 0, 1.95, 0 }, body, bodyMat(look)),
-		cyl("Belt", 2.02, 0.22, { 0, 1.55, 0 }, belly, bodyMat(look)),
+		ball("Body", 2.0, { 0, 1.95, 0 }, body, ModelKit.botBodyMat(look)),
+		cyl("Belt", 2.02, 0.22, { 0, 1.55, 0 }, belly, ModelKit.botBodyMat(look)),
 		ball("Badge", 0.38, { 0, 1.55, -0.92 }, trim, "Neon"),
 		-- propeller
 		cyl("Mast", 0.14, 0.4, { 0, 3.1, 0 }, dark, "Metal"),
@@ -97,12 +84,28 @@ builders.A = function(look, trim, parts)
 		cyl("Antenna", 0.07, 0.5, { 0.55, 3.0, 0.2 }, dark, "Metal", { 0, 0, -15 }),
 		ball("BobBulb", 0.26, { 0.63, 3.3, 0.2 }, trim, "Neon"),
 		-- sweeping arms with little brushes
-		cyl("ArmL", 0.26, 0.9, { -1.12, 1.6, -0.35 }, belly, bodyMat(look), { -50, 0, 25 }),
-		cyl("ArmR", 0.26, 0.9, { 1.12, 1.6, -0.35 }, belly, bodyMat(look), { -50, 0, -25 }),
+		cyl(
+			"ArmL",
+			0.26,
+			0.9,
+			{ -1.12, 1.6, -0.35 },
+			belly,
+			ModelKit.botBodyMat(look),
+			{ -50, 0, 25 }
+		),
+		cyl(
+			"ArmR",
+			0.26,
+			0.9,
+			{ 1.12, 1.6, -0.35 },
+			belly,
+			ModelKit.botBodyMat(look),
+			{ -50, 0, -25 }
+		),
 		box("BrushL", { 0.7, 0.22, 0.34 }, { -1.3, 1.15, -0.75 }, dark, "Fabric"),
 		box("BrushR", { 0.7, 0.22, 0.34 }, { 1.3, 1.15, -0.75 }, dark, "Fabric"),
 		-- intake funnel on the belly
-		cyl("Funnel", 0.8, 0.3, { 0, 1.0, -0.5 }, belly, bodyMat(look), { 90, 0, 0 }),
+		cyl("Funnel", 0.8, 0.3, { 0, 1.0, -0.5 }, belly, ModelKit.botBodyMat(look), { 90, 0, 0 }),
 		cyl("FunnelHole", 0.5, 0.06, { 0, 1.0, -0.68 }, dark, "SmoothPlastic", { 90, 0, 0 }),
 		-- cheeks
 		ball("CheekL", 0.22, { -0.62, 1.75, -0.9 }, glow, "Neon", 0.35),
@@ -113,7 +116,7 @@ end
 
 -- ===== B: Roller Bot (wheels + brush roller) =====
 builders.B = function(look, trim, parts)
-	local body, belly, dark, glow = palette(look)
+	local body, belly, dark, glow = ModelKit.botPalette(look)
 	add(
 		parts,
 		cyl("Shadow", 2.6, 0.04, { 0, 0.03, 0 }, "#000000", "SmoothPlastic", nil, 0.65),
@@ -123,12 +126,12 @@ builders.B = function(look, trim, parts)
 		cyl("HubL", 0.6, 0.5, { -1.0, 0.65, 0.3 }, trim, "Metal", { 0, 0, 90 }),
 		cyl("HubR", 0.6, 0.5, { 1.0, 0.65, 0.3 }, trim, "Metal", { 0, 0, 90 }),
 		-- body
-		box("Body", { 1.7, 1.2, 1.9 }, { 0, 1.55, 0.2 }, body, bodyMat(look)),
-		box("Belly", { 1.74, 0.3, 1.94 }, { 0, 1.1, 0.2 }, belly, bodyMat(look)),
+		box("Body", { 1.7, 1.2, 1.9 }, { 0, 1.55, 0.2 }, body, ModelKit.botBodyMat(look)),
+		box("Belly", { 1.74, 0.3, 1.94 }, { 0, 1.1, 0.2 }, belly, ModelKit.botBodyMat(look)),
 		box("Badge", { 0.4, 0.4, 0.08 }, { 0, 1.5, -0.79 }, trim, "Neon"),
 		-- head
 		cyl("Neck", 0.3, 0.3, { 0, 2.3, 0.1 }, dark, "Metal"),
-		box("Head", { 1.5, 0.95, 1.1 }, { 0, 2.85, 0.0 }, belly, bodyMat(look)),
+		box("Head", { 1.5, 0.95, 1.1 }, { 0, 2.85, 0.0 }, belly, ModelKit.botBodyMat(look)),
 		cyl("Antenna", 0.07, 0.6, { -0.5, 3.6, 0.1 }, dark, "Metal"),
 		ball("BobBulb", 0.26, { -0.5, 3.95, 0.1 }, trim, "Neon"),
 		-- brush roller out front
@@ -139,7 +142,7 @@ builders.B = function(look, trim, parts)
 		box("RollerArmL", { 0.12, 0.12, 1.2 }, { -0.95, 0.75, -0.85 }, dark, "Metal"),
 		box("RollerArmR", { 0.12, 0.12, 1.2 }, { 0.95, 0.75, -0.85 }, dark, "Metal"),
 		-- dustbin on the back
-		box("BinBack", { 1.5, 0.9, 0.12 }, { 0, 1.4, 1.35 }, body, bodyMat(look)),
+		box("BinBack", { 1.5, 0.9, 0.12 }, { 0, 1.4, 1.35 }, body, ModelKit.botBodyMat(look)),
 		box("BinFloor", { 1.5, 0.12, 0.8 }, { 0, 0.95, 1.5 }, dark, "SmoothPlastic"),
 		box("BinWindow", { 1.1, 0.6, 0.06 }, { 0, 1.45, 1.43 }, "#B8D8E8", "Glass", nil, 0.4),
 		ball("BinAsh", 0.7, { 0, 1.2, 1.45 }, "#8A8480", "SmoothPlastic")
@@ -149,7 +152,7 @@ end
 
 -- ===== C: Ember Bot (mini volcano) =====
 builders.C = function(look, trim, parts)
-	local body, _belly, dark, glow = palette(look)
+	local body, _belly, dark, glow = ModelKit.botPalette(look)
 	local rock = if look == "A" then "#6B4A3E" elseif look == "B" then "#4A5160" else "#C9A8DA"
 	add(
 		parts,
@@ -171,7 +174,7 @@ builders.C = function(look, trim, parts)
 		box("Drip1", { 0.22, 0.9, 0.14 }, { 0.62, 2.05, 0.55 }, "#FF8A2F", "Neon", { 0, -50, 0 }),
 		box("Drip2", { 0.2, 0.7, 0.14 }, { -0.75, 1.5, 0.5 }, "#FFB020", "Neon", { 0, 50, 0 }),
 		-- belly band with the level badge
-		cyl("Band", 2.34, 0.2, { 0, 1.3, 0 }, body, bodyMat(look)),
+		cyl("Band", 2.34, 0.2, { 0, 1.3, 0 }, body, ModelKit.botBodyMat(look)),
 		ball("Badge", 0.38, { 0, 1.3, -1.12 }, trim, "Neon"),
 		-- arms with brushes
 		cyl("ArmL", 0.26, 0.8, { -1.25, 1.5, -0.2 }, rock, "Metal", { -40, 0, 25 }),
@@ -188,11 +191,16 @@ end
 -- ===== public =====
 
 -- Parts of one helper bot. `look` = "A" | "B" | "C" (else "A"), `level` = shared level 0..15.
-function BotSpecs.build(look: string?, level: number?): BotParts
+-- `lite` = only the basic shape (bots far away); otherwise every detail is added too.
+function BotSpecs.build(look: string?, level: number?, lite: boolean?): BotParts
 	local key = if look == "B" or look == "C" then look else "A"
 	local lv = math.clamp(math.floor(level or 0), 0, BotSpecs.maxLevel)
 	local parts: { PartSpec } = {}
-	builders[key](key, BotSpecs.tierColor(lv), parts)
+	local trim = BotSpecs.tierColor(lv)
+	builders[key](key, trim, parts)
+	if lite ~= true then
+		BotDetails.add(key, trim, parts)
+	end
 	return { look = key, level = lv, parts = parts }
 end
 

@@ -5,6 +5,7 @@
 --   SweeperTools.buildBack("dragon_vac", "A")  -> Model? the backpack / wings / tanks (torso space,
 --                                                 origin = torso centre, +Z is behind); nil when a
 --                                                 tool has none
+-- opts.lite = true builds only the basic shape (for players far away).
 -- `look` is "A" Toy | "B" Steel | "C" Candy (default "A"). Unknown tool id -> the Twig Broom.
 -- Models are welded to a see-through Root part (PrimaryPart); weld to the hand grip / torso with
 -- ModelBuilder opts.cf or by moving the Root.
@@ -28,12 +29,12 @@ SweeperTools.ids = {
 SweeperTools.looks = { "A", "B", "C" } :: { string }
 
 function SweeperTools.build(id: string, look: string?, opts: ModelBuilder.Opts?): Model
-	local spec = ToolSpecs.build(id, look)
+	local spec = ToolSpecs.build(id, look, opts ~= nil and opts.lite == true)
 	return ModelBuilder.build(spec.id, spec.hand, opts)
 end
 
 function SweeperTools.buildBack(id: string, look: string?, opts: ModelBuilder.Opts?): Model?
-	local spec = ToolSpecs.build(id, look)
+	local spec = ToolSpecs.build(id, look, opts ~= nil and opts.lite == true)
 	if #spec.back == 0 then
 		return nil
 	end

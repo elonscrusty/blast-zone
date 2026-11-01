@@ -15,7 +15,7 @@ SweeperCart.seatOffset =
 	Vector3.new(CartSpecs.seatSpot[1], CartSpecs.seatSpot[2], CartSpecs.seatSpot[3])
 
 function SweeperCart.build(look: string?, opts: ModelBuilder.Opts?): Model
-	local spec = CartSpecs.build(look)
+	local spec = CartSpecs.build(look, opts ~= nil and opts.lite == true)
 	local model = ModelBuilder.build("SweeperCart" .. spec.look, spec.parts, opts)
 	SweeperCart.setFill(model, 0)
 	return model

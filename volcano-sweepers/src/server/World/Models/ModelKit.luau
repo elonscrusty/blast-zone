@@ -132,6 +132,21 @@ function ModelKit.style(id: string?): Style
 	return ModelKit.styles[id or "A"] or ModelKit.styles.A
 end
 
+-- Helper bot colours per look: body, belly, dark, glow. (Bot look = bot shape: A Bumble, B Roller, C Ember.)
+function ModelKit.botPalette(look: string): (string, string, string, string)
+	if look == "B" then
+		return "#7A859C", "#B4BCCB", "#222836", "#7DF0FF"
+	elseif look == "C" then
+		return "#FF9BCB", "#FFE0F0", "#8A4FB0", "#FF5FB4"
+	end
+	return "#4FB3E8", "#F4F0E6", "#2B2430", "#7DF0FF"
+end
+
+-- Body material of a bot look.
+function ModelKit.botBodyMat(look: string): Mat
+	return if look == "B" then "Metal" else "SmoothPlastic"
+end
+
 -- ===== part makers =====
 
 local function vec(v: { number }?, fallback: number): { number }

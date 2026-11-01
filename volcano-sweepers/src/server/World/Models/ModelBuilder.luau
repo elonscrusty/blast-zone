@@ -16,6 +16,7 @@ export type Opts = {
 	weld: boolean?, -- default true
 	parent: Instance?,
 	name: string?,
+	lite: boolean?, -- true = only the basic shape (far away); default = all the detail
 }
 
 local MATERIALS: { [string]: Enum.Material } = {

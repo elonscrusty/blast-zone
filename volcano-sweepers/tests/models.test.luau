@@ -109,7 +109,7 @@ Harness.test("tool models: every catalog tool, in every look, is valid and phone
 			checkParts(label .. " hand", spec.hand, 4)
 			checkParts(label .. " back", spec.back, 4)
 			Harness.truthy(
-				#spec.hand >= 8 and #spec.hand <= ToolSpecs.MAX_HAND,
+				#spec.hand >= 20 and #spec.hand <= ToolSpecs.MAX_HAND,
 				label .. " hand count " .. #spec.hand
 			)
 			Harness.truthy(#spec.back <= ToolSpecs.MAX_BACK, label .. " back count " .. #spec.back)
@@ -122,8 +122,8 @@ Harness.test("tool models: tools hang below the grip and stay a sensible size", 
 	for _, tool in Tools.list do
 		local spec = ToolSpecs.build(tool.id, "A")
 		local b = ModelKit.bounds(spec.hand)
-		Harness.truthy(b.maxY <= 1.3, tool.id .. " does not tower over the hand: " .. b.maxY)
-		Harness.truthy(b.minY <= -2.5 and b.minY >= -5, tool.id .. " business end: " .. b.minY)
+		Harness.truthy(b.maxY <= 1.6, tool.id .. " does not tower over the hand: " .. b.maxY)
+		Harness.truthy(b.minY <= -2.5 and b.minY >= -5.6, tool.id .. " business end: " .. b.minY)
 		Harness.truthy(b.maxX - b.minX <= 3.2, tool.id .. " width " .. (b.maxX - b.minX))
 		Harness.truthy(b.maxZ - b.minZ <= 3.2, tool.id .. " depth " .. (b.maxZ - b.minZ))
 		if #spec.back > 0 then
@@ -199,7 +199,7 @@ Harness.test("helper bots: every look and level is valid and phone-light", funct
 			local spec = BotSpecs.build(look, level)
 			local label = `bot {look} lv{level}`
 			checkParts(label, spec.parts, 4)
-			Harness.truthy(#spec.parts >= 15 and #spec.parts <= BotSpecs.MAX_PARTS, label)
+			Harness.truthy(#spec.parts >= 36 and #spec.parts <= BotSpecs.MAX_PARTS, label)
 			counts[#spec.parts] = true
 			local b = ModelKit.bounds(solid(spec.parts))
 			local hover = if look == "A" then 1.0 else 0.1 -- Bumble hovers a little
@@ -257,7 +257,10 @@ Harness.test("cart: valid, phone-light, sized for one rider", function()
 	for _, look in ModelKit.styleOrder do
 		local spec = CartSpecs.build(look)
 		checkParts("cart " .. look, spec.parts, 6)
-		Harness.truthy(#spec.parts >= 30 and #spec.parts <= CartSpecs.MAX_PARTS, "cart count")
+		Harness.truthy(
+			#spec.parts >= 60 and #spec.parts <= CartSpecs.MAX_PARTS,
+			"cart count " .. #spec.parts
+		)
 		local b = ModelKit.bounds(solid(spec.parts))
 		Harness.truthy(b.minY >= -0.01 and b.minY <= 0.1, "cart on the ground")
 		Harness.truthy(b.maxY >= 3 and b.maxY <= 5, "cart height " .. b.maxY)
@@ -302,4 +305,69 @@ Harness.test("cart: the ash heap grows with the fill and stays inside the bin", 
 	local hi = CartSpecs.heap(9)
 	Harness.near(lo[2], CartSpecs.heap(0)[2])
 	Harness.near(hi[2], CartSpecs.heap(1)[2])
+end)
+
+-- The lite version (players far away) is the basic shape: it fits the old small caps and every part
+-- of it is also in the detailed version.
+local function names(parts: { ModelKit.PartSpec }): { [string]: ModelKit.PartSpec }
+	local out: { [string]: ModelKit.PartSpec } = {}
+	for _, p in parts do
+		out[p.name] = p
+	end
+	return out
+end
+
+local function sameSpec(a: ModelKit.PartSpec, b: ModelKit.PartSpec): boolean
+	return a.kind == b.kind
+		and a.color == b.color
+		and a.mat == b.mat
+		and table.concat(a.pos, ",") == table.concat(b.pos, ",")
+		and table.concat(a.size, ",") == table.concat(b.size, ",")
+end
+
+Harness.test("lite models: tools stay small and are part of the detailed model", function()
+	for _, tool in Tools.list do
+		for _, look in ModelKit.styleOrder do
+			local lite = ToolSpecs.build(tool.id, look, true)
+			local full = ToolSpecs.build(tool.id, look)
+			Harness.truthy(#lite.hand <= ToolSpecs.MAX_LITE_HAND, tool.id .. " lite hand")
+			Harness.truthy(#lite.back <= ToolSpecs.MAX_LITE_BACK, tool.id .. " lite back")
+			Harness.truthy(#full.hand > #lite.hand, tool.id .. " detail adds hand parts")
+			local fullHand = names(full.hand)
+			for _, p in lite.hand do
+				local q = fullHand[p.name]
+				Harness.truthy(q ~= nil and sameSpec(p, q), tool.id .. " lite part " .. p.name)
+			end
+			local fullBack = names(full.back)
+			for _, p in lite.back do
+				local q = fullBack[p.name]
+				Harness.truthy(q ~= nil and sameSpec(p, q), tool.id .. " lite back " .. p.name)
+			end
+		end
+	end
+end)
+
+Harness.test("lite models: bots and cart", function()
+	for _, look in BotSpecs.looks do
+		local lite = BotSpecs.build(look, 5, true)
+		local full = BotSpecs.build(look, 5)
+		Harness.truthy(#lite.parts <= BotSpecs.MAX_LITE_PARTS, look .. " lite bot")
+		Harness.truthy(#full.parts > #lite.parts + 10, look .. " detail adds parts")
+		local fullNames = names(full.parts)
+		for _, p in lite.parts do
+			local q = fullNames[p.name]
+			Harness.truthy(q ~= nil and sameSpec(p, q), look .. " lite bot part " .. p.name)
+		end
+	end
+	for _, look in ModelKit.styleOrder do
+		local lite = CartSpecs.build(look, true)
+		local full = CartSpecs.build(look)
+		Harness.truthy(#lite.parts <= CartSpecs.MAX_LITE_PARTS, look .. " lite cart")
+		Harness.truthy(#full.parts > #lite.parts + 20)
+		local fullNames = names(full.parts)
+		for _, p in lite.parts do
+			local q = fullNames[p.name]
+			Harness.truthy(q ~= nil and sameSpec(p, q), look .. " lite cart part " .. p.name)
+		end
+	end
 end)
