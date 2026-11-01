@@ -1,5 +1,6 @@
 --!strict
 local Harness = require("./harness")
+local fs = require("@lune/fs")
 local BotSpecs = require("../src/server/World/Models/BotSpecs")
 local CartSpecs = require("../src/server/World/Models/CartSpecs")
 local ModelKit = require("../src/server/World/Models/ModelKit")
@@ -372,4 +373,34 @@ Harness.test("lite models: bots and cart", function()
 			Harness.truthy(q ~= nil and sameSpec(p, q), look .. " lite cart part " .. p.name)
 		end
 	end
+end)
+
+-- Shape check of the Roblox-only cart code (Lune cannot run Instances): setFill must only ever write to
+-- the AshHeap part and its own PartWeld, never to the root, the model or any other part.
+Harness.test("cart: setFill only moves the ash heap", function()
+	local src = fs.readFile("src/server/World/Models/SweeperCart.luau")
+	local startAt = string.find(src, "function SweeperCart.setFill", 1, true)
+	Harness.truthy(startAt ~= nil, "setFill exists")
+	local body = string.sub(src, startAt :: number)
+	for line in string.gmatch(body, "[^\n]+") do
+		if not string.match(line, "^%s*%-%-") then
+			-- every property write must be on heap or weld
+			local target = string.match(line, "^%s*([%w_%.]+)%s*=[^=]")
+			if target ~= nil and string.find(target, ".", 1, true) then
+				local owner = string.match(target, "^([%w_]+)%.")
+				Harness.truthy(owner == "heap" or owner == "weld", "setFill writes to " .. target)
+			end
+		end
+	end
+	Harness.truthy(string.find(body, "PivotTo", 1, true) == nil, "no PivotTo")
+	Harness.truthy(string.find(body, "SetPrimaryPartCFrame", 1, true) == nil, "no model move")
+	Harness.truthy(string.find(body, "GetChildren", 1, true) == nil, "no loop over other parts")
+	Harness.truthy(string.find(body, "GetDescendants", 1, true) == nil, "no loop over other parts")
+	Harness.truthy(string.find(body, "WeldConstraint", 1, true) == nil, "no WeldConstraint")
+	local builder = fs.readFile("src/server/World/Models/ModelBuilder.luau")
+	Harness.truthy(
+		string.find(builder, 'Instance.new("WeldConstraint")', 1, true) == nil,
+		"builder uses Weld"
+	)
+	Harness.truthy(string.find(builder, "w.C0 =", 1, true) ~= nil, "builder sets C0")
 end)

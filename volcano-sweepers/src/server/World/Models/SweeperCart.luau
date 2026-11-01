@@ -21,6 +21,9 @@ function SweeperCart.build(look: string?, opts: ModelBuilder.Opts?): Model
 	return model
 end
 
+-- Only ever touches the AshHeap part (its Size, and its place on the cart). On a welded cart the
+-- place is the heap's own PartWeld.C0, so no other part and not the whole cart can move. On an
+-- anchored cart (build with weld = false) the heap is a free anchored part, so its CFrame is set.
 function SweeperCart.setFill(model: Model, fill: number)
 	local heap = model:FindFirstChild("AshHeap")
 	local root = model.PrimaryPart
@@ -28,9 +31,19 @@ function SweeperCart.setFill(model: Model, fill: number)
 		return
 	end
 	local size, y = CartSpecs.heap(fill)
+	local weld = heap:FindFirstChild("PartWeld")
+	-- the heap's position on the cart (x and z never change; only the height does)
 	local at = root.CFrame:ToObjectSpace(heap.CFrame).Position
+	if weld ~= nil and weld:IsA("Weld") then
+		at = weld.C0.Position
+	end
+	local place = CFrame.new(at.X, y, at.Z) * CFrame.Angles(0, 0, math.pi / 2)
 	heap.Size = Vector3.new(size[2], size[1], size[3]) -- a Roblox cylinder's axis is X
-	heap.CFrame = root.CFrame * CFrame.new(at.X, y, at.Z) * CFrame.Angles(0, 0, math.pi / 2)
+	if weld ~= nil and weld:IsA("Weld") then
+		weld.C0 = place
+	else
+		heap.CFrame = root.CFrame * place
+	end
 end
 
 return SweeperCart

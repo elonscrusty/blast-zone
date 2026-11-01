@@ -2,7 +2,7 @@
 -- Turns a list of PartSpec (see ModelKit) into a real Model. Roblox only; the spec modules stay pure.
 -- Every part is non-colliding, can't be queried or touched, casts no shadow (phone-light).
 -- A tiny see-through "Root" part sits at the model's origin and is the PrimaryPart.
---   weld = true   parts are WeldConstrained to Root and unanchored (held tools, bots that move)
+--   weld = true   parts are Welded to Root (a "PartWeld" in each part) and unanchored (held tools, bots that move)
 --   weld = false  parts stay Anchored (a model that is placed and moved with PivotTo of anchored parts
 --                 should use weld = true; plain scenery can stay anchored)
 
@@ -82,9 +82,13 @@ function ModelBuilder.build(name: string, parts: { ModelKit.PartSpec }, opts: Op
 	for _, p in parts do
 		local inst = makePart(model, origin, p)
 		if weld then
-			local w = Instance.new("WeldConstraint")
+			-- A plain Weld (not a WeldConstraint): its C0 is the part's place on the model, so a part
+			-- can be moved later by changing C0 without moving the rest of the model.
+			local w = Instance.new("Weld")
+			w.Name = "PartWeld"
 			w.Part0 = root
 			w.Part1 = inst
+			w.C0 = root.CFrame:ToObjectSpace(inst.CFrame)
 			w.Parent = inst
 			inst.Anchored = false
 		end
