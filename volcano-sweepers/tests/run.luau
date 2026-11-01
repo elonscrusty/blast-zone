@@ -41,5 +41,6 @@ require("./cooldown_model.test")
 require("./settings_model.test")
 require("./menu_model.test")
 require("./move_rules.test")
+require("./island_models.test")
 
 Harness.summary()
