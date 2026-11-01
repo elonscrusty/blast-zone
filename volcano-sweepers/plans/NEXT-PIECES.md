@@ -16,7 +16,7 @@ Status values: todo / building / done (tests green) / audited.
 | C2 | UI kit + HUD + toasts | client/Ui/Theme, Components, Hud/* | done (audited) |
 | C3 | UI panels: upgrades, tools, helpers, gates | client/Panels/{Upgrades,Tools,Helpers,Gates}, client/Panels/Shared/*, shared/Ui/*Model | done (audited) |
 | C4 | UI panels: finds book, goals, daily, cool down, settings | client/Panels/{Book,Goals,Daily,CoolDown,Settings}, shared/Ui/{Book,Goals,Daily,CoolDown,Settings}Model | done (audited) |
-| M1 | Models: 8 sweeper tools, 3 helper bots, ride-on cart (3 looks each, not wired in) | server/World/Models/* (new), tests/models.test.luau | done (tests green, M1), waiting for carter's look pick |
+| M1 | Models: 8 sweeper tools, 3 helper bots, ride-on cart (3 looks each, not wired in) | server/World/Models/* (new), tests/models.test.luau | done (tests green, M1), carter picked: all tool looks, Roller bot (cart pick pending) |
 | J | Judges + Opus audit + fixes | anything | done (5 judges, 3 Opus fixers, 2 Opus final auditors) |
 
 J-fix server + shared (src/server, src/shared except Ui/Client): done (tests green). Handoff: plans/handoffs/J-fix-server-shared.md

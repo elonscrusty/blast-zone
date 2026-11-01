@@ -26,7 +26,8 @@ SweeperTools.ids = {
 	"dragon_vac",
 	"volcano_vac",
 } :: { string }
-SweeperTools.looks = { "A", "B", "C" } :: { string }
+SweeperTools.looks = { "A", "B", "C" } :: { string } -- carter keeps all three: A is the main look, B and C are skins
+SweeperTools.defaultLook = "A"
 
 function SweeperTools.build(id: string, look: string?, opts: ModelBuilder.Opts?): Model
 	local spec = ToolSpecs.build(id, look, opts ~= nil and opts.lite == true)

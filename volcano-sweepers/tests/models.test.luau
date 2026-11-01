@@ -249,7 +249,9 @@ Harness.test("helper bots: three different bots, level changes the trim colour",
 	Harness.eq(BotSpecs.tier(99), 4)
 	Harness.eq(BotSpecs.tier(-5), 1)
 	Harness.eq(BotSpecs.tierName(8), "Gold")
-	Harness.eq(BotSpecs.build("Z", 3).look, "A", "unknown look -> A")
+	Harness.eq(BotSpecs.build("Z", 3).look, "B", "unknown look -> the Roller")
+	Harness.eq(BotSpecs.build(nil, 3).look, "B", "no look -> the Roller")
+	Harness.eq(BotSpecs.defaultLook, "B")
 	Harness.eq(BotSpecs.build("B", 99).level, BotSpecs.maxLevel, "level is clamped")
 end)
 

@@ -22,6 +22,7 @@ BotSpecs.MAX_LITE_PARTS = 34 -- the basic shape (bots far away)
 BotSpecs.MAX_PARTS = 54 -- with all the detail
 BotSpecs.maxLevel = 15
 BotSpecs.looks = { "A", "B", "C" } :: { string }
+BotSpecs.defaultLook = "B" -- carter picked the Roller Bot; A and C stay as skins
 BotSpecs.names = { A = "Bumble Bot", B = "Roller Bot", C = "Ember Bot" } :: { [string]: string }
 
 local box, cyl, ball = ModelKit.box, ModelKit.cyl, ModelKit.ball
@@ -190,10 +191,10 @@ end
 
 -- ===== public =====
 
--- Parts of one helper bot. `look` = "A" | "B" | "C" (else "A"), `level` = shared level 0..15.
+-- Parts of one helper bot. `look` = "A" | "B" | "C" (else the default, B Roller), `level` = shared level 0..15.
 -- `lite` = only the basic shape (bots far away); otherwise every detail is added too.
 function BotSpecs.build(look: string?, level: number?, lite: boolean?): BotParts
-	local key = if look == "B" or look == "C" then look else "A"
+	local key = if look == "A" or look == "B" or look == "C" then look else BotSpecs.defaultLook
 	local lv = math.clamp(math.floor(level or 0), 0, BotSpecs.maxLevel)
 	local parts: { PartSpec } = {}
 	local trim = BotSpecs.tierColor(lv)

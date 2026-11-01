@@ -1,6 +1,7 @@
 --!strict
 -- The helper bots as 3D models (builder, not wired in: the main thread connects it).
---   HelperBots.build("A", level)  -> Model. A = Bumble (hover), B = Roller (wheels), C = Ember (volcano).
+--   HelperBots.build("B", level)  -> Model. B = Roller (wheels) is the main bot (carter's pick);
+--   A = Bumble (hover) and C = Ember (volcano) are skins. No look given -> Roller.
 -- Origin = middle of the ground under the bot, -Z is forward. `level` (0..15, the shared helper
 -- level) only changes the trim colour: bronze, silver, gold, volcano. Part count never changes.
 -- opts.lite = true builds only the basic shape (for bots far away).
@@ -14,6 +15,7 @@ local HelperBots = {}
 
 HelperBots.looks = BotSpecs.looks
 HelperBots.names = BotSpecs.names
+HelperBots.defaultLook = BotSpecs.defaultLook
 
 function HelperBots.build(look: string?, level: number?, opts: ModelBuilder.Opts?): Model
 	local spec = BotSpecs.build(look, level, opts ~= nil and opts.lite == true)
