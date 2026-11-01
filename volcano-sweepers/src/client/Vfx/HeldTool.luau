@@ -1,6 +1,7 @@
 --!strict
 -- The tool in every character's hand (and the vac backpack / wings / tank on their back), built on
--- THIS client from Parts (Shared/Client/HeldToolLogic has the eight looks), plus a quick swing.
+-- THIS client from the Part-built models in Shared/Models/SweeperTools (look A, carter's main look),
+-- plus a quick swing (style, size and resting tilt from Shared/Client/HeldToolLogic).
 -- Purely cosmetic: nothing here is replicated or trusted.
 --
 -- Which tool: the character attribute `VSTool` (string tool id, set by the server). If it is missing,
@@ -10,8 +11,9 @@
 --   * mine: at once on every swing sent (Controls.swept)
 --   * others: on every SweepFx for them, and while their attribute `VSSweeping` is true
 -- Speed: others' tools are built only within HeldToolLogic.BUILD_RADIUS (dropped beyond DROP_RADIUS),
--- at most MAX_MODELS at once, and only animated within ANIM_RADIUS. The model lives inside the
--- character, so it goes away with it; everything else is cleaned on CharacterRemoving / leave.
+-- at most MAX_MODELS at once, only animated within ANIM_RADIUS, and use the lite model (basic shape)
+-- beyond LITE_RADIUS (back to full detail inside FULL_RADIUS). The model lives inside the character,
+-- so it goes away with it; everything else is cleaned on CharacterRemoving / leave.
 --
 --   HeldTool.swing(player)   play one swing on that player's tool (if it is built)
 
@@ -20,9 +22,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CullLogic = require(Shared.Client.CullLogic)
 local HeldToolLogic = require(Shared.Client.HeldToolLogic)
 local Tools = require(Shared.Catalog.Tools)
+local SweeperTools = require(Shared.Models.SweeperTools)
 local Net = require(script.Parent.Parent.Core.Net)
 local Store = require(script.Parent.Parent.Core.Store)
 
@@ -47,6 +49,7 @@ local HeldTool = {}
 
 local LocalPlayer = Players.LocalPlayer
 local MODEL_NAME = "VSHeldTool"
+local LOOK = SweeperTools.defaultLook -- "A" Toy; B Steel and C Candy are skins (not offered yet)
 local SCAN_GAP = 0.5 -- seconds between distance / attribute checks
 
 type Rec = {
@@ -54,6 +57,7 @@ type Rec = {
 	character: Model?,
 	model: Model?,
 	toolId: string?,
+	lite: boolean, -- the model is the lite (far away) one
 	weld: Weld?,
 	backWeld: Weld?,
 	base: CFrame, -- the weld's resting C0
@@ -76,40 +80,19 @@ local built = 0
 
 -- ===== building =====
 
-local SHAPES: { [string]: Enum.PartType } = {
-	Block = Enum.PartType.Block,
-	Cylinder = Enum.PartType.Cylinder,
-	Ball = Enum.PartType.Ball,
+-- Extra forward tilt (degrees) on top of each blueprint's resting tilt. The Part-built models are
+-- longer than the old blueprints, so the long ones lean a little more to keep the business end
+-- about as near the floor as before (first guess from the part lists: eyeball it in Studio).
+local TILT_ADJUST: { [string]: number } = {
+	twig_broom = 6,
+	push_broom = 7,
+	leaf_blower = 7,
+	dust_vac = 4,
+	turbo_vac = 1,
+	lava_mop = 8,
+	dragon_vac = -4,
+	volcano_vac = 10,
 }
-
-local MATERIALS: { [string]: Enum.Material } = {
-	Wood = Enum.Material.Wood,
-	SmoothPlastic = Enum.Material.SmoothPlastic,
-	Neon = Enum.Material.Neon,
-	Metal = Enum.Material.Metal,
-	Fabric = Enum.Material.Fabric,
-	Glass = Enum.Material.Glass,
-}
-
-local function color3(hex: string): Color3
-	local r, g, b = CullLogic.parseHex(hex)
-	return Color3.fromRGB(r, g, b)
-end
-
-local function quiet(p: BasePart)
-	p.Anchored = false
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.Massless = true
-	p.CastShadow = false
-	p.Locked = true
-end
-
-local function offset(v: { number }, r: { number }): CFrame
-	return CFrame.new(v[1], v[2], v[3])
-		* CFrame.Angles(math.rad(r[1]), math.rad(r[2]), math.rad(r[3]))
-end
 
 -- R15 RightHand / R6 Right Arm, and where the grip sits on it.
 local function handOf(character: Model): (BasePart?, CFrame)
@@ -142,48 +125,6 @@ local function shoulderOf(character: Model): Motor6D?
 	return nil
 end
 
-local function makePart(spec: HeldToolLogic.PartSpec, at: CFrame, parent: Instance): BasePart
-	local p: BasePart
-	if spec.shape == "Wedge" then
-		p = Instance.new("WedgePart")
-	else
-		local part = Instance.new("Part")
-		part.Shape = SHAPES[spec.shape] or Enum.PartType.Block
-		p = part
-	end
-	p.Name = spec.name
-	p.Size = Vector3.new(spec.size[1], spec.size[2], spec.size[3])
-	p.Color = color3(spec.color)
-	p.Material = MATERIALS[spec.material] or Enum.Material.SmoothPlastic
-	p.Transparency = spec.transparency
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	quiet(p)
-	p.CFrame = at * offset(spec.pos, spec.rot)
-	p.Parent = parent
-	return p
-end
-
-local function rootPart(name: string, cf: CFrame, parent: Instance): Part
-	local root = Instance.new("Part")
-	root.Name = name
-	root.Size = Vector3.new(0.2, 0.2, 0.2)
-	root.Transparency = 1
-	quiet(root)
-	root.CFrame = cf
-	root.Parent = parent
-	return root
-end
-
-local function weldAll(root: BasePart, parts: { BasePart })
-	for _, p in parts do
-		local w = Instance.new("WeldConstraint")
-		w.Part0 = root
-		w.Part1 = p
-		w.Parent = p
-	end
-end
-
 local function releaseShoulder(rec: Rec)
 	local m = rec.shoulder
 	if m ~= nil and rec.written ~= nil and m.Parent ~= nil and m.Transform == rec.written then
@@ -203,12 +144,13 @@ local function destroyModel(rec: Rec)
 	rec.weld = nil
 	rec.backWeld = nil
 	rec.toolId = nil
+	rec.lite = false
 	rec.blueprint = nil
 	rec.shoulder = nil
 	rec.swingT = -1
 end
 
-local function build(rec: Rec, character: Model, toolId: string): boolean
+local function build(rec: Rec, character: Model, toolId: string, lite: boolean): boolean
 	local hand, gripOffset = handOf(character)
 	if hand == nil then
 		return false
@@ -218,19 +160,15 @@ local function build(rec: Rec, character: Model, toolId: string): boolean
 	model.Name = MODEL_NAME
 
 	-- the grip: tilted forward and a little outward so the tool clears the leg
-	local base = gripOffset * CFrame.Angles(math.rad(bp.tilt), 0, math.rad(8))
-	local gripCf = hand.CFrame * base
-	local grip = rootPart("Grip", gripCf, model)
-	local handParts: { BasePart } = {}
-	local backSpecs: { HeldToolLogic.PartSpec } = {}
-	for _, spec in bp.parts do
-		if spec.anchor == "back" then
-			table.insert(backSpecs, spec)
-		else
-			table.insert(handParts, makePart(spec, gripCf, model))
-		end
-	end
-	weldAll(grip, handParts)
+	local tilt = bp.tilt + (TILT_ADJUST[toolId] or 0)
+	local base = gripOffset * CFrame.Angles(math.rad(tilt), 0, math.rad(8))
+	-- the hand part: its Root is the grip (origin), the tool hangs along -Y, -Z is forward
+	local held = SweeperTools.build(
+		toolId,
+		LOOK,
+		{ cf = hand.CFrame * base, lite = lite, parent = model :: Instance }
+	)
+	local grip = held.PrimaryPart :: BasePart
 	local weld = Instance.new("Weld")
 	weld.Name = "GripWeld"
 	weld.Part0 = hand
@@ -238,22 +176,25 @@ local function build(rec: Rec, character: Model, toolId: string): boolean
 	weld.C0 = base
 	weld.Parent = grip
 
+	-- backpack / wings / tanks: torso space, origin at the torso centre, +Z behind
 	local torso = torsoOf(character)
 	local backWeld: Weld? = nil
-	if torso ~= nil and #backSpecs > 0 then
-		local backRoot = rootPart("Back", torso.CFrame, model)
-		local backParts: { BasePart } = {}
-		for _, spec in backSpecs do
-			table.insert(backParts, makePart(spec, torso.CFrame, model))
+	if torso ~= nil then
+		local back = SweeperTools.buildBack(
+			toolId,
+			LOOK,
+			{ cf = torso.CFrame, lite = lite, parent = model :: Instance }
+		)
+		if back ~= nil then
+			local backRoot = back.PrimaryPart :: BasePart
+			local bw = Instance.new("Weld")
+			bw.Name = "BackWeld"
+			bw.Part0 = torso
+			bw.Part1 = backRoot
+			bw.C0 = CFrame.identity
+			bw.Parent = backRoot
+			backWeld = bw
 		end
-		weldAll(backRoot, backParts)
-		local bw = Instance.new("Weld")
-		bw.Name = "BackWeld"
-		bw.Part0 = torso
-		bw.Part1 = backRoot
-		bw.C0 = CFrame.identity
-		bw.Parent = backRoot
-		backWeld = bw
 	end
 
 	model.Parent = character
@@ -262,6 +203,7 @@ local function build(rec: Rec, character: Model, toolId: string): boolean
 	rec.backWeld = backWeld
 	rec.base = base
 	rec.toolId = toolId
+	rec.lite = lite
 	rec.blueprint = bp
 	rec.shoulder = shoulderOf(character)
 	rec.swingT = -1
@@ -417,16 +359,22 @@ local function sync(rec: Rec, from: Vector3?)
 		return
 	end
 	local toolId = wantedTool(rec)
-	if has and rec.toolId == toolId then
+	local lite = rec.player ~= LocalPlayer and HeldToolLogic.wantLite(dist, rec.lite)
+	if has and rec.toolId == toolId and rec.lite == lite then
 		return
 	end
-	local changed = has and rec.toolId ~= nil
+	local changed = has and rec.toolId ~= nil and rec.toolId ~= toolId
 	if has then
 		destroyModel(rec)
 	elseif built >= HeldToolLogic.MAX_MODELS and rec.player ~= LocalPlayer then
 		return
 	end
-	if build(rec, character, toolId) and changed and rec.player == LocalPlayer and Vfx ~= nil then
+	if
+		build(rec, character, toolId, lite)
+		and changed
+		and rec.player == LocalPlayer
+		and Vfx ~= nil
+	then
 		-- a little sparkle when you switch tools
 		local hand = handOf(character)
 		if hand ~= nil then
@@ -482,6 +430,7 @@ local function track(player: Player)
 		character = nil,
 		model = nil,
 		toolId = nil,
+		lite = false,
 		weld = nil,
 		backWeld = nil,
 		base = CFrame.identity,

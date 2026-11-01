@@ -1,10 +1,10 @@
 --!strict
 local Harness = require("./harness")
 local fs = require("@lune/fs")
-local BotSpecs = require("../src/server/World/Models/BotSpecs")
-local CartSpecs = require("../src/server/World/Models/CartSpecs")
-local ModelKit = require("../src/server/World/Models/ModelKit")
-local ToolSpecs = require("../src/server/World/Models/ToolSpecs")
+local BotSpecs = require("../src/shared/Models/BotSpecs")
+local CartSpecs = require("../src/shared/Models/CartSpecs")
+local ModelKit = require("../src/shared/Models/ModelKit")
+local ToolSpecs = require("../src/shared/Models/ToolSpecs")
 local Tools = require("../src/shared/Catalog/Tools")
 
 local KINDS = { Block = true, Cyl = true, Ball = true }
@@ -378,7 +378,7 @@ end)
 -- Shape check of the Roblox-only cart code (Lune cannot run Instances): setFill must only ever write to
 -- the AshHeap part and its own PartWeld, never to the root, the model or any other part.
 Harness.test("cart: setFill only moves the ash heap", function()
-	local src = fs.readFile("src/server/World/Models/SweeperCart.luau")
+	local src = fs.readFile("src/shared/Models/SweeperCart.luau")
 	local startAt = string.find(src, "function SweeperCart.setFill", 1, true)
 	Harness.truthy(startAt ~= nil, "setFill exists")
 	local body = string.sub(src, startAt :: number)
@@ -397,10 +397,35 @@ Harness.test("cart: setFill only moves the ash heap", function()
 	Harness.truthy(string.find(body, "GetChildren", 1, true) == nil, "no loop over other parts")
 	Harness.truthy(string.find(body, "GetDescendants", 1, true) == nil, "no loop over other parts")
 	Harness.truthy(string.find(body, "WeldConstraint", 1, true) == nil, "no WeldConstraint")
-	local builder = fs.readFile("src/server/World/Models/ModelBuilder.luau")
+	local builder = fs.readFile("src/shared/Models/ModelBuilder.luau")
 	Harness.truthy(
 		string.find(builder, 'Instance.new("WeldConstraint")', 1, true) == nil,
 		"builder uses Weld"
 	)
 	Harness.truthy(string.find(builder, "w.C0 =", 1, true) ~= nil, "builder sets C0")
+end)
+
+-- Shape check of the Roblox-only wiring (W2): the bot body comes from HelperBots with its Root held
+-- (a welded model falls otherwise), and the held tool draws the SweeperTools models.
+Harness.test("models: bots and held tools are wired to the shared models", function()
+	local bot = fs.readFile("src/server/Helpers/BotModel.luau")
+	Harness.truthy(string.find(bot, "HelperBots.build(", 1, true) ~= nil, "bot uses HelperBots")
+	Harness.truthy(string.find(bot, "root.Anchored = true", 1, true) ~= nil, "bot Root anchored")
+	local held = fs.readFile("src/client/Vfx/HeldTool.luau")
+	Harness.truthy(string.find(held, "SweeperTools.build(", 1, true) ~= nil, "hand model")
+	Harness.truthy(string.find(held, "SweeperTools.buildBack(", 1, true) ~= nil, "back model")
+	Harness.truthy(string.find(held, '"VSTool"', 1, true) ~= nil, "VSTool attribute kept")
+	Harness.truthy(string.find(held, '"VSSweeping"', 1, true) ~= nil, "VSSweeping attribute kept")
+	-- shared code must not reach into the server
+	for _, name in { "ModelBuilder", "SweeperTools", "HelperBots", "SweeperCart" } do
+		local src = fs.readFile(`src/shared/Models/{name}.luau`)
+		Harness.truthy(
+			string.find(src, "WorldUtil", 1, true) == nil,
+			name .. " needs no server code"
+		)
+		Harness.truthy(
+			string.find(src, "Parent.Parent", 1, true) == nil,
+			name .. " stays in Models"
+		)
+	end
 end)

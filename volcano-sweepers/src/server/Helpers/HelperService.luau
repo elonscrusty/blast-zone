@@ -1,15 +1,17 @@
 --!strict
--- Helper bots. Each player owns profile.helpers bots (0..6). A bot is a small Model that floats
--- behind its owner in a loose fan; once a second it takes ash off the ground nearby and pays the
--- OWNER coins straight away (never the backpack). All the rules (rates, which cells, pay, formation,
--- the 60-body cap) are in Shared/Player/HelperRules; this file only moves Models and reads state.
+-- Helper bots. Each player owns profile.helpers bots (0..6). A bot is a small Model (BotModel: the
+-- Part-built Roller Bot) that rolls behind its owner in a loose fan; once a second it takes ash off
+-- the ground nearby and pays the OWNER coins straight away (never the backpack). All the rules
+-- (rates, which cells, pay, formation, the 60-body cap) are in Shared/Player/HelperRules; this file
+-- only moves Models and reads state.
 --
 --   HelperService.init()
 --   HelperService.refresh(player)   rebuild/repaint this player's bots now (after Cool Down)
 --   HelperService.visibleCount()    bot bodies in the world right now
 --
 -- Bots beyond the server cap (HelperRules.MAX_VISIBLE) have no body but still sweep and pay.
--- Buying a bot, a Cool Down or a new tool needs no call: the loop notices the profile changed.
+-- Buying a bot, a bot level or a Cool Down needs no call: the loop notices the profile changed
+-- (a new trim tier rebuilds the visible bodies).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,7 +20,6 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AshGrid = require(Shared.Ash.AshGrid)
 local Config = require(Shared.Config)
-local Tools = require(Shared.Catalog.Tools)
 local HelperRules = require(Shared.Player.HelperRules)
 local Rng = require(Shared.Rng)
 
@@ -28,7 +29,6 @@ local BotModel = require(script.Parent.BotModel)
 local TICK = 0.05 -- seconds between movement steps (20 Hz keeps the follow smooth)
 local SWEEP_SECONDS = 1 -- each bot sweeps once a second
 local FOLDER_NAME = "VSHelpers"
-local FALLBACK_COLOR = "#A9805B"
 
 type Bot = {
 	index: number,
@@ -45,7 +45,8 @@ type Bot = {
 type Owner = {
 	player: Player,
 	bots: { Bot },
-	colorHex: string,
+	tier: string, -- BotModel.tierOf(helperLevel) the bodies were built with
+	level: number,
 	look: Vector3,
 	snap: boolean, -- bots jump next to the owner on the next step (respawn)
 	charConn: RBXScriptConnection?,
@@ -99,14 +100,9 @@ local function folder(): Folder
 	return f
 end
 
-local function toolColor(toolId: string): string
-	local tool = Tools.byId[toolId]
-	return if tool ~= nil then tool.color else FALLBACK_COLOR
-end
-
 local function setVisible(owner: Owner, bot: Bot, want: boolean)
 	if want and bot.model == nil then
-		local model = BotModel.build(owner.colorHex)
+		local model = BotModel.build(owner.level)
 		model.Name = `HelperBot{bot.index}`
 		model:SetAttribute("OwnerUserId", owner.player.UserId)
 		model:PivotTo(CFrame.lookAt(bot.pos, bot.pos + owner.look))
@@ -149,7 +145,8 @@ local function ensureOwner(player: Player, state: PlayerState.State): Owner
 	local created: Owner = {
 		player = player,
 		bots = {},
-		colorHex = toolColor(state.profile.tool),
+		tier = BotModel.tierOf(state.profile.helperLevel),
+		level = state.profile.helperLevel,
 		look = Vector3.new(0, 0, -1),
 		snap = true,
 		charConn = nil,
@@ -161,7 +158,7 @@ local function ensureOwner(player: Player, state: PlayerState.State): Owner
 	return created
 end
 
--- Bring the number of bots and their colour in line with the profile.
+-- Bring the number of bots and their trim tier in line with the profile.
 local function reconcile(owner: Owner, state: PlayerState.State)
 	local want = math.clamp(math.floor(state.profile.helpers), 0, Config.Economy.maxHelpers)
 	local bots = owner.bots
@@ -184,12 +181,15 @@ local function reconcile(owner: Owner, state: PlayerState.State)
 		})
 		owner.snap = true
 	end
-	local hex = toolColor(state.profile.tool)
-	if hex ~= owner.colorHex then
-		owner.colorHex = hex
+	owner.level = state.profile.helperLevel
+	local tier = BotModel.tierOf(owner.level)
+	if tier ~= owner.tier then
+		owner.tier = tier
+		-- new trim colour: rebuild the bodies that are showing (rare: a few times per Cool Down run)
 		for _, bot in bots do
 			if bot.model ~= nil then
-				BotModel.setColor(bot.model, hex)
+				setVisible(owner, bot, false)
+				setVisible(owner, bot, true)
 			end
 		end
 	end
@@ -279,7 +279,10 @@ local function follow(owner: Owner, dt: number, now: number): boolean
 	local count = #owner.bots
 	for _, bot in owner.bots do
 		local ox, oz = HelperRules.formationOffset(bot.index, count)
-		local height = HelperRules.hoverHeight + HelperRules.bob(now, bot.index)
+		-- the pivot is BotModel.PIVOT_UP above the ground: at hoverHeight the wheels touch the ground.
+		-- Only a hovering look bobs as a whole; the Roller's bulb bobs on each client (BotAnim).
+		local bob = if BotModel.HOVERS then HelperRules.bob(now, bot.index) else 0
+		local height = HelperRules.hoverHeight + bob
 		local target = origin + right * ox - look * oz + Vector3.new(0, height, 0)
 		local flat = Vector3.new(bot.pos.X - origin.X, 0, bot.pos.Z - origin.Z)
 		if owner.snap or HelperRules.shouldTeleport(flat.Magnitude) then

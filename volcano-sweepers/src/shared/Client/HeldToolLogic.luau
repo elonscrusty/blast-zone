@@ -23,6 +23,9 @@
 --   HeldToolLogic.pose(style, t, amp) -> (pitch, roll, arm)   degrees; 0 at t = 0 and t = 1
 --   HeldToolLogic.swingTime(interval) -> number
 --   HeldToolLogic.wantModel(dist, has) / canAnimate(dist)     distance rules (hysteresis)
+--   HeldToolLogic.wantLite(dist, isLite)                       lite model far away (hysteresis)
+-- The glue now draws the Part-built models of Shared/Models/SweeperTools (look A); a blueprint
+-- still gives each tool its swing style, swing size and resting tilt.
 
 local Tools = require("../Catalog/Tools")
 
@@ -58,6 +61,8 @@ HeldToolLogic.BUILD_RADIUS = 140 -- build other players' tools within this many 
 HeldToolLogic.DROP_RADIUS = 170 -- ... and drop them beyond this (hysteresis)
 HeldToolLogic.ANIM_RADIUS = 110 -- swing animations only this close
 HeldToolLogic.MAX_MODELS = 16
+HeldToolLogic.LITE_RADIUS = 60 -- other players' tools farther than this use the lite (basic) model
+HeldToolLogic.FULL_RADIUS = 50 -- ... and go back to full detail closer than this (hysteresis)
 
 -- ===== tiny builders =====
 
@@ -559,6 +564,17 @@ function HeldToolLogic.wantModel(dist: number, has: boolean): boolean
 		return dist <= HeldToolLogic.DROP_RADIUS
 	end
 	return dist <= HeldToolLogic.BUILD_RADIUS
+end
+
+-- Should another player's tool be the lite (far away) model? `isLite` = it is lite now (hysteresis).
+function HeldToolLogic.wantLite(dist: number, isLite: boolean): boolean
+	if dist ~= dist then
+		return true
+	end
+	if isLite then
+		return dist > HeldToolLogic.FULL_RADIUS
+	end
+	return dist > HeldToolLogic.LITE_RADIUS
 end
 
 function HeldToolLogic.canAnimate(dist: number): boolean

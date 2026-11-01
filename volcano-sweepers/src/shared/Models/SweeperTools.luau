@@ -1,5 +1,5 @@
 --!strict
--- The eight sweeper tools as held 3D models (builders, not wired in: the main thread connects them).
+-- The eight sweeper tools as held 3D models (client/Vfx/HeldTool builds them on every client).
 --   SweeperTools.build("dragon_vac", "A")      -> Model, the part in the hand (grip at the origin,
 --                                                 hangs along -Y, -Z is forward)
 --   SweeperTools.buildBack("dragon_vac", "A")  -> Model? the backpack / wings / tanks (torso space,

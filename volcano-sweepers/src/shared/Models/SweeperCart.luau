@@ -1,5 +1,5 @@
 --!strict
--- The Sweeper Cart: a small ride-on sweeper (builder, not wired in: the main thread connects it).
+-- The Sweeper Cart: a small ride-on sweeper (builder, not wired in yet: the cart look is not picked).
 --   SweeperCart.build("A")        -> Model. Origin = middle of the ground under it, -Z is forward.
 --   SweeperCart.setFill(model, f) -> grows or shrinks the ash heap in the back bin (f = 0..1)
 -- Parts named "Spin*" are the front brush (turn it), "Wheel*" roll, "SeatSpot" is a see-through marker

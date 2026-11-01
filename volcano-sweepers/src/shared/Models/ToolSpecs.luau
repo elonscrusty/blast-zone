@@ -22,7 +22,7 @@ ToolSpecs.MAX_BACK = 22
 local box, cyl, ball, rod = ModelKit.box, ModelKit.cyl, ModelKit.ball, ModelKit.rod
 
 -- The catalog colour of each tool (copied from shared/Catalog/Tools so this file stays pure and
--- server-side; tests/models.test.luau checks the two lists agree).
+-- free-standing; tests/models.test.luau checks the two lists agree).
 ToolSpecs.colors = {
 	twig_broom = "#A9805B",
 	push_broom = "#E0B040",

@@ -59,6 +59,7 @@ loadFrom("Ash", "AshRenderer")
 loadFrom("Vfx", "Vfx")
 loadFrom("Core", "CameraFx")
 loadFrom("Vfx", "HeldTool") -- the tool in every hand + the swing
+loadFrom("Vfx", "BotAnim") -- helper bots' spinning brushes and bobbing bulbs
 loadFrom("Vfx", "WorldFeel") -- "+N" per swing, FULL!, footstep dust
 
 -- 2. UI written by other pieces (all optional): the panel host first, then every panel (each one
