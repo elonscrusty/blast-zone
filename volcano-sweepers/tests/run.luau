@@ -42,6 +42,7 @@ require("./landmarks.test")
 require("./settings_model.test")
 require("./menu_model.test")
 require("./move_rules.test")
+require("./models.test")
 require("./island_models.test")
 require("./world_models.test")
 
