@@ -39,7 +39,7 @@ function BotModel.tierOf(level: number): string
 end
 
 function BotModel.build(level: number): Model
-	local model = HelperBots.build(BotModel.LOOK, level)
+	local model = HelperBots.build(BotModel.LOOK, level, { lite = true }) -- 25 parts: 60 bots on a phone
 	model.Name = "HelperBot"
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic -- a bot streams in whole, never half
 	local root = model.PrimaryPart :: BasePart
