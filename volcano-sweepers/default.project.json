@@ -1,0 +1,47 @@
+{
+  "name": "VolcanoSweepers",
+  "tree": {
+    "$className": "DataModel",
+    "Players": {
+      "$className": "Players",
+      "$ignoreUnknownInstances": true,
+      "$properties": {
+        "MaxPlayers": 16
+      }
+    },
+    "Workspace": {
+      "$ignoreUnknownInstances": true
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$ignoreUnknownInstances": true
+    },
+    "ReplicatedStorage": {
+      "$ignoreUnknownInstances": true,
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "ServerStorage": {
+      "$ignoreUnknownInstances": true
+    },
+    "StarterGui": {
+      "$ignoreUnknownInstances": true,
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
+      }
+    }
+  }
+}

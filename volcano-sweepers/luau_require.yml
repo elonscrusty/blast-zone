@@ -1,0 +1,7 @@
+---
+# Selene's roblox std only knows require(ModuleScript). Luau also takes a relative path string
+# (require("./Config")), so allow any argument. Listed before roblox in selene.toml so it wins.
+globals:
+  require:
+    args:
+      - type: any
