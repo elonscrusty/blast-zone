@@ -300,6 +300,7 @@ function PlayerState.fullSync(player: Player)
 		payload[key] = (s.profile :: any)[key]
 	end
 	payload.version = s.profile.version
+	payload.offline = Profiles.isOffline(player)
 	s.dirty = {}
 	Net.fire("State", player, payload)
 end

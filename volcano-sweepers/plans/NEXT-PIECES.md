@@ -14,6 +14,6 @@ Status values: todo / building / done (tests green) / audited.
 | S4 | Player service, saving glue, purchases, helpers, daily, goals, cool down | server/Player/*, server/Helpers/*, server/Main.server.luau | done (tests green, S4) |
 | C1 | Client core: store, input, controls, ash renderer, VFX, camera, sound hooks | client/Core/*, client/Ash/*, client/Vfx/* | todo |
 | C2 | UI kit + HUD + toasts | client/Ui/Theme, Components, Hud/* | todo |
-| C3 | UI panels: upgrades, tools, helpers, gates | client/Panels/* | todo |
-| C4 | UI panels: finds book, goals, daily, cool down, settings, tutorial | client/Panels/* | todo |
+| C3 | UI panels: upgrades, tools, helpers, gates | client/Panels/{Upgrades,Tools,Helpers,Gates}, client/Panels/Shared/*, shared/Ui/*Model | done (tests green, C3) |
+| C4 | UI panels: finds book, goals, daily, cool down, settings | client/Panels/{Book,Goals,Daily,CoolDown,Settings}, shared/Ui/{Book,Goals,Daily,CoolDown,Settings}Model | done (tests green, C4) |
 | J | Judges + Opus audit + fixes | anything | todo |
