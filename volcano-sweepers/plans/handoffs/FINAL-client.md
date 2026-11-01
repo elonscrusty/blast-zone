@@ -9,3 +9,8 @@
 8. AshRenderer over-cap queue is de-duplicated; Auto-Sweep swings kick the camera more softly.
 9. Not done: no sound ids (silent by design), no friend markers; Escape still also opens Roblox's own menu on PC.
 10. Needs a device: notch/safe area, emoji glyphs on old Android, held-tool look, 60 FPS with ~900 ash Parts.
+
+## Ash look pass (after carter: "the ash is just blocks")
+Ash cells are now soft dome mounds (stretched spheres, ~13 studs wide, smoothed heights with neighbours, jitter, embers in zones 4-5).
+Files: src/shared/Client/AshShape.luau, src/client/Ash/AshRenderer.luau, tests/ash_shape.test.luau.
+Check on a phone: frame rate at the island centre; if it looks cobbly change `RADIUS_FULL` in AshShape.
