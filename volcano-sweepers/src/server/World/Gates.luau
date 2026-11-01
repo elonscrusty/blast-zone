@@ -1,7 +1,8 @@
 --!strict
--- One gate arch per zone 2..5, standing across the ring boundary on the hub direction line, drawn
--- at WorldPlan's gate scale (1.5 on the big island). Gates never block movement (the walk-through
--- opening is 18 x scale studs wide): the glowing floor plate is the
+-- One gate arch per zone 2..5 (the picked Toy Pop gate model in the zone's colours), standing across
+-- the ring boundary on the hub direction line, drawn at WorldPlan's gate scale (1.5 on the big
+-- island). Gates never block movement (only the pillar feet are solid, the walk-through opening is
+-- 18 x scale studs wide): the glowing floor plate is the
 -- VSGate part that carries the "Open gate" prompt; the server decides what opening does and refuses
 -- sweeping in locked zones.
 
@@ -12,6 +13,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local WorldPlan = require(Shared.WorldPlan)
 local Zones = require(Shared.Catalog.Zones)
 
+local Build = require(script.Parent.Models.Build)
+local Registry = require(script.Parent.Models.Registry)
+local Wiring = require(script.Parent.Models.Wiring)
 local WorldUtil = require(script.Parent.WorldUtil)
 
 local Gates = {}
@@ -73,76 +77,22 @@ local function buildGate(folder: Folder, g: WorldPlan.Gate)
 	local accent = WorldUtil.zoneAccent[g.zoneId] or P.gold
 	local k = g.scale -- the whole arch grows with the island (1 = the first, small island's gate)
 	local origin = V(g.x, 0, g.z)
-	local frame = CFrame.lookAt(origin, origin - V(g.ux, 0, g.uz)) -- walking inland is local -Z
-	local function G(x: number, y: number, z: number): CFrame
-		return frame * CFrame.new(x * k, y * k, z * k)
-	end
-	local model = Instance.new("Model")
+	-- the model's front (-Z, pennants) looks out to sea, at the kids walking up to the gate
+	local frame = CFrame.lookAt(origin, origin + V(g.ux, 0, g.uz))
+	local spec =
+		Registry.spec("Gate", { style = Wiring.STYLE, accent = accent, ground = zone.ground })
+	local model = Build.into(folder, spec, frame, k)
 	model.Name = `Gate{g.zoneId}`
 
-	-- the glowing floor plate = the tagged gate part (thin: it stays flat on the ground)
-	local plate = WorldUtil.block(
-		model,
-		"GatePlate",
-		frame * CFrame.new(0, 0.15, 0),
-		V(16 * k, 0.3, 5 * k),
-		accent,
-		{
-			material = Enum.Material.Neon,
-			transparency = 0.35,
-		}
-	)
-
-	for _, side in { -1, 1 } do
-		local x = side * 9.2
-		WorldUtil.block(
-			model,
-			"PillarBase",
-			G(x, 0.5, 0),
-			V(3.6, 1, 3.6) * k,
-			P.stone,
-			{ collide = true, shadow = true }
-		)
-		WorldUtil.cylinder(model, "Pillar", G(x, 6.5, 0).Position, 2.6 * k, 11 * k, zone.ground, {
-			collide = true,
-			shadow = true,
-		})
-		WorldUtil.cylinder(model, "PillarBandLow", G(x, 3, 0).Position, 2.9 * k, 0.4 * k, accent, {
-			material = Enum.Material.Neon,
-		})
-		WorldUtil.cylinder(
-			model,
-			"PillarBandHigh",
-			G(x, 9.5, 0).Position,
-			2.9 * k,
-			0.4 * k,
-			accent,
-			{
-				material = Enum.Material.Neon,
-			}
-		)
-		WorldUtil.ball(model, "PillarCap", G(x, 12.4, 0).Position, 3.4 * k, accent, {
-			material = Enum.Material.Neon,
-		})
+	-- the glowing floor plate = the tagged gate part (never solid: the opening stays walk-through)
+	local plate = model:FindFirstChild(Wiring.PART.gatePlate)
+	if plate == nil or not plate:IsA("BasePart") then
+		error("the gate model has no GatePlate part")
 	end
-
-	local beam = WorldUtil.block(
-		model,
-		"Beam",
-		G(0, 13.2, 0),
-		V(22.4, 2.2, 3) * k,
-		zone.ground,
-		{ shadow = true }
-	)
-	WorldUtil.block(model, "BeamStrip", G(0, 11.95, -1.4), V(21, 0.3, 0.3) * k, accent, {
-		material = Enum.Material.Neon,
-	})
-	for i = 0, 4 do
-		WorldUtil.ball(model, "BeamLight", G(-8 + i * 4, 13.2, -1.6).Position, 0.6 * k, accent, {
-			material = Enum.Material.Neon,
-		})
+	local beam = model:FindFirstChild(Wiring.PART.gateBeam)
+	if beam ~= nil and beam:IsA("BasePart") then
+		buildSign(beam, zone, accent, k)
 	end
-	buildSign(beam, zone, accent, k)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "GatePrompt"
@@ -158,7 +108,6 @@ local function buildGate(folder: Folder, g: WorldPlan.Gate)
 
 	plate:SetAttribute("ZoneId", g.zoneId)
 	CollectionService:AddTag(plate, "VSGate")
-	model.Parent = folder
 end
 
 function Gates.build(root: Instance, plan: WorldPlan.Plan)

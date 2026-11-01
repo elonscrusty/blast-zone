@@ -45,7 +45,7 @@ Harness.test("world plan: same seed gives identical lists, other seed differs", 
 end)
 
 Harness.test("world plan: decor counts and part budget", function()
-	-- the big island has sparse, bigger landmarks: about the same Part count as the small one
+	-- the big island has sparse, bigger landmarks drawn with the picked Toy models
 	Harness.truthy(#plan.decor >= 250, `too little decor: {#plan.decor}`)
 	Harness.truthy(#plan.decor <= 900, `too much decor: {#plan.decor}`)
 	for kind in WorldPlan.partCost do
@@ -56,13 +56,14 @@ Harness.test("world plan: decor counts and part budget", function()
 	end
 	local total = WorldPlan.estimateParts(plan)
 	print(`       (about {total} world parts, {#plan.decor} decor items)`)
-	Harness.truthy(total <= 2500, `estimated parts {total} over budget`)
+	Harness.truthy(total <= 3600, `estimated parts {total} over budget`)
 	Harness.truthy(total >= 800, `estimated parts {total} suspiciously low`)
 	local decorParts = 0
 	for _, it in plan.decor do
 		decorParts += WorldPlan.partCost[it.kind] or 1
 	end
-	Harness.truthy(decorParts <= 1100, `decor alone is {decorParts} parts`)
+	print(`       (decor alone {decorParts} parts)`)
+	Harness.truthy(decorParts <= 1900, `decor alone is {decorParts} parts`)
 end)
 
 Harness.test("world plan: landmarks are drawn bigger on the big island", function()

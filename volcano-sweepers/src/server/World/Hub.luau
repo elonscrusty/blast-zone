@@ -1,6 +1,6 @@
 --!strict
--- The hub on the beach: eight spawn pads, the Trade Hut (counter, awning, sign, sell prompt), glowing
--- sell pads, a gate signpost and the "Sweep the ash!" tutorial sign. Everything is laid out by
+-- The hub on the beach: eight spawn pads, the Trade Hut (the picked Toy Pop model: counter, awning,
+-- sign, sell prompt), glowing sell pads, a gate signpost and the "Sweep the ash!" tutorial sign. Everything is laid out by
 -- WorldPlan in the hub's own (a, b) frame and stays inside Config.World.hub.clearRadius, which the
 -- ash grid keeps empty.
 
@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local WorldPlan = require(Shared.WorldPlan)
 
+local Build = require(script.Parent.Models.Build)
+local Wiring = require(script.Parent.Models.Wiring)
 local WorldUtil = require(script.Parent.WorldUtil)
 
 local Hub = {}
@@ -78,112 +80,20 @@ local function buildPads(folder: Folder, hub: WorldPlan.Hub)
 	end
 end
 
+-- The Trade Hut: the picked Toy Pop model, its counter (sell prompt) facing inland at the pads.
 local function buildHut(folder: Folder, hub: WorldPlan.Hub, u: Vector3)
 	local hx, hz = WorldPlan.toWorld(hub, hub.hutA, 0)
 	local origin = V(hx, 0, hz)
-	local frame = CFrame.lookAt(origin, origin - u) -- looks inland; local +Z is the back of the hut
-	local function H(x: number, y: number, z: number): CFrame
-		return frame * CFrame.new(x, y, z)
-	end
-	local hut = Instance.new("Model")
+	-- the model's front (-Z) looks inland, at the sell pads and the spawns
+	local frame = CFrame.lookAt(origin, origin - u)
+	local spec = Wiring.kitSpec("TradeHut", 1, "TRADE HUT")
+	local hut = Build.into(folder, spec, frame, Wiring.HUT_SCALE)
 	hut.Name = "TradeHut"
 
-	local solid = { collide = true, shadow = true }
-	WorldUtil.block(hut, "Floor", H(0, 0.2, 0), V(14, 0.4, 10), P.wood)
-	WorldUtil.block(hut, "BackWall", H(0, 3.9, 4.7), V(14, 7, 0.6), P.cream, solid)
-	for _, side in { -1, 1 } do
-		WorldUtil.block(hut, "SideWall", H(side * 6.7, 3.9, 0), V(0.6, 7, 10), P.cream, solid)
-		WorldUtil.block(hut, "FrontPost", H(side * 6.8, 3.9, -4.9), V(0.8, 7, 0.8), P.cream, solid)
-		WorldUtil.cylinder(
-			hut,
-			"AwningPost",
-			H(side * 6.5, 3.1, -7.2).Position,
-			0.5,
-			6.2,
-			P.woodDark,
-			{
-				collide = true,
-			}
-		)
+	local counter = hut:FindFirstChild(Wiring.PART.counter)
+	if counter == nil or not counter:IsA("BasePart") then
+		error("the Trade Hut model has no Counter part")
 	end
-	WorldUtil.block(hut, "CounterBody", H(0, 2.1, -4.1), V(14, 3.4, 1.8), P.coral, solid)
-	local counter =
-		WorldUtil.block(hut, "Counter", H(0, 3.95, -4.3), V(14.6, 0.3, 2.6), P.woodLight, {
-			collide = true,
-		})
-	WorldUtil.block(hut, "Roof", H(0, 7.8, 0), V(15.6, 0.8, 11.6), P.teal, { shadow = true })
-
-	-- striped awning over the counter, tilted down towards the customers
-	for i = 0, 7 do
-		local color = if i % 2 == 0 then P.red else P.white
-		WorldUtil.block(
-			hut,
-			"Awning",
-			H(-6.125 + i * 1.75, 6.65, -6.3) * CFrame.Angles(-math.rad(20), 0, 0),
-			V(1.75, 0.3, 3),
-			color,
-			{ shadow = true }
-		)
-	end
-	-- bunting along the roof edge
-	local bunting = { P.red, P.sun, P.cyan, P.pink }
-	for i = 0, 8 do
-		WorldUtil.ball(
-			hut,
-			"Bunting",
-			H(-7 + i * 1.75, 8.5, -5.6).Position,
-			0.7,
-			bunting[i % 4 + 1]
-		)
-	end
-
-	-- the big sign
-	WorldUtil.block(
-		hut,
-		"SignFrame",
-		H(0, 10.7, -4.6),
-		V(12.8, 3.8, 0.4),
-		"#E0752D",
-		{ shadow = true }
-	)
-	local board = WorldUtil.block(
-		hut,
-		"SignBoard",
-		H(0, 10.7, -4.8),
-		V(12, 3.4, 0.6),
-		P.sun,
-		{ shadow = true }
-	)
-	WorldUtil.faceText(board, Enum.NormalId.Front, { text = "TRADE HUT", textColor = "#7A3E12" })
-	for _, side in { -1, 1 } do
-		WorldUtil.block(hut, "SignPost", H(side * 4.5, 8.7, -4.7), V(0.5, 1, 0.5), P.woodDark)
-		WorldUtil.part(hut, {
-			name = "SignCoin",
-			size = V(0.5, 2.8, 2.8),
-			cf = H(side * 7.5, 10.7, -4.8) * CFrame.Angles(0, math.pi / 2, 0),
-			color = P.gold,
-			material = Enum.Material.Neon,
-			shape = Enum.PartType.Cylinder,
-		})
-	end
-
-	-- the shopkeeper blob, peeking over the counter
-	local keeper = H(-2.5, 0, -1.8).Position
-	WorldUtil.ball(hut, "KeeperBody", keeper + V(0, 2.3, 0), 3.4, "#FF9F1C")
-	WorldUtil.ball(hut, "KeeperHead", keeper + V(0, 4.9, 0), 2.4, "#FFE0B2")
-	for _, side in { -1, 1 } do
-		local eye = frame * CFrame.new(-2.5 + side * 0.5, 5.1, -1.8 - 1.1)
-		WorldUtil.ball(hut, "KeeperEye", eye.Position, 0.35, "#2B2230")
-	end
-	WorldUtil.cylinder(hut, "KeeperHat", keeper + V(0, 6.3, 0), 2.2, 0.5, P.teal)
-
-	-- shelf with jars
-	WorldUtil.block(hut, "Shelf", H(0, 4.6, 4.2), V(10, 0.3, 1.2), P.wood)
-	local jars = { P.coral, P.cyan, P.pink, P.sun }
-	for i = 0, 3 do
-		WorldUtil.ball(hut, "Jar", H(-3.6 + i * 2.4, 5.25, 4.2).Position, 0.9, jars[i + 1])
-	end
-
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "SellPrompt"
 	prompt.ActionText = "Sell ash"
@@ -195,10 +105,10 @@ local function buildHut(folder: Folder, hub: WorldPlan.Hub, u: Vector3)
 	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
 	CollectionService:AddTag(prompt, "VSSellPrompt")
 	prompt.Parent = counter
-
-	hut.Parent = folder
 end
 
+-- A Toy Pop signpost facing the spawns, text on both sides, with a glowing arrow over it pointing
+-- inland (towards the gates). Walk-through: it stands between the spawn pads.
 local function buildSignpost(
 	folder: Folder,
 	u: Vector3,
@@ -208,24 +118,12 @@ local function buildSignpost(
 )
 	local origin = V(at.x, 0, at.z)
 	local frame = CFrame.lookAt(origin, origin - u)
-	WorldUtil.cylinder(
-		folder,
-		"SignPole",
-		origin + V(0, 2.8, 0),
-		0.6,
-		5.6,
-		P.woodDark,
-		{ collide = true }
-	)
-	WorldUtil.signBoard(
-		folder,
-		"SignBoard",
-		frame * CFrame.new(0, 4.4, -0.45),
-		V(7, 2.1, 0.35),
-		P.cream,
-		"#D9480F",
-		text
-	)
+	local sign = Build.into(folder, Wiring.kitSpec("Sign", 1, text), frame, 1, false)
+	sign.Name = "Signpost"
+	local board = sign:FindFirstChild(Wiring.PART.signBoard)
+	if board ~= nil and board:IsA("BasePart") then
+		WorldUtil.faceText(board, Enum.NormalId.Back, { text = text, textColor = "#FF4D4D" })
+	end
 	WorldUtil.arrow(folder, frame * CFrame.new(0, 7.2, 0.4), arrowColor)
 end
 

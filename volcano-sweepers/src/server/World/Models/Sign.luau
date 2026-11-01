@@ -1,6 +1,6 @@
 --!strict
 -- Signpost: a board with text on a post. Params: text. 4 to 8 parts. The board is the part named
--- "Board" (text on its Front); anchor "board" is its centre.
+-- "Board" (text on its Front); anchor "board" is its centre in every look.
 
 local Kit = require("./Kit")
 local Styles = require("./Styles")
@@ -30,6 +30,7 @@ function Sign.spec(params: Kit.Params?): Kit.Model
 			p.wall,
 			{ shadow = true, text = text, textColor = p.cloth }
 		)
+		Kit.anchor(m, "board", V(0, 3.3, -0.4))
 		Kit.block(m, "Frame", V(0, 3.3, -0.25), 5.8, 2.3, 0.2, p.roof, {})
 		Kit.block(
 			m,
@@ -63,6 +64,7 @@ function Sign.spec(params: Kit.Params?): Kit.Model
 			p.woodDark,
 			{ mat = "Wood", shadow = true, text = text, textColor = p.gold }
 		)
+		Kit.anchor(m, "board", V(0, 3.9, -0.5))
 		Kit.block(
 			m,
 			"PlankLow",
@@ -97,10 +99,10 @@ function Sign.spec(params: Kit.Params?): Kit.Model
 			p.dark,
 			{ mat = "Slate", shadow = true, text = text, textColor = p.glow, collide = true }
 		)
+		Kit.anchor(m, "board", V(0, 2.5, -0.1))
 		Kit.block(m, "EdgeGlow", V(0, 0.95, -0.4), 4.9, 0.18, 0.18, p.glow, { neon = true })
 		Kit.block(m, "EdgeGlow", V(0, 4.15, -0.4), 4.9, 0.18, 0.18, p.glowAlt, { neon = true })
 	end
-	Kit.anchor(m, "board", V(0, 3.3, -0.5))
 	return m
 end
 

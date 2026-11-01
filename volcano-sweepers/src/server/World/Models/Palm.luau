@@ -1,6 +1,6 @@
 --!strict
--- Beach palm: a leaning trunk and a crown of flat leaves. 12 parts or fewer. Params: v picks the
--- lean direction, height and leaf colours (same v = same palm).
+-- Beach palm: a leaning trunk and a crown of flat leaves. 12 parts (toy and basalt) or 13 (tiki).
+-- Params: v picks the lean direction and height (same v = same palm).
 
 local Kit = require("./Kit")
 local Styles = require("./Styles")
@@ -57,7 +57,7 @@ end
 function Palm.spec(params: Kit.Params?): Kit.Model
 	local opts: Kit.Params = params or {}
 	local style = Styles.get(opts.style)
-	local v = opts.v or 1
+	local v = Kit.variant(opts.v)
 	local m = Kit.new("Palm", style, 8, 8)
 	local p = Styles.pal[style]
 	local ang = Kit.unit(v, 1) * TAU

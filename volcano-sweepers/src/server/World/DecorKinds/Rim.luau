@@ -1,5 +1,6 @@
 --!strict
--- Crater Rim decor: red spires, bone-white ribs, glowing ground cracks (also used in the Lava Heart).
+-- Crater Rim decor: bone-white ribs, glowing ground cracks (also used in the Lava Heart). The spires
+-- are the picked Toy Pop model (DecorKinds/Models).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,28 +14,7 @@ export type Builder = (parent: Instance, it: WorldPlan.Item) -> ()
 local P = U.Palette
 local V = Vector3.new
 
-local SPIRE_TIERS = {
-	{ d = 4.6, h = 4.5, color = "#C23B2D" },
-	{ d = 3.3, h = 3.8, color = "#D9503A" },
-	{ d = 2.0, h = 3.2, color = "#EE6A45" },
-}
-
 local R: { [string]: Builder } = {}
-
-function R.spire(parent: Instance, it: WorldPlan.Item)
-	local s = it.scale
-	local y = 0
-	for i, tier in SPIRE_TIERS do
-		local h = tier.h * s
-		U.cylinder(parent, "Spire", V(it.x, y + h / 2, it.z), tier.d * s, h, tier.color, {
-			material = Enum.Material.Basalt,
-			collide = i <= 2,
-			shadow = true,
-		})
-		y += h
-	end
-	U.ball(parent, "SpireTip", V(it.x, y + 0.3 * s, it.z), 1.4 * s, P.bone)
-end
 
 -- A giant rib: half a ring of bone standing in the ground.
 function R.rib(parent: Instance, it: WorldPlan.Item)

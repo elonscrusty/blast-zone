@@ -1,7 +1,13 @@
 --!strict
 -- The island. World.init() builds everything under ONE folder, workspace.VSWorld (ground, sea,
--- volcano, hub, Trade Hut, gates, Trade Posts, decor) and sets the lighting. The layout comes from the pure
--- Shared/WorldPlan, so it is deterministic from Config.World.seed.
+-- volcano, hub, Trade Hut, gates, Trade Posts, lighthouse, decor) and sets the lighting. The layout
+-- comes from the pure Shared/WorldPlan, so it is deterministic from Config.World.seed. Huts, gates,
+-- the volcano and most scenery are carter's picked Toy models (World/Models, see Models/Wiring).
+--
+-- Build order: the ESSENTIAL parts (ground, the volcano's solid core, hub + spawns + Trade Hut,
+-- gates, Trade Posts, every tag and prompt) are built at once and attached in one go; the volcano
+-- mountain, the lighthouse and the scenery follow in a background task, a chunk per frame, each
+-- model under its own pcall (one broken model warns once and the rest still builds).
 --
 --   World.init()                    build (safe to call again: the old VSWorld is removed first)
 --   World.applyLighting()           bright afternoon look (also called by init)
@@ -11,7 +17,8 @@
 --                                   one per Trade Post in zones 2..5)
 --   World.gatePosition(zoneId)      Vector3? on the ring boundary (nil for zone 1 / unknown)
 --   World.ventPositions             { Vector3 } geyser vents in zones 3..5 (for gem geysers)
---   World.decorReady()              true once the scenery finished building (it builds in a task)
+--   World.decorReady()              true once the volcano and the scenery finished building (they
+--                                   build in a background task)
 --   World.partCount()               number of parts under VSWorld right now (debug / tests in Studio)
 --
 -- Tags: VSSellPad (pad parts), VSSellPrompt (the ProximityPrompt on each counter), VSGate (gate floor
@@ -36,6 +43,8 @@ local Ground = require(script.Parent.Ground)
 local Hub = require(script.Parent.Hub)
 local TradePosts = require(script.Parent.TradePosts)
 local Volcano = require(script.Parent.Volcano)
+
+type Live = { volcano: Volcano.Refs? }
 
 local World = {}
 
@@ -223,7 +232,8 @@ local function rescuePlayers()
 end
 
 -- Gentle glow pulse: sets the "Glow" attribute and nudges the crater light, lava colour and foam.
-local function startPulse(myId: number, root: Folder, ground: Ground.Refs?, volcano: Volcano.Refs?)
+-- The volcano arrives a moment after init (it builds with the scenery), so it is read from `live`.
+local function startPulse(myId: number, root: Folder, ground: Ground.Refs?, live: Live)
 	local lavaA = Color3.fromHex("#FF6A1F")
 	local lavaB = Color3.fromHex("#FFA03A")
 	local started = os.clock()
@@ -232,6 +242,7 @@ local function startPulse(myId: number, root: Folder, ground: Ground.Refs?, volc
 			local t = os.clock() - started
 			local glow = 0.5 + 0.5 * math.sin(t * 0.9)
 			root:SetAttribute("Glow", glow)
+			local volcano = live.volcano
 			if volcano ~= nil then
 				volcano.light.Brightness = 2.5 + 2.5 * glow
 				volcano.lava.Color = lavaA:Lerp(lavaB, glow)
@@ -240,6 +251,24 @@ local function startPulse(myId: number, root: Folder, ground: Ground.Refs?, volc
 				ground.foam.Transparency = 0.1 + 0.25 * (0.5 + 0.5 * math.sin(t * 0.6))
 			end
 			task.wait(0.5)
+		end
+	end)
+end
+
+-- The lighthouse beam turns slowly (10 steps a second: a few hundred bytes a second per player).
+local BEAM_SPEED = 0.35 -- radians per second
+local BEAM_STEP = 0.1 -- seconds
+
+local function startBeam(myId: number, root: Folder, beam: Model)
+	task.spawn(function()
+		while buildId == myId and root.Parent ~= nil and beam.Parent ~= nil do
+			local dt = task.wait(BEAM_STEP)
+			local ok = pcall(function()
+				beam:PivotTo(beam:GetPivot() * CFrame.Angles(0, dt * BEAM_SPEED, 0))
+			end)
+			if not ok then
+				return
+			end
 		end
 	end)
 end
@@ -270,11 +299,12 @@ function World.init()
 	root.Name = "VSWorld"
 	root:SetAttribute("Glow", 0.5)
 
+	-- ===== essentials (one replication burst) =====
 	local ground = stage("ground", function()
 		return Ground.build(root, plan)
 	end)
-	local volcano = stage("volcano", function()
-		return Volcano.build(root, plan)
+	local volcanoFolder = stage("volcano core", function()
+		return Volcano.buildCore(root, plan)
 	end)
 	run("hub", function()
 		Hub.build(root, plan)
@@ -292,15 +322,28 @@ function World.init()
 	root.Parent = Workspace
 	rootFolder = root
 	rescuePlayers()
-	startPulse(myId, root, ground, volcano)
+	local live: Live = {}
+	startPulse(myId, root, ground, live)
 
-	-- scenery builds in the background, a chunk per frame
+	-- ===== the volcano mountain, lighthouse and scenery: in the background, a chunk per frame =====
+	local function alive(): boolean
+		return buildId == myId and root.Parent ~= nil
+	end
 	task.spawn(function()
-		local ok, err = pcall(Decor.build, root, plan, function()
-			return buildId == myId and root.Parent ~= nil
-		end)
-		if not ok then
-			warn(`[World] decor failed: {err}`)
+		task.wait()
+		if alive() then
+			live.volcano = stage("volcano", function()
+				return Volcano.build(volcanoFolder or root, plan)
+			end)
+			task.wait()
+		end
+		if alive() then
+			local ok, err = pcall(Decor.build, root, plan, alive, function(beam: Model)
+				startBeam(myId, root, beam)
+			end)
+			if not ok then
+				warn(`[World] decor failed: {err}`)
+			end
 		end
 		if buildId == myId then
 			decorDone = true

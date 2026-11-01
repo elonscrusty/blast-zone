@@ -13,7 +13,7 @@ local V = Kit.v3
 function Spire.spec(params: Kit.Params?): Kit.Model
 	local opts: Kit.Params = params or {}
 	local style = Styles.get(opts.style)
-	local v = opts.v or 1
+	local v = Kit.variant(opts.v)
 	local m = Kit.new("Spire", style, 4, 4)
 	local p = Styles.pal[style]
 	local tall = 0.85 + Kit.unit(v, 1) * 0.5
@@ -86,37 +86,48 @@ function Spire.spec(params: Kit.Params?): Kit.Model
 		for i, s in shards do
 			local h = s[3] * tall
 			local w = 2.4 - i * 0.3
+			local color = if i == 1 then p.wall else p.wallDark
+			local rot = V(0, 0.4 * i, s[4])
+			local centre = V(s[1], h / 2, s[2])
+			-- a point given in the shard's own frame (centre = 0), put into model space
+			local function at(x: number, y: number, z: number): Kit.V3
+				local o = Kit.turn(rot, V(x, y, z))
+				return V(centre.x + o.x, centre.y + o.y, centre.z + o.z)
+			end
 			Kit.block(
 				m,
 				"Shard",
-				V(s[1], h / 2, s[2]),
+				centre,
 				w,
 				h,
 				w,
-				if i == 1 then p.wall else p.wallDark,
-				{ mat = "Basalt", shadow = true, collide = i == 1, rot = V(0, 0.4 * i, s[4]) }
+				color,
+				{ mat = "Basalt", shadow = true, collide = i == 1, rot = rot }
 			)
-			Kit.gable(
-				m,
-				"ShardTip",
-				s[1],
-				h,
-				s[2],
-				w,
-				w,
-				w * 1.1,
-				if i == 1 then p.wall else p.wallDark,
-				{ mat = "Basalt" }
-			)
+			-- the pointed tip: two wedges on the shard's top face, turned and leaning with the shard
+			local tipH = w * 1.1
+			for _, side in { -1, 1 } do
+				Kit.wedge(
+					m,
+					"ShardTip",
+					at(side * w / 4, h / 2 + tipH / 2, 0),
+					w,
+					tipH,
+					w / 2 + 0.02,
+					color,
+					{ mat = "Basalt", rot = Kit.compose(rot, V(0, -side * math.pi / 2, 0)) }
+				)
+			end
+			-- the glowing vein lies flat on the shard's front face
 			Kit.block(
 				m,
 				"Vein",
-				V(s[1], h * 0.45, s[2] - w / 2 - 0.02),
+				at(0, -0.05 * h, -w / 2 - 0.06),
 				0.28,
 				h * 0.55,
 				0.12,
 				p.glow,
-				{ neon = true, rot = V(0, 0, s[4]) }
+				{ neon = true, rot = rot }
 			)
 		end
 		Kit.block(

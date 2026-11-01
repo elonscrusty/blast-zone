@@ -15,7 +15,13 @@ local TradeHut = require("./TradeHut")
 
 local Registry = {}
 
-local modules = {
+-- What every model file exports.
+type ModelModule = {
+	maxParts: number,
+	spec: (params: Kit.Params?) -> Kit.Model,
+}
+
+local modules: { [string]: ModelModule } = {
 	TradeHut = TradeHut,
 	Gate = Gate,
 	Camp = Camp,

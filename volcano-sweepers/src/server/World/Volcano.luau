@@ -1,17 +1,29 @@
 --!strict
--- The cartoon volcano: stacked tapering cylinders, a glowing crater, lava streaks down the sides,
--- smoke and embers. One tall invisible cylinder (the zone 5 inner radius) stops players walking
--- onto or into the cone. Lava here is DECOR ONLY: no scripts, no touch, never hurts anyone.
+-- The volcano: carter's picked look of Models/BigVolcano (A "Chunky Tiers": toy steps, boulders at
+-- the foot, lava streaks, a glowing crater with smoke and embers), scaled so its whole foot fits
+-- inside the Lava Heart's inner edge (WorldPlan coneRadius, 60 studs on the big island).
+--
+--   Volcano.buildCore(root, plan)   the invisible solid core (radius = coneRadius): ESSENTIAL, built
+--                                   with the ground so nobody can ever walk into the mountain
+--   Volcano.build(folder, plan)     the mountain itself (built later, with the scenery); returns the
+--                                   parts World pulses with the Glow attribute
+--
+-- Lava here is DECOR ONLY: no scripts, no touch, never hurts anyone.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local WorldPlan = require(Shared.WorldPlan)
+
+local Landmarks = require(script.Parent.Models.Landmarks)
+local Wiring = require(script.Parent.Models.Wiring)
 local WorldUtil = require(script.Parent.WorldUtil)
 
 local Volcano = {}
 
 export type Refs = {
+	model: Model,
 	lava: BasePart,
 	glow: BasePart,
 	light: PointLight,
@@ -19,76 +31,64 @@ export type Refs = {
 }
 
 local P = WorldUtil.Palette
+local CORE_MIN_HEIGHT = 90
 
-function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
-	local v = plan.volcano
-	local k = v.scale -- 1 = the first, small island's volcano
+-- The folder "Volcano" with the solid core in it. Taller than the mountain so nobody climbs over.
+function Volcano.buildCore(root: Instance, plan: WorldPlan.Plan): Folder
 	local folder = Instance.new("Folder")
 	folder.Name = "Volcano"
-
-	-- the cone, from the base up
-	for i, tier in v.tiers do
-		WorldUtil.cylinder(
-			folder,
-			`Tier{i}`,
-			Vector3.new(0, tier.y + tier.h / 2, 0),
-			tier.r * 2,
-			tier.h,
-			tier.color,
-			{ material = Enum.Material.Basalt, shadow = true }
-		)
-	end
-
-	-- lava streaks running down the steps (thin glowing slabs hugging each tier's side)
-	for _, s in v.streaks do
-		local tier = v.tiers[s.tier]
-		if tier ~= nil then
-			local dir = Vector3.new(math.cos(s.angle), 0, math.sin(s.angle))
-			local pos = dir * (tier.r + 0.12) + Vector3.new(0, tier.y + tier.h / 2, 0)
-			WorldUtil.block(
-				folder,
-				"LavaStreak",
-				CFrame.lookAt(pos, pos + dir),
-				Vector3.new(1.3 * k, tier.h - 0.4, 0.4),
-				P.lava,
-				{ material = Enum.Material.Neon }
-			)
-		end
-	end
-
-	-- crater rim, lava lake, hot centre
+	local scale = Wiring.volcanoScale(plan.coneRadius)
+	local _, top = Wiring.volcanoBounds(scale)
+	local h = math.max(CORE_MIN_HEIGHT, top + 10)
+	local gy = Config.World.groundY
 	WorldUtil.cylinder(
 		folder,
-		"CraterRim",
-		Vector3.new(0, v.rimY + v.rimH / 2, 0),
-		v.rimR * 2,
-		v.rimH,
-		"#4A2E34",
-		{ material = Enum.Material.Basalt, shadow = true }
+		"ConeCollision",
+		Vector3.new(0, gy + h / 2, 0),
+		(plan.coneRadius - 0.2) * 2,
+		h,
+		"#FFFFFF",
+		{ collide = true, transparency = 1 }
 	)
-	local lava = WorldUtil.disc(folder, "CraterLava", 0, v.topY + 0.1, 0, v.lavaR, 0.5, P.orange, {
-		material = Enum.Material.Neon,
-	})
-	local glow =
-		WorldUtil.disc(folder, "CraterGlow", 0, v.topY + 0.35, 0, v.lavaR * 0.55, 0.2, P.ember, {
-			material = Enum.Material.Neon,
-		})
+	folder.Parent = root
+	return folder
+end
+
+local function partIn(model: Instance, name: string): BasePart?
+	local inst = model:FindFirstChild(name, true)
+	if inst ~= nil and inst:IsA("BasePart") then
+		return inst
+	end
+	return nil
+end
+
+function Volcano.build(folder: Instance, plan: WorldPlan.Plan): Refs?
+	local scale = Wiring.volcanoScale(plan.coneRadius)
+	local origin = CFrame.new(0, Config.World.groundY, 0)
+	local refs =
+		Landmarks.build("volcano", folder, origin, { variant = Wiring.LOOK, scale = scale })
+	if refs == nil then
+		return nil
+	end
+	local model = refs.model
+
+	-- the core from buildCore keeps everyone out; the model's own (smaller) one is not needed
+	local ownCore = model:FindFirstChild(Wiring.PART.cone)
+	if ownCore ~= nil then
+		ownCore:Destroy()
+	end
+
+	local lava = partIn(model, Wiring.PART.craterLava)
+	local glow = partIn(model, Wiring.PART.craterGlow)
+	if lava == nil or glow == nil then
+		warn("[Volcano] the volcano model has no crater lava: the glow will not pulse")
+		return nil
+	end
 	local bubbles: { BasePart } = {}
-	local spots = { Vector3.new(4, 0, 2), Vector3.new(-3, 0, 4), Vector3.new(-1, 0, -5) }
-	for i, off in spots do
-		table.insert(
-			bubbles,
-			WorldUtil.ball(
-				folder,
-				`LavaBubble{i}`,
-				off * k + Vector3.new(0, v.topY + 0.5, 0),
-				(2 + i * 0.4) * k,
-				P.ember,
-				{
-					material = Enum.Material.Neon,
-				}
-			)
-		)
+	for _, part in refs.glow do
+		if part ~= lava and part ~= glow then
+			table.insert(bubbles, part)
+		end
 	end
 
 	local light = Instance.new("PointLight")
@@ -98,59 +98,7 @@ function Volcano.build(root: Instance, plan: WorldPlan.Plan): Refs
 	light.Shadows = false
 	light.Parent = glow
 
-	-- smoke plume and fountain of embers (no textures needed for embers; smoke uses the built-in puff)
-	local smoke = WorldUtil.emitterAnchor(
-		folder,
-		"CraterSmoke",
-		CFrame.new(0, v.topY + 3, 0),
-		Vector3.new(v.lavaR, 1, v.lavaR)
-	)
-	WorldUtil.emitter(smoke, {
-		colorA = "#8A7B84",
-		colorB = "#3C333A",
-		rate = 9,
-		lifeMin = 7,
-		lifeMax = 10,
-		speedMin = 5,
-		speedMax = 9,
-		sizeA = 9 * k,
-		sizeB = 24 * k,
-		spread = 14,
-		accel = Vector3.new(1.2, 0.8, 0),
-		alpha = 0.45,
-		texture = WorldUtil.SMOKE_TEXTURE,
-	})
-	WorldUtil.emitter(lava, {
-		colorA = "#FFC24D",
-		colorB = "#FF4A1F",
-		rate = 12,
-		lifeMin = 2.5,
-		lifeMax = 4,
-		speedMin = 14,
-		speedMax = 26,
-		sizeA = 0.8,
-		sizeB = 0.2,
-		spread = 28,
-		accel = Vector3.new(0, -14, 0),
-		light = 1,
-		alpha = 0,
-		direction = Enum.NormalId.Right, -- the lava disc is rotated: its +X face looks up
-	})
-
-	-- solid core: nobody walks into the volcano (radius = zone 5 inner edge)
-	local coreH = math.max(90, v.topY + 10)
-	WorldUtil.cylinder(
-		folder,
-		"ConeCollision",
-		Vector3.new(0, coreH / 2, 0),
-		(v.baseRadius - 0.2) * 2,
-		coreH,
-		"#FFFFFF",
-		{ collide = true, transparency = 1 }
-	)
-
-	folder.Parent = root
-	return { lava = lava, glow = glow, light = light, bubbles = bubbles }
+	return { model = model, lava = lava, glow = glow, light = light, bubbles = bubbles }
 end
 
 return Volcano

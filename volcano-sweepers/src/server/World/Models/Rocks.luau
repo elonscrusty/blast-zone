@@ -13,7 +13,7 @@ local V = Kit.v3
 function Rocks.spec(params: Kit.Params?): Kit.Model
 	local opts: Kit.Params = params or {}
 	local style = Styles.get(opts.style)
-	local v = opts.v or 1
+	local v = Kit.variant(opts.v)
 	local m = Kit.new("Rocks", style, 3, 3)
 	local p = Styles.pal[style]
 	local u = Kit.unit

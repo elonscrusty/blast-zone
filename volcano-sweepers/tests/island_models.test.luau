@@ -327,3 +327,122 @@ Harness.test("models: one of each model is a small part of the island's part bud
 	-- 3 looks x 8 models: tens of parts each, never thousands
 	Harness.truthy(total <= 8 * 3 * 48, `kit too heavy: {total}`)
 end)
+
+Harness.test("models: mushrooms are deterministic and v picks the cap", function()
+	local function key(m: Kit.Model): string
+		local out: { string } = {}
+		for _, s in m.parts do
+			table.insert(out, `{s.name}{s.x}{s.y}{s.z}{s.sx}{s.color}`)
+		end
+		return table.concat(out, "|")
+	end
+	for _, style in Styles.ids do
+		for _, v in VARIANTS do
+			local a = Registry.spec("Mushroom", { style = style, v = v })
+			local b = Registry.spec("Mushroom", { style = style, v = v })
+			Harness.eq(key(a), key(b), `Mushroom/{style}/{v} not deterministic`)
+		end
+	end
+	-- toy and tiki pick their cap colour from v
+	for _, style in { "toy", "tiki" } do
+		local a = Registry.spec("Mushroom", { style = style, v = 12 })
+		local b = Registry.spec("Mushroom", { style = style, v = 13 })
+		Harness.truthy(key(a) ~= key(b), `Mushroom/{style} ignores v`)
+	end
+end)
+
+Harness.test("models: odd variant numbers are clamped to a whole 1..1000", function()
+	Harness.eq(Kit.variant(nil), 1)
+	Harness.eq(Kit.variant(12.5), 12)
+	Harness.eq(Kit.variant(0), 1)
+	Harness.eq(Kit.variant(-7), 1)
+	Harness.eq(Kit.variant(5000), 1000)
+	Harness.eq(Kit.variant(0 / 0), 1)
+	Harness.eq(Kit.pick({ "a", "b", "c" }, 4.7), "b")
+	Harness.eq(Kit.pick({ "a", "b", "c" }, 4, 0.5), "b")
+	for _, name in Registry.names do
+		for _, style in Styles.ids do
+			for _, v in { 12.5, 0.3, -4, 1e9, 0 / 0 } do
+				local m = Registry.spec(name, { style = style, v = v })
+				for i, s in m.parts do
+					Harness.truthy(
+						type(s.color) == "string",
+						`{name}/{style}/v={v} part {i} has no colour`
+					)
+					for _, n in { s.x, s.y, s.z, s.sx, s.sy, s.sz, s.rx, s.ry, s.rz } do
+						Harness.truthy(finite(n), `{name}/{style}/v={v} part {i}: bad number`)
+					end
+				end
+			end
+			-- a fraction acts like its whole number
+			local a = Registry.spec(name, { style = style, v = 12.5 })
+			local b = Registry.spec(name, { style = style, v = 12 })
+			Harness.eq(#a.parts, #b.parts)
+			for i, s in a.parts do
+				Harness.eq(s.color, b.parts[i].color, `{name}/{style}: v=12.5 differs from v=12`)
+				Harness.eq(s.y, b.parts[i].y, `{name}/{style}: v=12.5 differs from v=12`)
+			end
+		end
+	end
+end)
+
+Harness.test("models: sign board anchor is the board's centre in every look", function()
+	for _, style in Styles.ids do
+		local m = Registry.spec("Sign", { style = style, text = "HI" })
+		local a = m.anchors.board
+		for _, s in m.parts do
+			if s.name == "Board" then
+				Harness.near(a.x, s.x, 1e-9, `{style}: board anchor x`)
+				Harness.near(a.y, s.y, 1e-9, `{style}: board anchor y`)
+				Harness.near(a.z, s.z, 1e-9, `{style}: board anchor z`)
+			end
+		end
+	end
+end)
+
+Harness.test("models: basalt spire tips and veins follow their leaning shards", function()
+	for _, v in VARIANTS do
+		local m = Registry.spec("Spire", { style = "basalt", v = v })
+		local shards: { Kit.Spec } = {}
+		local tips: { Kit.Spec } = {}
+		local veins: { Kit.Spec } = {}
+		for _, s in m.parts do
+			if s.name == "Shard" then
+				table.insert(shards, s)
+			elseif s.name == "ShardTip" then
+				table.insert(tips, s)
+			elseif s.name == "Vein" then
+				table.insert(veins, s)
+			end
+		end
+		Harness.eq(#tips, 2 * #shards)
+		Harness.eq(#veins, #shards)
+		for i, sh in ipairs(shards) do
+			local e = Kit.v3(sh.rx, sh.ry, sh.rz)
+			-- the shard's top centre and its front-face normal, in model space
+			local up = Kit.turn(e, Kit.v3(0, sh.sy / 2, 0))
+			local top = Kit.v3(sh.x + up.x, sh.y + up.y, sh.z + up.z)
+			for k = 1, 2 do
+				local t = tips[(i - 1) * 2 + k]
+				-- the tip's base sits on the top face: its centre is tipH/2 above it along the shard axis
+				local d = Kit.v3(t.x - top.x, t.y - top.y, t.z - top.z)
+				local axis = Kit.turn(e, Kit.v3(0, 1, 0))
+				local along = d.x * axis.x + d.y * axis.y + d.z * axis.z
+				Harness.near(along, t.sy / 2, 1e-6, `v={v} shard {i} tip height`)
+				-- the tip's own up axis is the shard's up axis
+				local tipUp = Kit.turn(Kit.v3(t.rx, t.ry, t.rz), Kit.v3(0, 1, 0))
+				Harness.near(tipUp.x, axis.x, 1e-6, "tip leans with the shard")
+				Harness.near(tipUp.y, axis.y, 1e-6, "tip leans with the shard")
+				Harness.near(tipUp.z, axis.z, 1e-6, "tip leans with the shard")
+			end
+			local vein = veins[i]
+			Harness.eq(vein.ry, sh.ry, "vein turns with its shard")
+			Harness.eq(vein.rz, sh.rz, "vein leans with its shard")
+			-- the vein sits just in front of the shard's front face (local -Z), not inside or far off
+			local inv = Kit.v3(vein.x - sh.x, vein.y - sh.y, vein.z - sh.z)
+			local front = Kit.turn(e, Kit.v3(0, 0, -1))
+			local out = inv.x * front.x + inv.y * front.y + inv.z * front.z
+			Harness.near(out, sh.sz / 2 + 0.06, 1e-6, `v={v} shard {i} vein on the face`)
+		end
+	end
+end)

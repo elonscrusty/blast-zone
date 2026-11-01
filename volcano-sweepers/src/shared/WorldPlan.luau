@@ -70,6 +70,9 @@ export type Rope = { zoneId: number, radius: number, segs: { Seg } }
 
 export type Tier = { r: number, y: number, h: number, color: string }
 export type Streak = { tier: number, angle: number }
+-- The cone's size. The server draws carter's picked BigVolcano model (look A) inside baseRadius and
+-- builds a solid core of that radius; tiers / rim / streaks are the size reference the tests keep
+-- (the first build drew them as the cone).
 export type Volcano = {
 	scale: number, -- 1 = the first, small island's volcano (base radius 30)
 	baseRadius: number,
@@ -83,6 +86,10 @@ export type Volcano = {
 }
 
 export type Vent = { x: number, z: number, zone: number }
+
+-- A zone name sign just inside each gate (zones 2..5), on the side away from the Trade Post.
+-- (ux, uz) points away from the volcano: the board faces that way, towards kids walking in.
+export type SignSpot = { zoneId: number, x: number, z: number, ux: number, uz: number, text: string }
 
 export type Item = {
 	kind: string,
@@ -105,6 +112,7 @@ export type Plan = {
 	wall: { Seg },
 	volcano: Volcano,
 	vents: { Vent },
+	signs: { SignSpot },
 	decor: { Item },
 	counts: { [string]: number },
 	coneRadius: number,
@@ -114,36 +122,46 @@ export type Plan = {
 
 local WorldPlan = {}
 
--- Rough Part count per decor item (the builder makes about this many). Used for the budget test.
+-- Part count per decor item: the most the builder makes for one item. Palms, rocks, mushrooms,
+-- spires and camps are the picked Toy Pop models (server World/Models), pools and lava pools the
+-- picked look A landmarks (their parts + one emitter anchor per effect); tests/world_models checks
+-- every number here against the real model specs. Used for the budget test and the decor chunks.
 WorldPlan.partCost = {
 	palm = 12,
 	shell = 1,
 	umbrella = 5,
-	rock = 2,
+	rock = 3,
 	crab = 3,
 	fern = 5,
-	mushroom = 5,
+	mushroom = 6,
 	trunk = 4,
 	firefly = 1,
-	pool = 2,
+	camp = 27,
+	pool = 27,
 	pinkrock = 2,
-	spire = 4,
+	spire = 8,
 	rib = 4,
 	crack = 1,
-	lavapool = 3,
+	lavapool = 28,
 	shard = 1,
 	ember = 1,
 } :: { [string]: number }
 
 WorldPlan.ventCost = 2
-WorldPlan.hubCost = 130 -- hut, pads, spawns, signs (generous)
-WorldPlan.gateCost = 16
-WorldPlan.postCost = 22 -- pad, counter, posts, roof, sign
+WorldPlan.hubCost = 72 -- 8 spawns + glow, 3 sell pads, the Trade Hut model, 2 signposts
+WorldPlan.gateCost = 23 -- the Toy gate model
+WorldPlan.postCost = 38 -- the Trade Hut model (small), sell pad, flag
+WorldPlan.signCost = 6 -- the Toy sign model
 WorldPlan.GATE_SCALE = 1.5 -- the arches are bigger on the big island (seen from further away)
 WorldPlan.RING_PIECE = 16 -- studs: target length of one coloured ground piece (at the ring middle)
 WorldPlan.ROPE_PIECE = 20 -- studs: target length of one glowing boundary line piece
-WorldPlan.volcanoCost = 60
+WorldPlan.volcanoCost = 88 -- the big volcano model (look A), its smoke and ember anchors, the core
+WorldPlan.landmarkCost = 50 -- the lighthouse (look A) and its little island off the beach
 WorldPlan.extraCost = 25 -- water, foam, colliders, zone 5 disc
+WorldPlan.SIGN_SIDE = 24 -- studs: zone signs stand this far beside the gate line (posts: other side)
+WorldPlan.SIGN_INSET = 8 -- studs: and this far inside the zone's outer edge
+WorldPlan.SIGN_REACH = 7 -- studs: decor keeps this far (plus its own pad) from a zone sign
+WorldPlan.POST_REACH = 16 -- studs: ... and this far from a Trade Post's pad (the stall is behind it)
 
 local TAU = math.pi * 2
 
@@ -209,8 +227,9 @@ local function buildHub(world: World): Hub
 	end
 
 	local pads = { pt(-1, 0), pt(-1, 10.6), pt(-1, -10.6) }
+	-- the Toy Pop Trade Hut model is about 17.2 x 13.6 studs: its footprint, turned to face the pads
 	local hutA = 12
-	local hut: Rect = { name = "hut", a0 = 4.5, a1 = 17, b0 = -7.5, b1 = 7.5 }
+	local hut: Rect = { name = "hut", a0 = 5, a1 = 19, b0 = -9, b1 = 9 }
 	local signpost = pt(-8, 0)
 	local tutorial = pt(-14, 0)
 
@@ -352,6 +371,15 @@ local SPECS: { Spec } = {
 		maxScale = 1.6,
 		free = true,
 	},
+	{
+		kind = "camp",
+		zone = 1,
+		count = 2,
+		bands = { { 0.25, 0.75 } },
+		pad = 11,
+		minScale = 1,
+		maxScale = 1,
+	},
 	-- Fern Forest
 	{
 		kind = "trunk",
@@ -390,13 +418,22 @@ local SPECS: { Spec } = {
 		maxScale = 1,
 		free = true,
 	},
+	{
+		kind = "camp",
+		zone = 2,
+		count = 2,
+		bands = { { 0.25, 0.75 } },
+		pad = 11,
+		minScale = 1,
+		maxScale = 1,
+	},
 	-- Hot Springs
 	{
 		kind = "pool",
 		zone = 3,
 		count = 14,
 		bands = { { 0.14, 0.86 } },
-		pad = 7,
+		pad = 10,
 		minScale = 1.2,
 		maxScale = 1.8,
 	},
@@ -444,7 +481,7 @@ local SPECS: { Spec } = {
 		zone = 5,
 		count = 10,
 		bands = { { 0.19, 0.88 } },
-		pad = 7,
+		pad = 9,
 		minScale = 1.1,
 		maxScale = 1.7,
 	},
@@ -484,6 +521,7 @@ type Ctx = {
 	gates: { Gate },
 	posts: { Post },
 	vents: { Vent },
+	signs: { SignSpot },
 	rings: { [number]: { inner: number, outer: number } }, -- zone id -> its radii
 	boundaries: { number },
 	coneRadius: number,
@@ -517,7 +555,8 @@ local function blocked(ctx: Ctx, x: number, z: number, pad: number): boolean
 	end
 	for _, p in ctx.posts do
 		local dx, dz = x - p.x, z - p.z
-		local pl = p.clearRadius + 2 + pad
+		-- the stall stands behind the pad, a little past the clear circle
+		local pl = math.max(p.clearRadius + 2, WorldPlan.POST_REACH) + pad
 		if dx * dx + dz * dz < pl * pl then
 			return true
 		end
@@ -526,6 +565,13 @@ local function blocked(ctx: Ctx, x: number, z: number, pad: number): boolean
 		local dx, dz = x - v.x, z - v.z
 		local vl = 4 + pad
 		if dx * dx + dz * dz < vl * vl then
+			return true
+		end
+	end
+	for _, s in ctx.signs do
+		local dx, dz = x - s.x, z - s.z
+		local sl = WorldPlan.SIGN_REACH + pad
+		if dx * dx + dz * dz < sl * sl then
 			return true
 		end
 	end
@@ -658,6 +704,32 @@ function WorldPlan.postSpots(world: World): { Post }
 	return out
 end
 
+-- ===== zone signs =====
+
+local function buildSigns(world: World, gates: { Gate }): { SignSpot }
+	local names: { [number]: string } = {}
+	for _, z in world.zones do
+		names[z.id] = z.name
+	end
+	local base = math.rad(world.hub.angleDeg)
+	local out: { SignSpot } = {}
+	for _, g in gates do
+		local r = g.radius - WorldPlan.SIGN_INSET
+		-- the Trade Post stands at +side (WorldPlan.postSpots): the sign goes on the other side
+		local ang = base - WorldPlan.SIGN_SIDE / r
+		local ux, uz = math.cos(ang), math.sin(ang)
+		table.insert(out, {
+			zoneId = g.zoneId,
+			x = r * ux,
+			z = r * uz,
+			ux = ux,
+			uz = uz,
+			text = names[g.zoneId] or "",
+		})
+	end
+	return out
+end
+
 -- ===== the plan =====
 
 function WorldPlan.build(world: World): Plan
@@ -711,6 +783,7 @@ function WorldPlan.build(world: World): Plan
 	local wallRadius = outerRadius + 4
 	local vents = buildVents(world, world.hub.angleDeg)
 	local posts = WorldPlan.postSpots(world)
+	local signs = buildSigns(world, gates)
 	local ringOf: { [number]: { inner: number, outer: number } } = {}
 	for _, z in world.zones do
 		ringOf[z.id] = { inner = z.inner, outer = z.outer }
@@ -721,6 +794,7 @@ function WorldPlan.build(world: World): Plan
 		gates = gates,
 		posts = posts,
 		vents = vents,
+		signs = signs,
 		rings = ringOf,
 		boundaries = boundaries,
 		coneRadius = volcano.baseRadius,
@@ -752,6 +826,7 @@ function WorldPlan.build(world: World): Plan
 		wall = WorldPlan.ringSegments(wallRadius + 2, 52),
 		volcano = volcano,
 		vents = vents,
+		signs = signs,
 		decor = decor,
 		counts = counts,
 		coneRadius = volcano.baseRadius,
@@ -760,11 +835,16 @@ function WorldPlan.build(world: World): Plan
 	}
 end
 
--- Estimated total Part count of the finished world (decor + ground + hub + gates + volcano).
+-- Estimated total Part count of the finished world (ground, hub, gates, posts, volcano, lighthouse,
+-- signs, vents and decor). The Toy model numbers are checked against the specs by tests/world_models.
 function WorldPlan.estimateParts(plan: Plan): number
-	local total = WorldPlan.extraCost + WorldPlan.hubCost + WorldPlan.volcanoCost
+	local total = WorldPlan.extraCost
+		+ WorldPlan.hubCost
+		+ WorldPlan.volcanoCost
+		+ WorldPlan.landmarkCost
 	total += #plan.gates * WorldPlan.gateCost
 	total += #plan.posts * WorldPlan.postCost
+	total += #plan.signs * WorldPlan.signCost
 	total += #plan.vents * WorldPlan.ventCost
 	total += #plan.wall
 	for _, ring in plan.rings do
@@ -773,7 +853,6 @@ function WorldPlan.estimateParts(plan: Plan): number
 	for _, rope in plan.ropes do
 		total += #rope.segs
 	end
-	total += #plan.volcano.streaks
 	for _, item in plan.decor do
 		total += WorldPlan.partCost[item.kind] or 1
 	end

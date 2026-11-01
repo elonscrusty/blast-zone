@@ -231,6 +231,40 @@ function Kit.upEuler(dir: V3): V3
 	return Kit.v3(0, math.atan2(dz, -dx), tilt)
 end
 
+-- Euler XYZ -> matrix (Rx * Ry * Rz, like CFrame.Angles).
+local function fromEuler(e: V3): Mat
+	local ca, sa = math.cos(e.x), math.sin(e.x)
+	local cb, sb = math.cos(e.y), math.sin(e.y)
+	local cc, sc = math.cos(e.z), math.sin(e.z)
+	return {
+		cb * cc,
+		-cb * sc,
+		sb,
+		ca * sc + sa * sb * cc,
+		ca * cc - sa * sb * sc,
+		-sa * cb,
+		sa * sc - ca * sb * cc,
+		sa * cc + ca * sb * sc,
+		ca * cb,
+	}
+end
+
+-- Turn the vector p by the Euler rotation e (like CFrame.Angles(e.x, e.y, e.z) * p).
+function Kit.turn(e: V3, p: V3): V3
+	local r = fromEuler(e)
+	return Kit.v3(
+		r[1] * p.x + r[2] * p.y + r[3] * p.z,
+		r[4] * p.x + r[5] * p.y + r[6] * p.z,
+		r[7] * p.x + r[8] * p.y + r[9] * p.z
+	)
+end
+
+-- The Euler rotation of "first turn by `inner`, then by `outer`" (CFrame.Angles(outer) *
+-- CFrame.Angles(inner)): puts a part that is rotated inside another part's frame into model space.
+function Kit.compose(outer: V3, inner: V3): V3
+	return toEuler(mul(fromEuler(outer), fromEuler(inner)))
+end
+
 local function withRot(o: Opts?, rot: V3): Opts
 	local out: Opts = {}
 	if o then
@@ -389,9 +423,19 @@ function Kit.bounds(m: Model): Bounds
 	return out
 end
 
+-- The variant number every spec uses: a whole number 1..1000. Anything else (nil, 12.5, 0, -3,
+-- 5000, NaN) is turned into one, so a list pick can never land between two entries and return nil.
+function Kit.variant(v: number?): number
+	if v == nil or v ~= v then
+		return 1
+	end
+	return math.clamp(math.floor(v), 1, 1000)
+end
+
 -- Tiny deterministic pick from a 1..1000 variant number (no Random object needed).
 function Kit.pick<T>(list: { T }, v: number, salt: number?): T
-	return list[((v + (salt or 0)) % #list) + 1]
+	local i = math.floor(Kit.variant(v) + math.floor(salt or 0))
+	return list[(i % #list) + 1]
 end
 
 -- 0..1 from a variant number and a salt (same inputs, same output, on every server).

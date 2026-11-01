@@ -4,6 +4,7 @@
 -- cannot be touched, and only the parts a model marks `collide` are solid.
 --
 --   local hut = Build.into(folder, Registry.spec("TradeHut", { style = "toy" }), CFrame.new(x, 0, z))
+--   Build.into(folder, Registry.spec("Mushroom", { v = 12 }), cf, 1.5, false)  -- walk-through
 --   local sellAt = Build.anchorPoint(spec, "sell", origin)   -- Vector3 for a prompt / sign
 
 local WorldUtil = require(script.Parent.Parent.WorldUtil)
@@ -13,7 +14,7 @@ local Build = {}
 
 local function material(name: string): Enum.Material
 	local ok, item = pcall(function()
-		return (Enum.Material :: any):FromName(name)
+		return (Enum.Material :: any)[name]
 	end)
 	if ok and item ~= nil then
 		return item :: Enum.Material
@@ -21,9 +22,18 @@ local function material(name: string): Enum.Material
 	return Enum.Material.SmoothPlastic
 end
 
--- `scale` stretches the whole model (positions and sizes) around its origin. Parent is set LAST.
-function Build.into(parent: Instance, model: Kit.Model, origin: CFrame, scale: number?): Model
+-- `scale` stretches the whole model (positions and sizes) around its origin. `solid = false` makes
+-- every part walk-through (small props); otherwise only the parts the spec marks `collide` are
+-- solid. Parent is set LAST.
+function Build.into(
+	parent: Instance,
+	model: Kit.Model,
+	origin: CFrame,
+	scale: number?,
+	solid: boolean?
+): Model
 	local k = scale or 1
+	local mayCollide = solid ~= false
 	local holder = Instance.new("Model")
 	holder.Name = model.name
 	for _, s in model.parts do
@@ -46,7 +56,7 @@ function Build.into(parent: Instance, model: Kit.Model, origin: CFrame, scale: n
 			material = material(s.mat),
 			shape = shape,
 			transparency = s.alpha,
-			collide = s.collide,
+			collide = mayCollide and s.collide,
 			shadow = s.shadow,
 			wedge = s.kind == "wedge",
 		})
